@@ -2349,3 +2349,47 @@ body {
   font-size: 0.78rem;
   color: #cbd5e1;
 }
+
+
+/* ==========================================
+   後手番プレイヤー視点の自動盤面反転 (180deg)
+   常に手前が自陣、奥が敵陣で直感的に操作可能！
+   ========================================== */
+.board-wrapper.flip-board {
+  transform: rotate(180deg);
+}
+
+/* ラベルの文字のみ180度カウンター回転して正立表示 */
+.board-wrapper.flip-board .col-labels span,
+.board-wrapper.flip-board .row-labels span {
+  transform: rotate(180deg);
+  display: inline-block;
+}
+
+/* プレイヤーバーの上下反転（手前が自分＝後手、奥が相手＝先手） */
+.main-layout.flip-players {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-layout.flip-players #card-sente {
+  order: 1; /* 相手（先手）を上部に配置 */
+}
+.main-layout.flip-players .status-banner {
+  order: 2;
+}
+.main-layout.flip-players .enemy-evo-toast {
+  order: 3;
+}
+.main-layout.flip-players .board-section {
+  order: 4;
+}
+.main-layout.flip-players #card-gote {
+  order: 5; /* 自分（後手）を手前に配置 */
+}
+.main-layout.flip-players .evolution-dock {
+  order: 6;
+}
+.main-layout.flip-players .log-ticker-bar {
+  order: 7;
+}

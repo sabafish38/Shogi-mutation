@@ -1477,11 +1477,18 @@ function endGame(winner, reasonText) {
   const rankUpBanner = document.getElementById('rank-up-banner');
   const rankBountyEl = document.getElementById('rank-bounty-bonus-desc');
 
-  if (state.mode === 'rank') {
+  const isRanked = (state.mode === 'rank' || state.mode === 'online');
+  if (isRanked) {
     const isWin = (winner === state.playerSide);
     const oldRating = userProfile.rating;
     const oldRank = getRankInfo(oldRating).title;
-    const isBounty = state.rankOpponent && state.rankOpponent.isBounty;
+    const isBounty = (state.mode === 'rank' && state.rankOpponent && state.rankOpponent.isBounty);
+    const isOnline = (state.mode === 'online');
+
+    const resultBadgeEl = document.getElementById('rank-result-badge');
+    if (resultBadgeEl) {
+      resultBadgeEl.textContent = isOnline ? '🌐 オンライン対戦結果' : '🏆 ランクマッチ結果';
+    }
 
     let delta = 0;
     if (isWin) {
@@ -2098,6 +2105,18 @@ function cpuExecuteInstantEvolution(killerPiece, points) {
 // ==========================================
 
 function renderAll() {
+  // 後手番プレイヤー時は盤面＆手前・奥のプレイヤー配置を自動反転
+  const boardWrapper = document.querySelector('.board-wrapper');
+  const mainLayout = document.querySelector('.main-layout');
+  const isGotePlayer = (state.playerSide === 'gote');
+
+  if (boardWrapper) {
+    boardWrapper.classList.toggle('flip-board', isGotePlayer);
+  }
+  if (mainLayout) {
+    mainLayout.classList.toggle('flip-players', isGotePlayer);
+  }
+
   renderBoard();
   renderStatsAndStatus();
   renderEvolutionBox();

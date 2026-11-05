@@ -7,6 +7,8 @@
   <meta name="description" content="将棋の駒が持つ動けるマス数をポイント化し、倒した敵のポイントで駒を自由に進化させる新感覚ブラウザ将棋ゲーム『無法将棋』。登録不要・スマホ完全対応・PCブラウザですぐにCPU対戦可能！">
   <meta name="keywords" content="無法将棋, 将棋, Webゲーム, ブラウザゲーム, 無料ゲーム, pop-ghost, 突然変異将棋, インディーゲーム">
   <link rel="canonical" href="https://shogi.pop-ghost.com/">
+  <!-- 自動HTTPS昇格（保護されていない通信の警告防止） -->
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 
   <!-- OGP / SNS Meta Tags -->
   <meta property="og:title" content="無法将棋 (SHOGI: MUTATION) - 駒を進化させて戦う新感覚Web将棋ゲーム">
@@ -30,7 +32,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <div class="app-container">
@@ -715,8 +717,8 @@
 
   <!-- ゲームスクリプト群 -->
   <script src="firebase-config.js"></script>
-  <script src="online.js?v=4"></script>
-  <script src="game.js?v=4"></script>
+  <script src="online.js?v=5"></script>
+  <script src="game.js?v=5"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
