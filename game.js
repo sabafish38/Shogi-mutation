@@ -3177,3 +3177,23 @@ if (btnSaveFbConfig) {
     document.getElementById('modal-firebase-setup').classList.add('hidden');
   });
 }
+
+const btnCopyFriendLink = document.getElementById('btn-copy-friend-link');
+if (btnCopyFriendLink) {
+  btnCopyFriendLink.addEventListener('click', () => {
+    const codeEl = document.getElementById('friend-room-code-display');
+    const code = codeEl ? codeEl.textContent.trim() : '';
+    if (code && code !== '----') {
+      const inviteUrl = `https://shogi.pop-ghost.com/?room=${code}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(inviteUrl).then(() => {
+          alert(`招待リンクをコピーしました！友達に送信してください:\n${inviteUrl}`);
+        }).catch(() => {
+          prompt('招待リンクをコピーしてください:', inviteUrl);
+        });
+      } else {
+        prompt('招待リンクをコピーしてください:', inviteUrl);
+      }
+    }
+  });
+}

@@ -679,6 +679,7 @@
         <h2>対局室を作成しました！</h2>
         <p class="friend-code-desc">友達に以下の「合言葉（4桁）」を教えてください</p>
         <div class="friend-room-code-badge" id="friend-room-code-display">----</div>
+        <button id="btn-copy-friend-link" class="btn btn-aux" style="margin-bottom:12px;width:100%" type="button">📋 招待リンクをコピー</button>
         <div class="matchmaking-spinner"></div>
         <p class="matchmaking-status-text">友達の入室を待機しています...</p>
         <button id="btn-cancel-friend-waiting" class="btn btn-secondary btn-full">
@@ -739,6 +740,9 @@
       </div>
     </div>
   </div>
+
+  <!-- P2P WebRTC / PeerJS (設定不要・即日オンライン対戦) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
