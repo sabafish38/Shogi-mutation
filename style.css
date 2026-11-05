@@ -578,6 +578,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.mini-kanji.gote {
+  transform: rotate(180deg);
+  background: linear-gradient(180deg, #fff1f2, #f3c69f);
+  color: #1c1309;
 }
 
 .mini-details {
@@ -677,6 +684,12 @@ body {
   font-weight: 700;
   color: var(--text-muted);
   letter-spacing: 0.06em;
+  transition: color 0.15s ease;
+}
+
+.matrix-direction-hint.gote-dir,
+.matrix-direction-hint.gote-hint {
+  color: #f87171;
 }
 
 .move-matrix {
@@ -712,6 +725,14 @@ body {
   font-size: 0.95rem;
   font-weight: 900;
   border: 1.5px solid #f59e0b;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.matrix-cell.center-self.gote {
+  transform: rotate(180deg);
+  background: linear-gradient(180deg, #fff1f2, #f3c69f);
+  border-color: #f87171;
+  color: #1c1309;
 }
 
 .matrix-cell.has-step {

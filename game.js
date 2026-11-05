@@ -845,10 +845,11 @@ function getDirectionDescription(piece, dx, dy, isRay) {
   const sign = piece.owner === 'sente' ? 1 : -1;
   const boardDx = dx * sign;
   const boardDy = dy * sign;
+  const isGote = piece.owner === 'gote';
 
   if (isRay) {
-    if (boardDx === 0 && boardDy > 0) return '⬇️ 前方直進無限（手前ビーム：香車化！∞）';
-    if (boardDx === 0 && boardDy < 0) return '⬆️ 後方直進無限（後方退路ビーム！∞）';
+    if (boardDx === 0 && boardDy > 0) return isGote ? '⬇️ 手前直進無限（前進ビーム！∞）' : '⬇️ 手前直進無限（後退ビーム！∞）';
+    if (boardDx === 0 && boardDy < 0) return isGote ? '⬆️ 奥直進無限（後退ビーム！∞）' : '⬆️ 奥直進無限（前進ビーム・香車化！∞）';
     if (boardDx < 0 && boardDy === 0) return '⬅️ 左横直進無限（左ビーム！∞）';
     if (boardDx > 0 && boardDy === 0) return '➡️ 右横直進無限（右ビーム！∞）';
     if (boardDx < 0 && boardDy > 0) return '↙️ 手前左斜め直進無限（斜めビーム！∞）';
@@ -861,18 +862,18 @@ function getDirectionDescription(piece, dx, dy, isRay) {
   // ステップ移動 (1マスまたは2マス)
   const ring = Math.max(Math.abs(boardDx), Math.abs(boardDy));
   if (ring === 1) {
-    if (boardDx === 0 && boardDy > 0) return '⬇️ 手前1マス（前進）';
+    if (boardDx === 0 && boardDy > 0) return isGote ? '⬇️ 手前1マス（前進）' : '⬇️ 手前1マス（引く手・後退）';
+    if (boardDx === 0 && boardDy < 0) return isGote ? '⬆️ 奥1マス（引く手・後退）' : '⬆️ 奥1マス（前進）';
     if (boardDx < 0 && boardDy > 0) return '↙️ 手前左斜め1マス';
     if (boardDx > 0 && boardDy > 0) return '↘️ 手前右斜め1マス';
     if (boardDx < 0 && boardDy === 0) return '⬅️ 左横1マス';
     if (boardDx > 0 && boardDy === 0) return '➡️ 右横1マス';
-    if (boardDx === 0 && boardDy < 0) return '⬆️ 奥1マス（後退・引く手）';
-    if (boardDx < 0 && boardDy < 0) return '↖️ 奥左斜め1マス（後退）';
-    if (boardDx > 0 && boardDy < 0) return '↗️ 奥右斜め1マス（後退）';
+    if (boardDx < 0 && boardDy < 0) return '↖️ 奥左斜め1マス';
+    if (boardDx > 0 && boardDy < 0) return '↗️ 奥右斜め1マス';
   } else if (ring === 2) {
     // 2マス直進
-    if (boardDx === 0 && boardDy === 2) return '⬇️ 手前2マス直進（2歩跳び）';
-    if (boardDx === 0 && boardDy === -2) return '⬆️ 奥2マス直進';
+    if (boardDx === 0 && boardDy === 2) return isGote ? '⬇️ 手前2マス直進（2歩跳び）' : '⬇️ 手前2マス直進（後退）';
+    if (boardDx === 0 && boardDy === -2) return isGote ? '⬆️ 奥2マス直進（後退）' : '⬆️ 奥2マス直進（2歩跳び）';
     if (boardDx === -2 && boardDy === 0) return '⬅️ 左2マス直進';
     if (boardDx === 2 && boardDy === 0) return '➡️ 右2マス直進';
     if (boardDx === -2 && boardDy === 2) return '↙️ 手前左斜め2マス跳び';
@@ -1960,13 +1961,23 @@ function renderEvolutionBox() {
 function renderInspector() {
   const piece = state.inspectedPiece;
   elMoveMatrix.innerHTML = '';
+  const elDirHint = document.getElementById('matrix-direction-hint');
+  const elDirHintBottom = document.getElementById('matrix-direction-hint-bottom');
 
   if (!piece) {
     elInspKanji.textContent = '？';
+    elInspKanji.classList.remove('gote');
     elInspName.textContent = '駒を選択してください';
     elInspPoints.textContent = '持ちポイント: - pt';
     elInspTier.textContent = '状態: -';
     elInspOwnerBadge.classList.add('hidden');
+    if (elDirHint) {
+      elDirHint.textContent = '▲ 進行方向 ▲';
+      elDirHint.classList.remove('gote-dir');
+    }
+    if (elDirHintBottom) {
+      elDirHintBottom.classList.add('hidden');
+    }
     return;
   }
 
@@ -1978,6 +1989,7 @@ function renderInspector() {
   const isOpponent = piece.owner !== state.turn;
 
   elInspKanji.textContent = getPieceDisplayLabel(piece, true);
+  elInspKanji.classList.toggle('gote', isGote);
   elInspName.textContent = `元駒: ${piece.name}（初期 ${piece.basePt}pt）`;
   elInspPoints.textContent = `現在の持ちポイント: ${totalPt} pt ${addedPt > 0 ? `(進化 +${addedPt}pt)` : ''}`;
   if (piece.type === 'ou') {
@@ -1991,6 +2003,25 @@ function renderInspector() {
   elInspOwnerBadge.classList.remove('hidden', 'sente-badge', 'gote-badge');
   elInspOwnerBadge.classList.add(piece.owner === 'sente' ? 'sente-badge' : 'gote-badge');
   elInspOwnerBadge.textContent = piece.owner === 'sente' ? '☗ 先手' : '☖ 後手';
+
+  // 進行方向ヒントの向きを更新（相手駒・後手なら手前向き▼、先手なら奥向き▲）
+  if (elDirHint) {
+    if (isGote) {
+      elDirHint.textContent = '▼ 進行方向（手前・自陣向き）▼';
+      elDirHint.classList.add('gote-dir');
+    } else {
+      elDirHint.textContent = '▲ 進行方向（奥・敵陣向き）▲';
+      elDirHint.classList.remove('gote-dir');
+    }
+  }
+  if (elDirHintBottom) {
+    if (isGote) {
+      elDirHintBottom.textContent = '▼ 進行方向 ▼';
+      elDirHintBottom.classList.remove('hidden');
+    } else {
+      elDirHintBottom.classList.add('hidden');
+    }
+  }
 
   const isEditable =
     (state.phase === 'play' || state.phase === 'instant_evo') &&
@@ -2010,6 +2041,9 @@ function renderInspector() {
 
       if (dx === 0 && dy === 0) {
         mCell.classList.add('center-self');
+        if (isGote) {
+          mCell.classList.add('gote');
+        }
         mCell.textContent = getPieceDisplayLabel(piece, true);
       } else {
         // 相手駒（後手）の場合は盤面の実際の攻撃向きに合わせて上下・左右を反転表示
