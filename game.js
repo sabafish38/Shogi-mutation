@@ -3144,39 +3144,7 @@ if (btnOnlineJoinFriend) {
   });
 }
 
-const btnOpenFbSetup = document.getElementById('btn-open-firebase-setup');
-if (btnOpenFbSetup) {
-  btnOpenFbSetup.addEventListener('click', () => {
-    openFirebaseSetupModal();
-  });
-}
 
-const btnCloseFbSetup = document.getElementById('btn-close-fb-setup');
-if (btnCloseFbSetup) {
-  btnCloseFbSetup.addEventListener('click', () => {
-    document.getElementById('modal-firebase-setup').classList.add('hidden');
-  });
-}
-
-const btnSaveFbConfig = document.getElementById('btn-save-fb-config');
-if (btnSaveFbConfig) {
-  btnSaveFbConfig.addEventListener('click', () => {
-    const apiKey = (document.getElementById('fb-input-apiKey').value || '').trim();
-    const databaseURL = (document.getElementById('fb-input-databaseURL').value || '').trim();
-    const projectId = (document.getElementById('fb-input-projectId').value || '').trim();
-    const appId = (document.getElementById('fb-input-appId').value || '').trim();
-
-    if (!apiKey || !databaseURL) {
-      alert('API Key と Database URL は必須項目です。');
-      return;
-    }
-
-    const cfg = { apiKey, databaseURL, projectId, appId };
-    saveFirebaseConfig(cfg);
-    alert('Firebase設定を保存しました！オンライン対戦を開始できます。');
-    document.getElementById('modal-firebase-setup').classList.add('hidden');
-  });
-}
 
 const btnCopyFriendLink = document.getElementById('btn-copy-friend-link');
 if (btnCopyFriendLink) {

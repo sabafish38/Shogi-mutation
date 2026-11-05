@@ -652,11 +652,7 @@
             </div>
           </div>
 
-          <div class="online-footer-setting">
-            <button id="btn-open-firebase-setup" class="btn-text-setting">
-              ⚙️ Firebase接続設定（初期設定・接続先変更）
-            </button>
-          </div>
+          
         </div>
       </div>
     </div>
@@ -688,38 +684,7 @@
       </div>
     </div>
 
-    <!-- Firebase設定モーダル -->
-    <div id="modal-firebase-setup" class="modal-overlay hidden">
-      <div class="modal-card select-modal-card">
-        <div class="modal-header">
-          <h2>⚙️ Firebase オンライン接続設定</h2>
-          <button id="btn-close-fb-setup" class="btn-close">✕</button>
-        </div>
-        <div class="modal-body">
-          <p class="modal-subtitle">Google Firebaseの無料プロジェクトキーを登録して、完全無料で世界中のプレイヤーと対戦できます。</p>
-          
-          <div class="setting-item">
-            <label for="fb-input-apiKey">API Key:</label>
-            <input type="text" id="fb-input-apiKey" class="styled-input" placeholder="AIzaSy...">
-          </div>
-          <div class="setting-item">
-            <label for="fb-input-databaseURL">Database URL (Realtime DB):</label>
-            <input type="text" id="fb-input-databaseURL" class="styled-input" placeholder="https://xxx-default-rtdb.firebaseio.com">
-          </div>
-          <div class="setting-item">
-            <label for="fb-input-projectId">Project ID:</label>
-            <input type="text" id="fb-input-projectId" class="styled-input" placeholder="shogi-mutation-xxx">
-          </div>
-          <div class="setting-item">
-            <label for="fb-input-appId">App ID (任意):</label>
-            <input type="text" id="fb-input-appId" class="styled-input" placeholder="1:xxx:web:xxx">
-          </div>
-
-          <div class="setting-actions">
-            <button id="btn-save-fb-config" class="btn btn-primary btn-full btn-lg">設定を保存して接続</button>
-          </div>
-        </div>
-      </div>
+    
     </div>
 
     <!-- 王手バナー（画面全体・一時的演出） -->
@@ -750,8 +715,8 @@
 
   <!-- ゲームスクリプト群 -->
   <script src="firebase-config.js"></script>
-  <script src="online.js"></script>
-  <script src="game.js"></script>
+  <script src="online.js?v=3"></script>
+  <script src="game.js?v=3"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

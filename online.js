@@ -395,10 +395,7 @@ function hideFriendModal() {
   if (modalSelect) modalSelect.classList.add('hidden');
 }
 
-function openFirebaseSetupModal() {
-  const modal = document.getElementById('modal-firebase-setup');
-  if (modal) modal.classList.remove('hidden');
-}
+
 
 // URLパラメータに ?room=1234 があれば自動で入室
 window.addEventListener('DOMContentLoaded', () => {
