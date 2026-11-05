@@ -83,6 +83,19 @@
 
       <!-- ゲームモード選択リスト -->
       <div class="entrance-modes">
+        <!-- オンライン対戦 -->
+        <button id="btn-mode-online" class="mode-card mode-online" type="button">
+          <div class="mode-icon-box">🌐</div>
+          <div class="mode-info">
+            <div class="mode-heading">
+              <span class="mode-name">オンライン対戦</span>
+              <span class="mode-tag tag-online">全国 ＆ フレンド対戦</span>
+            </div>
+            <p class="mode-desc">世界中のプレイヤーとリアルタイム対局！合言葉で友達招待も可能</p>
+          </div>
+          <div class="mode-arrow">▶</div>
+        </button>
+
         <!-- ランクマッチ -->
         <button id="btn-mode-rank" class="mode-card mode-rank" type="button">
           <div class="mode-icon-box">🏆</div>
@@ -604,6 +617,110 @@
       </div>
     </div>
 
+    <!-- オンライン対戦選択モーダル -->
+    <div id="modal-online-select" class="modal-overlay hidden">
+      <div class="modal-card select-modal-card">
+        <div class="modal-header">
+          <h2>🌐 オンライン対戦</h2>
+          <button id="btn-close-online-modal" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">全国のプレイヤーとリアルタイム対局！</p>
+          
+          <div class="online-modes-grid">
+            <!-- クイックマッチ -->
+            <button id="btn-online-quick" class="online-choice-btn btn-primary" type="button">
+              <span class="choice-icon">⚡</span>
+              <span class="choice-title">全国ランダムマッチ</span>
+              <span class="choice-sub">今すぐ誰かと対局を開始</span>
+            </button>
+
+            <!-- 合言葉で部屋作成 -->
+            <button id="btn-online-create-friend" class="online-choice-btn btn-secondary" type="button">
+              <span class="choice-icon">🔑</span>
+              <span class="choice-title">合言葉で部屋を作る</span>
+              <span class="choice-sub">友達に対局番号を教えて対戦</span>
+            </button>
+
+            <!-- 合言葉で参加 -->
+            <div class="join-room-box">
+              <label for="input-room-code" class="join-label">友達の部屋に入る（4桁）:</label>
+              <div class="join-input-wrap">
+                <input type="number" id="input-room-code" class="styled-input" placeholder="例: 1234" maxlength="4">
+                <button id="btn-online-join-friend" class="btn btn-accent">入室</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="online-footer-setting">
+            <button id="btn-open-firebase-setup" class="btn-text-setting">
+              ⚙️ Firebase接続設定（初期設定・接続先変更）
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- マッチング待機オーバーレイ -->
+    <div id="matchmaking-overlay" class="modal-overlay hidden">
+      <div class="modal-card matchmaking-card">
+        <div class="matchmaking-spinner"></div>
+        <h3 id="matchmaking-status-text">全国の対戦相手を探しています...</h3>
+        <p class="matchmaking-timer">経過時間: <span id="matchmaking-timer-sec">0秒</span></p>
+        <button id="btn-cancel-matchmaking" class="btn btn-secondary btn-full">
+          マッチングをキャンセル
+        </button>
+      </div>
+    </div>
+
+    <!-- フレンド部屋 待機モーダル -->
+    <div id="modal-friend-waiting" class="modal-overlay hidden">
+      <div class="modal-card matchmaking-card">
+        <h2>対局室を作成しました！</h2>
+        <p class="friend-code-desc">友達に以下の「合言葉（4桁）」を教えてください</p>
+        <div class="friend-room-code-badge" id="friend-room-code-display">----</div>
+        <div class="matchmaking-spinner"></div>
+        <p class="matchmaking-status-text">友達の入室を待機しています...</p>
+        <button id="btn-cancel-friend-waiting" class="btn btn-secondary btn-full">
+          対局室を閉じる
+        </button>
+      </div>
+    </div>
+
+    <!-- Firebase設定モーダル -->
+    <div id="modal-firebase-setup" class="modal-overlay hidden">
+      <div class="modal-card select-modal-card">
+        <div class="modal-header">
+          <h2>⚙️ Firebase オンライン接続設定</h2>
+          <button id="btn-close-fb-setup" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">Google Firebaseの無料プロジェクトキーを登録して、完全無料で世界中のプレイヤーと対戦できます。</p>
+          
+          <div class="setting-item">
+            <label for="fb-input-apiKey">API Key:</label>
+            <input type="text" id="fb-input-apiKey" class="styled-input" placeholder="AIzaSy...">
+          </div>
+          <div class="setting-item">
+            <label for="fb-input-databaseURL">Database URL (Realtime DB):</label>
+            <input type="text" id="fb-input-databaseURL" class="styled-input" placeholder="https://xxx-default-rtdb.firebaseio.com">
+          </div>
+          <div class="setting-item">
+            <label for="fb-input-projectId">Project ID:</label>
+            <input type="text" id="fb-input-projectId" class="styled-input" placeholder="shogi-mutation-xxx">
+          </div>
+          <div class="setting-item">
+            <label for="fb-input-appId">App ID (任意):</label>
+            <input type="text" id="fb-input-appId" class="styled-input" placeholder="1:xxx:web:xxx">
+          </div>
+
+          <div class="setting-actions">
+            <button id="btn-save-fb-config" class="btn btn-primary btn-full btn-lg">設定を保存して接続</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 王手バナー（画面全体・一時的演出） -->
     <div id="check-banner" class="check-banner-overlay hidden">
       <div class="check-banner-content">
@@ -623,6 +740,13 @@
     </div>
   </div>
 
+  <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+  <!-- ゲームスクリプト群 -->
+  <script src="firebase-config.js"></script>
+  <script src="online.js"></script>
   <script src="game.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

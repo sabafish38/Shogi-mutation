@@ -580,6 +580,18 @@ function updatePlayerNames() {
       senteNameEl.textContent = oppLabel;
       goteNameEl.textContent = playerLabel;
     }
+  } else if (state.mode === 'online') {
+    const opp = state.onlineOpponent || { name: '通信相手', rank: '初段', rating: 1200 };
+    const pRank = getRankInfo(userProfile.rating).title;
+    const playerLabel = `あなた (${pRank} R${userProfile.rating})`;
+    const oppLabel = `${opp.name || '通信相手'} (${opp.rank || '初段'} R${opp.rating || 1200})`;
+    if (state.playerSide === 'sente') {
+      senteNameEl.textContent = playerLabel;
+      goteNameEl.textContent = oppLabel;
+    } else {
+      senteNameEl.textContent = oppLabel;
+      goteNameEl.textContent = playerLabel;
+    }
   } else {
     const cpuLabel = state.mode === 'cpu-hard' ? 'CPU (強敵)' : state.mode === 'cpu-easy' ? 'CPU (入門)' : 'CPU (標準)';
     if (state.playerSide === 'sente') {
@@ -938,12 +950,17 @@ function onCellClick(r, c) {
 }
 
 // 【アクションA：駒を動かす】の実行
-function executeMove(fromR, fromC, toR, toC) {
+function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
   hideEnemyEvolutionNotification();
   saveHistory();
 
   const movingPiece = state.board[fromR][fromC];
   const targetPiece = state.board[toR][toC];
+
+  // オンライン対局時の指し手送信
+  if (syncOnline && state.mode === 'online' && state.turn === state.playerSide && typeof sendOnlineMoveAction === 'function') {
+    sendOnlineMoveAction(fromR, fromC, toR, toC, targetPiece);
+  }
 
   state.board[toR][toC] = movingPiece;
   state.board[fromR][fromC] = null;
@@ -1286,6 +1303,28 @@ function confirmEvolutionTurn() {
       }
       state.pendingOpponentEvoNotification = evoReports;
     }
+
+    // オンライン対局時の進化確定データ送信
+    if (state.mode === 'online' && state.turn === state.playerSide && typeof sendOnlineEvolutionAction === 'function') {
+      const pendingCopy = state.pendingEvo.map(p => ({ ...p }));
+      const details = [];
+      for (const { found, count, rays } of evolvedSummary.values()) {
+        const posStr = formatPos(found.r, found.c);
+        const rayText = rays > 0 ? ` (走り+${rays})` : '';
+        details.push({
+          name: found.piece.name,
+          pieceId: found.piece.id,
+          posStr,
+          count,
+          totalPt: getPieceTotalPt(found.piece, false),
+          changes: state.pendingEvo.filter(p => p.pieceId === found.piece.id).map(alloc => ({
+            isRay: alloc.type === 'ray',
+            desc: getDirectionDescription(found.piece, alloc.dx, alloc.dy, alloc.type === 'ray')
+          }))
+        });
+      }
+      sendOnlineEvolutionAction(pendingCopy, spentPt, details);
+    }
   }
 
   state.phase = 'play';
@@ -1509,7 +1548,7 @@ function findPieceById(board, id) {
 }
 
 function isCPUTurn() {
-  if (state.mode === 'pvp') return false;
+  if (state.mode === 'pvp' || state.mode === 'online') return false;
   return state.turn !== state.playerSide;
 }
 
@@ -3045,3 +3084,96 @@ if (!hasSavedGame) {
 }
 // 初回画面はエントランスを表示（保存データがある場合は再開ボタンが目立つ）
 showScreen('entrance');
+
+// ==========================================
+// オンライン対戦（Firebase）UIリスナー
+// ==========================================
+const btnModeOnline = document.getElementById('btn-mode-online');
+if (btnModeOnline) {
+  btnModeOnline.addEventListener('click', () => {
+    document.getElementById('modal-online-select').classList.remove('hidden');
+  });
+}
+
+const btnCloseOnlineModal = document.getElementById('btn-close-online-modal');
+if (btnCloseOnlineModal) {
+  btnCloseOnlineModal.addEventListener('click', () => {
+    document.getElementById('modal-online-select').classList.add('hidden');
+  });
+}
+
+const btnOnlineQuick = document.getElementById('btn-online-quick');
+if (btnOnlineQuick) {
+  btnOnlineQuick.addEventListener('click', () => {
+    document.getElementById('modal-online-select').classList.add('hidden');
+    startQuickMatchmaking();
+  });
+}
+
+const btnCancelMatchmaking = document.getElementById('btn-cancel-matchmaking');
+if (btnCancelMatchmaking) {
+  btnCancelMatchmaking.addEventListener('click', () => {
+    cancelMatchmaking();
+  });
+}
+
+const btnOnlineCreateFriend = document.getElementById('btn-online-create-friend');
+if (btnOnlineCreateFriend) {
+  btnOnlineCreateFriend.addEventListener('click', () => {
+    document.getElementById('modal-online-select').classList.add('hidden');
+    createFriendRoom();
+  });
+}
+
+const btnCancelFriendWaiting = document.getElementById('btn-cancel-friend-waiting');
+if (btnCancelFriendWaiting) {
+  btnCancelFriendWaiting.addEventListener('click', () => {
+    hideFriendModal();
+  });
+}
+
+const btnOnlineJoinFriend = document.getElementById('btn-online-join-friend');
+if (btnOnlineJoinFriend) {
+  btnOnlineJoinFriend.addEventListener('click', () => {
+    const inputCode = document.getElementById('input-room-code');
+    if (inputCode && inputCode.value) {
+      joinFriendRoom(inputCode.value);
+    } else {
+      alert('合言葉（4桁の数字）を入力してください');
+    }
+  });
+}
+
+const btnOpenFbSetup = document.getElementById('btn-open-firebase-setup');
+if (btnOpenFbSetup) {
+  btnOpenFbSetup.addEventListener('click', () => {
+    openFirebaseSetupModal();
+  });
+}
+
+const btnCloseFbSetup = document.getElementById('btn-close-fb-setup');
+if (btnCloseFbSetup) {
+  btnCloseFbSetup.addEventListener('click', () => {
+    document.getElementById('modal-firebase-setup').classList.add('hidden');
+  });
+}
+
+const btnSaveFbConfig = document.getElementById('btn-save-fb-config');
+if (btnSaveFbConfig) {
+  btnSaveFbConfig.addEventListener('click', () => {
+    const apiKey = (document.getElementById('fb-input-apiKey').value || '').trim();
+    const databaseURL = (document.getElementById('fb-input-databaseURL').value || '').trim();
+    const projectId = (document.getElementById('fb-input-projectId').value || '').trim();
+    const appId = (document.getElementById('fb-input-appId').value || '').trim();
+
+    if (!apiKey || !databaseURL) {
+      alert('API Key と Database URL は必須項目です。');
+      return;
+    }
+
+    const cfg = { apiKey, databaseURL, projectId, appId };
+    saveFirebaseConfig(cfg);
+    alert('Firebase設定を保存しました！オンライン対戦を開始できます。');
+    document.getElementById('modal-firebase-setup').classList.add('hidden');
+  });
+}
