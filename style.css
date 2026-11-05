@@ -1222,3 +1222,74 @@ body {
 .hidden {
   display: none !important;
 }
+
+
+/* ==========================================
+   解説セクション & フッター（SEO・AdSense審査対策）
+   ========================================== */
+.site-about-section {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px 14px;
+  margin-top: 10px;
+  color: var(--text-main);
+  line-height: 1.75;
+}
+
+.site-about-section h2 {
+  font-size: 1.15rem;
+  color: #fde68a;
+  border-left: 4px solid var(--evo-gold);
+  padding-left: 8px;
+  margin-bottom: 10px;
+}
+
+.site-about-section h3 {
+  font-size: 0.95rem;
+  color: #fbbf24;
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.site-about-section p,
+.site-about-section ul {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  margin-bottom: 10px;
+}
+
+.site-about-section ul {
+  padding-left: 20px;
+}
+
+.site-about-section li {
+  margin-bottom: 4px;
+}
+
+.site-footer {
+  text-align: center;
+  padding: 18px 10px 24px;
+  margin-top: 10px;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.footer-nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.footer-nav a {
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footer-nav a:hover {
+  color: #fde68a;
+}
