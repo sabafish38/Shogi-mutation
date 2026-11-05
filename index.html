@@ -34,18 +34,106 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- スマホ最適化 1行コンパクトヘッダー -->
-    <header class="app-header">
-      <div class="logo-area">
-        <h1>無法将棋 <span class="subtitle">MUTATION</span></h1>
+    <!-- エントランス（タイトル・モード選択）画面 -->
+    <section id="view-entrance" class="view-entrance">
+      <div class="entrance-hero">
+        <div class="hero-badge">2026 REVOLUTION SHOGI</div>
+        <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span></h1>
+        <p class="entrance-tagline">敵の力を奪い、駒を自由に変異させよ</p>
       </div>
-      <div class="header-controls">
-        <button id="btn-undo" class="btn btn-header" title="1手戻す">↩ 待った</button>
-        <button id="btn-restart" class="btn btn-header btn-primary" title="新規対局">🔄 新規</button>
-        <button id="btn-settings" class="btn btn-header btn-secondary" title="設定">⚙️ 設定</button>
-        <button id="btn-rules" class="btn btn-header btn-outline" title="ルール">❓ ルール</button>
+
+      <!-- プレイヤーランク＆レートカード -->
+      <div class="player-rank-card" id="entrance-player-card">
+        <div class="rank-card-header">
+          <div class="rank-badge-wrap">
+            <span class="rank-icon">👑</span>
+            <span id="player-rank-title" class="rank-title">3級</span>
+          </div>
+          <div class="rank-rating-box">
+            <span class="rating-label">RATING</span>
+            <span id="player-rating-val" class="rating-value">1200</span>
+          </div>
+        </div>
+        <div class="rank-progress-bar-bg">
+          <div id="player-rank-progress" class="rank-progress-fill" style="width: 30%;"></div>
+        </div>
+        <div class="rank-card-stats">
+          <div class="stat-col"><span class="stat-num" id="player-wins">0</span><span class="stat-lbl">勝</span></div>
+          <div class="stat-col"><span class="stat-num" id="player-losses">0</span><span class="stat-lbl">敗</span></div>
+          <div class="stat-col"><span class="stat-num" id="player-winrate">0%</span><span class="stat-lbl">勝率</span></div>
+          <div class="stat-col"><span class="stat-num" id="player-streak">0</span><span class="stat-lbl">連勝</span></div>
+        </div>
       </div>
-    </header>
+
+      <!-- ゲームモード選択リスト -->
+      <div class="entrance-modes">
+        <!-- ランクマッチ -->
+        <button id="btn-mode-rank" class="mode-card mode-rank" type="button">
+          <div class="mode-icon-box">🏆</div>
+          <div class="mode-info">
+            <div class="mode-heading">
+              <span class="mode-name">ランクマッチ</span>
+              <span class="mode-tag tag-rank">レート変動あり</span>
+            </div>
+            <p class="mode-desc">全国の段位・レーティングを競う真剣勝負！実力同格の相手と対局</p>
+          </div>
+          <div class="mode-arrow">▶</div>
+        </button>
+
+        <!-- COMと対戦 -->
+        <button id="btn-mode-com" class="mode-card mode-com" type="button">
+          <div class="mode-icon-box">🤖</div>
+          <div class="mode-info">
+            <div class="mode-heading">
+              <span class="mode-name">COMと対戦</span>
+              <span class="mode-tag tag-com">特訓・難易度選択</span>
+            </div>
+            <p class="mode-desc">入門・標準・強敵から選んで対戦。先手・後手も自由に選べます</p>
+          </div>
+          <div class="mode-arrow">▶</div>
+        </button>
+
+        <!-- フリーマッチ -->
+        <button id="btn-mode-free" class="mode-card mode-free" type="button">
+          <div class="mode-icon-box">⚔️</div>
+          <div class="mode-info">
+            <div class="mode-heading">
+              <span class="mode-name">フリーマッチ</span>
+              <span class="mode-tag tag-free">2人対戦 (ローカル)</span>
+            </div>
+            <p class="mode-desc">1台の端末で対局（Pass & Play）。レート変動なしで遊べます</p>
+          </div>
+          <div class="mode-arrow">▶</div>
+        </button>
+      </div>
+
+      <!-- サブ導線（中断再開、ルール、解説） -->
+      <div class="entrance-footer-actions">
+        <button id="btn-resume-game" class="btn btn-resume hidden" type="button">
+          ⚔️ 前回の対局を再開
+        </button>
+        <div class="entrance-aux-btns">
+          <button id="btn-entrance-rules" class="btn btn-aux" type="button">❓ ルール・遊び方</button>
+          <button id="btn-entrance-about" class="btn btn-aux" type="button">📖 ゲーム解説</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 対局画面ラップ -->
+    <div id="view-game" class="view-game hidden">
+      <!-- スマホ最適化 1行コンパクトヘッダー -->
+      <header class="app-header">
+        <div class="logo-area">
+          <button id="btn-back-entrance" class="btn btn-header-back" title="タイトルへ戻る">🏠 タイトル</button>
+          <h1>無法将棋 <span class="subtitle">MUTATION</span></h1>
+        </div>
+        <div class="header-controls">
+          <button id="btn-undo" class="btn btn-header" title="1手戻す">↩ 待った</button>
+          <button id="btn-restart" class="btn btn-header btn-primary" title="新規対局">🔄 新規</button>
+          <button id="btn-settings" class="btn btn-header btn-secondary" title="設定">⚙️ 設定</button>
+          <button id="btn-rules" class="btn btn-header btn-outline" title="ルール">❓ ルール</button>
+        </div>
+      </header>
 
     <!-- メイン対局画面 -->
     <main class="main-layout">
@@ -196,6 +284,7 @@
         <span class="ticker-badge">履歴</span>
       </div>
     </main>
+    </div> <!-- /#view-game -->
 
     <!-- SEO & AdSense審査対策：高品質オリジナル解説セクション -->
     <section id="site-about-section" class="site-about-section">
@@ -327,15 +416,109 @@
       </div>
     </div>
 
+    <!-- COM対戦設定モーダル -->
+    <div id="modal-com-select" class="modal-overlay hidden">
+      <div class="modal-card select-modal-card">
+        <div class="modal-header">
+          <h2>🤖 COMと対戦</h2>
+          <button id="btn-close-com-select" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">強さと手番を選択して対局を開始します</p>
+          
+          <div class="setting-item">
+            <label class="setting-lbl">難易度を選択:</label>
+            <div class="pills-grid" id="com-difficulty-pills">
+              <button type="button" class="pill-btn" data-diff="cpu-easy">
+                <span class="pill-title">入門 (Easy)</span>
+                <span class="pill-sub">基本を覚える・気楽に勝つ</span>
+              </button>
+              <button type="button" class="pill-btn active" data-diff="cpu-normal">
+                <span class="pill-title">標準 (Normal)</span>
+                <span class="pill-sub">攻守バランスの取れた相手</span>
+              </button>
+              <button type="button" class="pill-btn" data-diff="cpu-hard">
+                <span class="pill-title">強敵 (Hard)</span>
+                <span class="pill-sub">鋭い進化と大駒を活用</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <label class="setting-lbl">手番を選択:</label>
+            <div class="pills-grid-half" id="com-side-pills">
+              <button type="button" class="pill-btn active" data-side="sente">
+                <span class="pill-title">☗ 先手（下側・青）</span>
+              </button>
+              <button type="button" class="pill-btn" data-side="gote">
+                <span class="pill-title">☖ 後手（上側・赤）</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-actions">
+            <button id="btn-start-com-match" class="btn btn-primary btn-full btn-lg">対局開始！</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ランクマッチ開始確認モーダル -->
+    <div id="modal-rank-match" class="modal-overlay hidden">
+      <div class="modal-card select-modal-card">
+        <div class="modal-header">
+          <h2>🏆 ランクマッチ</h2>
+          <button id="btn-close-rank-modal" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">実力レートを賭けた真剣勝負！</p>
+          
+          <div class="rank-matchup-card">
+            <div class="matchup-side matchup-player">
+              <span class="matchup-tag">あなた</span>
+              <span id="rank-matchup-player-name" class="matchup-name">プレイヤー</span>
+              <span id="rank-matchup-player-rank" class="matchup-rank">3級</span>
+              <span id="rank-matchup-player-rating" class="matchup-rate">R 1200</span>
+            </div>
+            <div class="matchup-vs">VS</div>
+            <div class="matchup-side matchup-opponent">
+              <span class="matchup-tag">対戦相手</span>
+              <span id="rank-matchup-opp-name" class="matchup-name">機動の鬼</span>
+              <span id="rank-matchup-opp-rank" class="matchup-rank">3級</span>
+              <span id="rank-matchup-opp-rating" class="matchup-rate">R 1215</span>
+            </div>
+          </div>
+
+          <div class="rank-match-rule-hint">
+            <span>勝敗によりレートが変動します（勝：+28pt前後 / 負：-16pt前後）</span>
+          </div>
+
+          <div class="setting-actions">
+            <button id="btn-start-rank-match" class="btn btn-gold btn-full btn-lg">対戦開始！</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 決着モーダル -->
     <div id="gameover-modal" class="modal-overlay hidden">
       <div class="modal-card gameover-card">
         <h2 id="gameover-title">勝負あり！</h2>
         <p id="gameover-desc" class="gameover-desc">先手の勝利です！</p>
+        
+        <!-- ランクマッチ時のレート増減カード -->
+        <div id="gameover-rank-result" class="gameover-rank-box hidden">
+          <div class="rank-result-badge" id="rank-result-badge">ランクマッチ結果</div>
+          <div class="rank-result-diff" id="rank-result-diff">+28 R</div>
+          <div class="rank-result-current" id="rank-result-current">現在のレート: 1228 (3級)</div>
+          <div id="rank-up-banner" class="rank-up-banner hidden">🎉 昇級おめでとうございます！</div>
+        </div>
+
         <div class="gameover-actions">
+          <button id="btn-gameover-entrance" class="btn btn-header-back">🏠 タイトルへ</button>
           <button id="btn-gameover-share" class="btn btn-share" title="対局結果をXでシェア">𝕏 結果をシェア</button>
           <button id="btn-gameover-close" class="btn btn-secondary">盤面を見る</button>
-          <button id="btn-gameover-restart" class="btn btn-primary">もう一度対局する</button>
+          <button id="btn-gameover-restart" class="btn btn-primary">もう一度対局</button>
         </div>
       </div>
     </div>

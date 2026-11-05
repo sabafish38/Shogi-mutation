@@ -176,6 +176,117 @@ function showSuddenDeathBanner() {
 }
 
 // ==========================================
+// ユーザープロファイル・レーティング管理
+// ==========================================
+const USER_PROFILE_KEY = 'muhou_shogi_user_profile_v1';
+
+let userProfile = {
+  rating: 1200,
+  wins: 0,
+  losses: 0,
+  streak: 0,
+  maxStreak: 0
+};
+
+function loadUserProfile() {
+  try {
+    const raw = localStorage.getItem(USER_PROFILE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      userProfile = {
+        rating: typeof data.rating === 'number' ? data.rating : 1200,
+        wins: typeof data.wins === 'number' ? data.wins : 0,
+        losses: typeof data.losses === 'number' ? data.losses : 0,
+        streak: typeof data.streak === 'number' ? data.streak : 0,
+        maxStreak: typeof data.maxStreak === 'number' ? data.maxStreak : 0
+      };
+    }
+  } catch (e) {
+    console.warn('Failed to load user profile:', e);
+  }
+}
+
+function saveUserProfile() {
+  try {
+    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(userProfile));
+  } catch (e) {
+    console.warn('Failed to save user profile:', e);
+  }
+}
+
+function getRankInfo(rating) {
+  if (rating < 1000) return { title: '6級', progress: Math.max(0, (rating - 800) / 200) };
+  if (rating < 1100) return { title: '5級', progress: (rating - 1000) / 100 };
+  if (rating < 1200) return { title: '4級', progress: (rating - 1100) / 100 };
+  if (rating < 1300) return { title: '3級', progress: (rating - 1200) / 100 };
+  if (rating < 1400) return { title: '2級', progress: (rating - 1300) / 100 };
+  if (rating < 1500) return { title: '1級', progress: (rating - 1400) / 100 };
+  if (rating < 1650) return { title: '初段', progress: (rating - 1500) / 150 };
+  if (rating < 1800) return { title: '二段', progress: (rating - 1650) / 150 };
+  if (rating < 1950) return { title: '三段', progress: (rating - 1800) / 150 };
+  if (rating < 2100) return { title: '四段', progress: (rating - 1950) / 150 };
+  if (rating < 2300) return { title: '竜王', progress: (rating - 2100) / 200 };
+  return { title: '名人', progress: 1 };
+}
+
+function renderUserProfile() {
+  const rankInfo = getRankInfo(userProfile.rating);
+  const elTitle = document.getElementById('player-rank-title');
+  const elRating = document.getElementById('player-rating-val');
+  const elProgress = document.getElementById('player-rank-progress');
+  const elWins = document.getElementById('player-wins');
+  const elLosses = document.getElementById('player-losses');
+  const elWinrate = document.getElementById('player-winrate');
+  const elStreak = document.getElementById('player-streak');
+
+  if (elTitle) elTitle.textContent = rankInfo.title;
+  if (elRating) elRating.textContent = userProfile.rating;
+  if (elProgress) elProgress.style.width = `${Math.min(100, Math.max(0, rankInfo.progress * 100))}%`;
+  if (elWins) elWins.textContent = userProfile.wins;
+  if (elLosses) elLosses.textContent = userProfile.losses;
+
+  const total = userProfile.wins + userProfile.losses;
+  const rate = total > 0 ? Math.round((userProfile.wins / total) * 100) : 0;
+  if (elWinrate) elWinrate.textContent = `${rate}%`;
+  if (elStreak) elStreak.textContent = userProfile.streak;
+}
+
+// 画面切替制御
+function showScreen(screen) {
+  const elEntrance = document.getElementById('view-entrance');
+  const elGame = document.getElementById('view-game');
+  if (screen === 'entrance') {
+    if (elEntrance) elEntrance.classList.remove('hidden');
+    if (elGame) elGame.classList.add('hidden');
+    renderUserProfile();
+    checkSavedGameResumeButton();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    if (elEntrance) elEntrance.classList.add('hidden');
+    if (elGame) elGame.classList.remove('hidden');
+    renderAll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function checkSavedGameResumeButton() {
+  const btnResume = document.getElementById('btn-resume-game');
+  if (!btnResume) return;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try {
+      const data = JSON.parse(raw);
+      if (data && data.phase === 'play' && data.movesCount > 0) {
+        btnResume.classList.remove('hidden');
+        btnResume.textContent = `⚔️ 前回の対局を再開 (${data.movesCount}手目)`;
+        return;
+      }
+    } catch (e) {}
+  }
+  btnResume.classList.add('hidden');
+}
+
+// ==========================================
 // ローカルストレージ自動保存・復元（リロード対策）
 // ==========================================
 const STORAGE_KEY = 'muhou_shogi_saved_state_v1';
@@ -197,6 +308,7 @@ function saveGameToStorage() {
       history: state.history,
       mode: state.mode,
       playerSide: state.playerSide,
+      rankOpponent: state.rankOpponent || null,
       recentLogs: state.recentLogs || []
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -226,6 +338,7 @@ function loadGameFromStorage() {
     state.history = data.history || [];
     state.mode = data.mode || 'cpu-normal';
     state.playerSide = data.playerSide || 'sente';
+    state.rankOpponent = data.rankOpponent || null;
     state.pendingEvo = [];
     state.selectedCell = null;
     state.validMoves = [];
@@ -233,7 +346,7 @@ function loadGameFromStorage() {
     state.recentLogs = data.recentLogs || [];
 
     const elGameMode = document.getElementById('game-mode');
-    if (elGameMode) elGameMode.value = state.mode;
+    if (elGameMode && state.mode !== 'rank') elGameMode.value = state.mode;
     const elPlayerSide = document.getElementById('player-side');
     if (elPlayerSide) elPlayerSide.value = state.playerSide;
 
@@ -281,13 +394,31 @@ function restartNewGame() {
   initGame();
 }
 
+// ランクマッチ用のバーチャルライバルプール
+const RANK_OPPONENTS = [
+  { name: '歩兵の鬼', minR: 900, maxR: 1150 },
+  { name: '香車ロケット丸', minR: 1000, maxR: 1250 },
+  { name: '銀将スラッシャー', minR: 1100, maxR: 1350 },
+  { name: '金城鉄壁', minR: 1200, maxR: 1400 },
+  { name: '覚醒の飛龍', minR: 1300, maxR: 1550 },
+  { name: '無限角マスター', minR: 1400, maxR: 1650 },
+  { name: '天王山の覇者', minR: 1500, maxR: 1800 },
+  { name: '変異の極致', minR: 1600, maxR: 1950 },
+  { name: '無法竜王', minR: 1800, maxR: 2200 },
+  { name: '無法名人', minR: 2000, maxR: 2500 }
+];
+
 // 初期化
 function initGame() {
-  state.mode = document.getElementById('game-mode').value;
-  state.playerSide = document.getElementById('player-side').value;
+  const elGameMode = document.getElementById('game-mode');
+  const elPlayerSide = document.getElementById('player-side');
+  if (state.mode !== 'rank') {
+    if (elGameMode) state.mode = elGameMode.value;
+    if (elPlayerSide) state.playerSide = elPlayerSide.value;
+  }
   state.turn = 'sente';
   state.phase = 'play';
-  state.bank = { sente: 0, gote: 0 }; // 案A: 初期0ptフラット（先後完全対等スタート）
+  state.bank = { sente: 0, gote: 0 }; // 初期0ptフラット
   state.pendingEvo = [];
   state.selectedCell = null;
   state.validMoves = [];
@@ -321,7 +452,12 @@ function initGame() {
 
   setupInitialBoard();
   elBattleLog.innerHTML = '';
-  addLog('対局開始！駒の数字は「持ちポイント」です。敵を倒してポイントを貯め、手番で「移動」か「進化」を選びましょう。');
+  
+  if (state.mode === 'rank' && state.rankOpponent) {
+    addLog(`🏆 ランクマッチ開始！ 対戦相手: ${state.rankOpponent.name} (${state.rankOpponent.rankTitle} R${state.rankOpponent.rating})`);
+  } else {
+    addLog('対局開始！駒の数字は「持ちポイント」です。敵を倒してポイントを貯め、手番で「移動」か「進化」を選びましょう。');
+  }
 
   updatePlayerNames();
   renderAll();
@@ -332,8 +468,19 @@ function updatePlayerNames() {
   const senteNameEl = document.getElementById('sente-name');
   const goteNameEl = document.getElementById('gote-name');
   if (state.mode === 'pvp') {
-    senteNameEl.textContent = 'プレイヤー1';
-    goteNameEl.textContent = 'プレイヤー2';
+    senteNameEl.textContent = 'プレイヤー1 (先手)';
+    goteNameEl.textContent = 'プレイヤー2 (後手)';
+  } else if (state.mode === 'rank') {
+    const oppLabel = state.rankOpponent ? `${state.rankOpponent.name} (${state.rankOpponent.rankTitle})` : 'ライバルAI';
+    const playerRank = getRankInfo(userProfile.rating).title;
+    const playerLabel = `あなた (${playerRank})`;
+    if (state.playerSide === 'sente') {
+      senteNameEl.textContent = playerLabel;
+      goteNameEl.textContent = oppLabel;
+    } else {
+      senteNameEl.textContent = oppLabel;
+      goteNameEl.textContent = playerLabel;
+    }
   } else {
     const cpuLabel = state.mode === 'cpu-hard' ? 'CPU (強敵)' : state.mode === 'cpu-easy' ? 'CPU (入門)' : 'CPU (標準)';
     if (state.playerSide === 'sente') {
@@ -1166,6 +1313,60 @@ function endGame(winner, reasonText) {
   const winnerLabel = winner === 'sente' ? '☗ 先手' : '☖ 後手';
   title.textContent = `${winnerLabel}の勝利！`;
   desc.textContent = reasonText;
+
+  // ランクマッチ時のレート計算と演出
+  const rankBox = document.getElementById('gameover-rank-result');
+  const rankDiffEl = document.getElementById('rank-result-diff');
+  const rankCurrEl = document.getElementById('rank-result-current');
+  const rankUpBanner = document.getElementById('rank-up-banner');
+
+  if (state.mode === 'rank') {
+    const isWin = (winner === state.playerSide);
+    const oldRating = userProfile.rating;
+    const oldRank = getRankInfo(oldRating).title;
+
+    let delta = 0;
+    if (isWin) {
+      userProfile.wins++;
+      userProfile.streak++;
+      if (userProfile.streak > userProfile.maxStreak) userProfile.maxStreak = userProfile.streak;
+      const streakBonus = Math.min(8, (userProfile.streak - 1) * 2);
+      delta = 26 + Math.floor(Math.random() * 5) + Math.max(0, streakBonus);
+      userProfile.rating += delta;
+    } else {
+      userProfile.losses++;
+      userProfile.streak = 0;
+      delta = -(14 + Math.floor(Math.random() * 5));
+      userProfile.rating = Math.max(1000, userProfile.rating + delta);
+    }
+    saveUserProfile();
+    renderUserProfile();
+
+    const newRating = userProfile.rating;
+    const newRank = getRankInfo(newRating).title;
+
+    if (rankBox) {
+      rankBox.classList.remove('hidden');
+      if (isWin) {
+        rankDiffEl.className = 'rank-result-diff plus';
+        rankDiffEl.textContent = `+${delta} R`;
+      } else {
+        rankDiffEl.className = 'rank-result-diff minus';
+        rankDiffEl.textContent = `${delta} R`;
+      }
+      rankCurrEl.textContent = `新レート: ${newRating} (${newRank})`;
+
+      if (isWin && oldRank !== newRank) {
+        rankUpBanner.textContent = `🎉 昇級・昇段！ ${oldRank} ➔ ${newRank}`;
+        rankUpBanner.classList.remove('hidden');
+      } else {
+        rankUpBanner.classList.add('hidden');
+      }
+    }
+  } else {
+    if (rankBox) rankBox.classList.add('hidden');
+  }
+
   modal.classList.remove('hidden');
   addLog(`🏆 ${winnerLabel}の勝利！ (${reasonText})`);
 }
@@ -1391,7 +1592,10 @@ function cpuDecideAction() {
       searchCandidates.push(...allMoves.slice(0, 12));
     }
 
-    const depth = state.mode === 'cpu-hard' ? 2 : state.mode === 'cpu-normal' ? 2 : 1;
+    const isRankMatch = state.mode === 'rank';
+    const isHard = state.mode === 'cpu-hard' || (isRankMatch && userProfile.rating >= 1500);
+    const isEasy = state.mode === 'cpu-easy' || (isRankMatch && userProfile.rating < 1150);
+    const depth = isHard ? 2 : (isEasy ? 1 : 2);
     let bestMove = searchCandidates[0];
     let bestScore = -Infinity;
 
@@ -1431,7 +1635,7 @@ function cpuDecideAction() {
         }
       }
 
-      const jitter = state.mode === 'cpu-easy' ? (Math.random() * 180 - 90) : (Math.random() * 16 - 8);
+      const jitter = isEasy ? (Math.random() * 160 - 80) : isHard ? (Math.random() * 8 - 4) : (Math.random() * 18 - 9);
       score += jitter;
 
       if (score > bestScore) {
@@ -2119,6 +2323,81 @@ function addLog(text, extraClass = '') {
   if (state.recentLogs.length > 30) state.recentLogs.pop();
 }
 
+// ==========================================
+// モード切替・マッチング・エントランス制御
+// ==========================================
+let currentRankOpponent = null;
+let selectedComDiff = 'cpu-normal';
+let selectedComSide = 'sente';
+
+function prepareRankMatchModal() {
+  const playerRank = getRankInfo(userProfile.rating);
+  // レート差 ±35 程度の対戦相手を動的算出
+  const delta = Math.floor(Math.random() * 50) - 20;
+  const oppRating = Math.max(900, userProfile.rating + delta);
+  const oppRank = getRankInfo(oppRating);
+
+  const matched = RANK_OPPONENTS.filter(o => oppRating >= o.minR - 100 && oppRating <= o.maxR + 100);
+  const chosen = matched.length > 0
+    ? matched[Math.floor(Math.random() * matched.length)]
+    : RANK_OPPONENTS[Math.floor(Math.random() * RANK_OPPONENTS.length)];
+
+  currentRankOpponent = {
+    name: chosen.name,
+    rating: oppRating,
+    rankTitle: oppRank.title
+  };
+
+  const elPlayerRank = document.getElementById('rank-matchup-player-rank');
+  const elPlayerRate = document.getElementById('rank-matchup-player-rating');
+  const elOppName = document.getElementById('rank-matchup-opp-name');
+  const elOppRank = document.getElementById('rank-matchup-opp-rank');
+  const elOppRate = document.getElementById('rank-matchup-opp-rating');
+
+  if (elPlayerRank) elPlayerRank.textContent = playerRank.title;
+  if (elPlayerRate) elPlayerRate.textContent = `R ${userProfile.rating}`;
+  if (elOppName) elOppName.textContent = currentRankOpponent.name;
+  if (elOppRank) elOppRank.textContent = currentRankOpponent.rankTitle;
+  if (elOppRate) elOppRate.textContent = `R ${currentRankOpponent.rating}`;
+
+  const modal = document.getElementById('modal-rank-match');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function startRankMatch() {
+  const modal = document.getElementById('modal-rank-match');
+  if (modal) modal.classList.add('hidden');
+  state.mode = 'rank';
+  state.rankOpponent = currentRankOpponent;
+  // 手番はランダム（先手または後手）
+  state.playerSide = Math.random() < 0.5 ? 'sente' : 'gote';
+  showScreen('game');
+  restartNewGame();
+}
+
+function openComSelectModal() {
+  const modal = document.getElementById('modal-com-select');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function startComMatch() {
+  const modal = document.getElementById('modal-com-select');
+  if (modal) modal.classList.add('hidden');
+  state.mode = selectedComDiff;
+  state.playerSide = selectedComSide;
+  state.rankOpponent = null;
+  showScreen('game');
+  restartNewGame();
+}
+
+function startFreeMatch() {
+  state.mode = 'pvp';
+  state.playerSide = 'sente';
+  state.rankOpponent = null;
+  showScreen('game');
+  restartNewGame();
+}
+
 // イベントリスナー登録
 document.getElementById('btn-restart').addEventListener('click', restartNewGame);
 document.getElementById('btn-undo').addEventListener('click', undoMove);
@@ -2131,6 +2410,97 @@ if (elPlayerSide) elPlayerSide.addEventListener('change', restartNewGame);
 
 elBtnEvoReset.addEventListener('click', resetEvolutionPending);
 elBtnEvoConfirm.addEventListener('click', confirmEvolutionTurn);
+
+// エントランス・モードカードクリック
+const btnModeRank = document.getElementById('btn-mode-rank');
+if (btnModeRank) btnModeRank.addEventListener('click', prepareRankMatchModal);
+
+const btnModeCom = document.getElementById('btn-mode-com');
+if (btnModeCom) btnModeCom.addEventListener('click', openComSelectModal);
+
+const btnModeFree = document.getElementById('btn-mode-free');
+if (btnModeFree) btnModeFree.addEventListener('click', startFreeMatch);
+
+// ランクマッチモーダル
+const btnStartRank = document.getElementById('btn-start-rank-match');
+if (btnStartRank) btnStartRank.addEventListener('click', startRankMatch);
+
+const btnCloseRank = document.getElementById('btn-close-rank-modal');
+if (btnCloseRank) {
+  btnCloseRank.addEventListener('click', () => {
+    document.getElementById('modal-rank-match').classList.add('hidden');
+  });
+}
+
+// COM選択モーダル
+const btnStartCom = document.getElementById('btn-start-com-match');
+if (btnStartCom) btnStartCom.addEventListener('click', startComMatch);
+
+const btnCloseCom = document.getElementById('btn-close-com-select');
+if (btnCloseCom) {
+  btnCloseCom.addEventListener('click', () => {
+    document.getElementById('modal-com-select').classList.add('hidden');
+  });
+}
+
+// COM選択ピルボタンのクリック挙動
+const diffPills = document.querySelectorAll('#com-difficulty-pills .pill-btn');
+diffPills.forEach(pill => {
+  pill.addEventListener('click', () => {
+    diffPills.forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    selectedComDiff = pill.dataset.diff || 'cpu-normal';
+  });
+});
+
+const sidePills = document.querySelectorAll('#com-side-pills .pill-btn');
+sidePills.forEach(pill => {
+  pill.addEventListener('click', () => {
+    sidePills.forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    selectedComSide = pill.dataset.side || 'sente';
+  });
+});
+
+// エントランス補助ボタン
+const btnResume = document.getElementById('btn-resume-game');
+if (btnResume) {
+  btnResume.addEventListener('click', () => {
+    showScreen('game');
+  });
+}
+
+const btnEntranceRules = document.getElementById('btn-entrance-rules');
+if (btnEntranceRules) {
+  btnEntranceRules.addEventListener('click', () => {
+    document.getElementById('rules-modal').classList.remove('hidden');
+  });
+}
+
+const btnEntranceAbout = document.getElementById('btn-entrance-about');
+if (btnEntranceAbout) {
+  btnEntranceAbout.addEventListener('click', () => {
+    const aboutSec = document.getElementById('site-about-section');
+    if (aboutSec) aboutSec.scrollIntoView({ behavior: 'smooth' });
+  });
+}
+
+// 対局画面からタイトルへ戻るボタン
+const btnBackEntrance = document.getElementById('btn-back-entrance');
+if (btnBackEntrance) {
+  btnBackEntrance.addEventListener('click', () => {
+    saveGameToStorage();
+    showScreen('entrance');
+  });
+}
+
+const btnGameoverEntrance = document.getElementById('btn-gameover-entrance');
+if (btnGameoverEntrance) {
+  btnGameoverEntrance.addEventListener('click', () => {
+    document.getElementById('gameover-modal').classList.add('hidden');
+    showScreen('entrance');
+  });
+}
 
 // モーダル制御
 const rulesModal = document.getElementById('rules-modal');
@@ -2169,7 +2539,9 @@ if (btnShare) {
     const sentePt = getAllAllyPieces(state.board, 'sente').reduce((sum, { piece }) => sum + getPieceTotalPt(piece), 0);
     const gotePt = getAllAllyPieces(state.board, 'gote').reduce((sum, { piece }) => sum + getPieceTotalPt(piece), 0);
     const resultText = isWin ? '勝利しました！🎉' : '対局終了！';
-    const tweetText = `『無法将棋』で${resultText}（${state.movesCount}手 / 軍勢: 先手${sentePt}pt vs 後手${gotePt}pt）\n駒を自由に変異・進化させて戦う新感覚Web将棋！\n#無法将棋 #将棋`;
+    const rankInfo = getRankInfo(userProfile.rating);
+    const modeText = state.mode === 'rank' ? ` [ランクマッチ ${rankInfo.title} R${userProfile.rating}]` : '';
+    const tweetText = `『無法将棋』で${resultText}${modeText}（${state.movesCount}手 / 軍勢: 先手${sentePt}pt vs 後手${gotePt}pt）\n駒を自由に変異・進化させて戦う新感覚Web将棋！\n#無法将棋 #将棋`;
     const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent('https://shogi.pop-ghost.com/')}`;
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
   });
@@ -2180,7 +2552,11 @@ if (btnCloseEnemyEvo) {
   btnCloseEnemyEvo.addEventListener('click', hideEnemyEvolutionNotification);
 }
 
-// 初回起動：保存データがあれば復元、なければ新規開始
-if (!loadGameFromStorage()) {
+// 初回起動処理
+loadUserProfile();
+const hasSavedGame = loadGameFromStorage();
+if (!hasSavedGame) {
   initGame();
 }
+// 初回画面はエントランスを表示（保存データがある場合は再開ボタンが目立つ）
+showScreen('entrance');

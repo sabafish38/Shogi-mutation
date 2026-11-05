@@ -1305,3 +1305,544 @@ body {
   border-color: var(--evo-gold);
   color: #fde68a;
 }
+
+/* ==========================================
+   エントランス（タイトル・モード選択）画面
+   ========================================== */
+.view-entrance {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0 20px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.view-game {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.view-entrance.hidden,
+.view-game.hidden {
+  display: none !important;
+}
+
+/* ヒーローエリア */
+.entrance-hero {
+  text-align: center;
+  padding: 14px 10px 8px;
+}
+
+.hero-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: var(--evo-gold);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 2px 10px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.entrance-title {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #fff;
+  line-height: 1.15;
+  margin-bottom: 4px;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.entrance-sub {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--evo-gold);
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 12px var(--evo-glow);
+}
+
+.entrance-tagline {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* プレイヤーランク＆レートカード */
+.player-rank-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.rank-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.rank-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rank-icon {
+  font-size: 1.3rem;
+}
+
+.rank-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #fde68a;
+  letter-spacing: 0.04em;
+}
+
+.rank-rating-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.rating-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 0.08em;
+}
+
+.rating-value {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #38bdf8;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.rank-progress-bar-bg {
+  height: 6px;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rank-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8 0%, #f59e0b 100%);
+  border-radius: 999px;
+  transition: width 0.4s ease-out;
+}
+
+.rank-card-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.stat-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.stat-num {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-lbl {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+/* モード選択カード群 */
+.entrance-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mode-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  touch-action: manipulation;
+  width: 100%;
+}
+
+.mode-card:active {
+  transform: translateY(2px) scale(0.99);
+}
+
+.mode-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mode-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+  flex-wrap: wrap;
+}
+
+.mode-name {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.mode-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.mode-desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.mode-arrow {
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 900;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+/* ランクマッチ特別装飾 */
+.mode-rank {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(30, 41, 59, 0.85) 75%);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.12);
+}
+.mode-rank .mode-icon-box {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.tag-rank {
+  background: #f59e0b;
+  color: #1e1b4b;
+}
+.mode-rank:hover {
+  border-color: #f59e0b;
+}
+
+/* COM対戦特別装飾 */
+.mode-com {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(30, 41, 59, 0.85) 75%);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+.mode-com .mode-icon-box {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+.tag-com {
+  background: #3b82f6;
+  color: #fff;
+}
+.mode-com:hover {
+  border-color: #3b82f6;
+}
+
+/* フリーマッチ特別装飾 */
+.mode-free {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(30, 41, 59, 0.85) 75%);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+.mode-free .mode-icon-box {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.tag-free {
+  background: #10b981;
+  color: #fff;
+}
+.mode-free:hover {
+  border-color: #10b981;
+}
+
+/* エントランス下部アクション */
+.entrance-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn-resume {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  border: none;
+}
+.btn-resume:active {
+  transform: translateY(2px);
+}
+
+.entrance-aux-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-aux {
+  flex: 1;
+  padding: 9px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.btn-aux:hover {
+  background: #243048;
+  color: #fff;
+}
+
+.btn-header-back {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-header-back:active {
+  transform: translateY(1px);
+}
+
+/* ピルボタングリッド（COM・手番選択用） */
+.pills-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pills-grid-half {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pill-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: #1e293b;
+  border: 1.5px solid #334155;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  user-select: none;
+  touch-action: manipulation;
+  transition: all 0.12s ease;
+}
+
+.pill-btn:active {
+  transform: translateY(1px);
+}
+
+.pill-btn.active {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.25);
+}
+
+.pill-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.pill-sub {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* ランクマッチ確認カード */
+.rank-matchup-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0f172a;
+  border: 1.5px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  padding: 14px 12px;
+  margin: 12px 0;
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.5);
+}
+
+.matchup-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.matchup-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.matchup-name {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #fff;
+  margin-top: 2px;
+}
+
+.matchup-rank {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fde68a;
+}
+
+.matchup-rate {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #38bdf8;
+  font-variant-numeric: tabular-nums;
+}
+
+.matchup-vs {
+  font-size: 1.1rem;
+  font-weight: 900;
+  font-style: italic;
+  color: #ef4444;
+  padding: 0 8px;
+}
+
+.rank-match-rule-hint {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0f172a;
+  font-weight: 900;
+  border: none;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+.btn-gold:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.btn-lg {
+  padding: 12px;
+  font-size: 0.95rem;
+  border-radius: 10px;
+}
+
+/* 決着モーダル内のランク変動ボックス */
+.gameover-rank-box {
+  background: #0f172a;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 10px;
+  padding: 10px;
+  margin: 10px 0 14px;
+  text-align: center;
+}
+
+.rank-result-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #f59e0b;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.rank-result-diff {
+  font-size: 1.5rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.rank-result-diff.plus {
+  color: #10b981;
+}
+
+.rank-result-diff.minus {
+  color: #ef4444;
+}
+
+.rank-result-current {
+  font-size: 0.76rem;
+  color: #cbd5e1;
+  margin-top: 2px;
+}
+
+.rank-up-banner {
+  margin-top: 8px;
+  padding: 6px;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #fde68a;
+  animation: pulse 1s infinite;
+}
