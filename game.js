@@ -2170,7 +2170,7 @@ if (btnShare) {
     const gotePt = getAllAllyPieces(state.board, 'gote').reduce((sum, { piece }) => sum + getPieceTotalPt(piece), 0);
     const resultText = isWin ? '勝利しました！🎉' : '対局終了！';
     const tweetText = `『無法将棋』で${resultText}（${state.movesCount}手 / 軍勢: 先手${sentePt}pt vs 後手${gotePt}pt）\n駒を自由に変異・進化させて戦う新感覚Web将棋！\n#無法将棋 #将棋`;
-    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent('https://pop-ghost.com/')}`;
+    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent('https://shogi.pop-ghost.com/')}`;
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
   });
 }
