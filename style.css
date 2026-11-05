@@ -1293,3 +1293,15 @@ body {
 .footer-nav a:hover {
   color: #fde68a;
 }
+
+.btn-share {
+  background: #09090b;
+  color: #f4f4f5;
+  border: 1.5px solid #3f3f46;
+  font-weight: 800;
+}
+.btn-share:hover {
+  background: #18181b;
+  border-color: var(--evo-gold);
+  color: #fde68a;
+}

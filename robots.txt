@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Google AdSense Crawler
+User-agent: Mediapartners-Google
+Allow: /
+
+Sitemap: https://pop-ghost.com/sitemap.xml

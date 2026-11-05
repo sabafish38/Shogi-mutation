@@ -19,6 +19,14 @@
   <meta name="twitter:title" content="無法将棋 (SHOGI: MUTATION)">
   <meta name="twitter:description" content="敵のポイントを吸収して駒を自由進化！新感覚ブラウザ将棋ゲーム。">
 
+  <!-- PWA & Favicon -->
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" href="./icon-192.svg">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0b0f17">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -322,6 +330,7 @@
         <h2 id="gameover-title">勝負あり！</h2>
         <p id="gameover-desc" class="gameover-desc">先手の勝利です！</p>
         <div class="gameover-actions">
+          <button id="btn-gameover-share" class="btn btn-share" title="対局結果をXでシェア">𝕏 結果をシェア</button>
           <button id="btn-gameover-close" class="btn btn-secondary">盤面を見る</button>
           <button id="btn-gameover-restart" class="btn btn-primary">もう一度対局する</button>
         </div>
@@ -348,5 +357,14 @@
   </div>
 
   <script src="game.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch((err) => {
+          console.warn('SW registration skipped:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
