@@ -391,6 +391,7 @@ function checkSavedGameResumeButton() {
 const STORAGE_KEY = 'muhou_shogi_saved_state_v1';
 
 function saveGameToStorage() {
+  if (state.mode === 'online') return;
   try {
     const data = {
       board: state.board,
@@ -511,7 +512,7 @@ const RANK_OPPONENTS = [
 function initGame() {
   const elGameMode = document.getElementById('game-mode');
   const elPlayerSide = document.getElementById('player-side');
-  if (state.mode !== 'rank') {
+  if (state.mode !== 'rank' && state.mode !== 'online') {
     if (elGameMode) state.mode = elGameMode.value;
     if (elPlayerSide) state.playerSide = elPlayerSide.value;
   }
@@ -554,6 +555,10 @@ function initGame() {
   
   if (state.mode === 'rank' && state.rankOpponent) {
     addLog(`🏆 ランクマッチ開始！ 対戦相手: ${state.rankOpponent.name} (${state.rankOpponent.rankTitle} R${state.rankOpponent.rating})`);
+  } else if (state.mode === 'online') {
+    const opp = state.onlineOpponent || { name: '対戦相手' };
+    const mySideSymbol = state.playerSide === 'sente' ? '☗ 先手（青）' : '☖ 後手（赤）';
+    addLog(`🌐 オンライン対局開始！ あなたは【${mySideSymbol}】です。対戦相手: ${opp.name}`, 'log-capture');
   } else {
     addLog('対局開始！駒の数字は「持ちポイント」です。敵を倒してポイントを貯め、手番で「移動」か「進化」を選びましょう。');
   }
@@ -823,6 +828,10 @@ function saveHistory() {
 
 // ひとつ前の自分の番に戻す
 function undoMove() {
+  if (state.mode === 'online') {
+    addLog('オンライン対局中は「待った」はできません。');
+    return;
+  }
   if (state.history.length === 0) {
     addLog('これ以上待ったはできません。');
     return;
@@ -882,6 +891,15 @@ function onCellClick(r, c) {
   if (isCPUTurn()) return;
 
   const clickedPiece = state.board[r][c];
+
+  // オンライン対局で相手の手番中の場合、駒の移動はブロック（インスペクトのみ）
+  if (state.mode === 'online' && state.turn !== state.playerSide) {
+    if (clickedPiece) {
+      state.inspectedPiece = clickedPiece;
+      renderAll();
+    }
+    return;
+  }
   if (clickedPiece) {
     state.inspectedPiece = clickedPiece;
   }
@@ -2274,7 +2292,13 @@ function renderStatsAndStatus() {
     } else {
       elStatusBanner.classList.remove('evo-mode');
       elTurnIndicator.textContent = `${turnLabel}の番です${movesText}`;
-      if (isCPUTurn()) {
+      if (state.mode === 'online') {
+        if (state.turn === state.playerSide) {
+          elSubStatus.textContent = 'あなたの番です！動かす駒を選択してください';
+        } else {
+          elSubStatus.textContent = '相手プレイヤーが考え中... (着手を待っています)';
+        }
+      } else if (isCPUTurn()) {
         elSubStatus.textContent = 'CPUが思考中...';
       } else if (state.bank[state.turn] > 0) {
         elSubStatus.textContent = `【駒を動かす】か【所持 ${state.bank[state.turn]}pt で駒を進化】のどちらかを選べます`;
