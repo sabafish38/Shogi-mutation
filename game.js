@@ -369,7 +369,7 @@ function renderSeasonAndRanking() {
   const pRank = getRankInfo(userProfile.rating).title;
   const surrounding = [
     { pos: Math.max(4, basePos - 1), name: '変異の探求者', title: '連勝の火付け役', rank: getRankInfo(userProfile.rating + 15).title, rating: userProfile.rating + 15, isPlayer: false },
-    { pos: basePos, name: ${userProfile.name} (あなた), title: userProfile.equippedTitle, rank: pRank, rating: userProfile.rating, isPlayer: true },
+    { pos: basePos, name: `${userProfile.name} (あなた)`, title: userProfile.equippedTitle, rank: pRank, rating: userProfile.rating, isPlayer: true },
     { pos: basePos + 1, name: '機動歩兵の達人', title: '新進気鋭の駒遣い', rank: getRankInfo(Math.max(1000, userProfile.rating - 18)).title, rating: Math.max(1000, userProfile.rating - 18), isPlayer: false }
   ];
 
@@ -2792,7 +2792,7 @@ function generateRankCertificateCanvas() {
 
   ctx.fillStyle = '#93c5fd';
   ctx.font = 'bold 15px -apple-system, sans-serif';
-  ctx.fillText(🪪 棋士名:  殿, 36, 100);
+  ctx.fillText(`🪪 棋士名: ${userProfile.name || '名無し棋士'} 殿`, 36, 100);
 
   // プレイヤー称号
   ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
@@ -3102,7 +3102,7 @@ function handleSaveUserName() {
   renderUserProfile();
   updatePlayerNames();
   closeNameEditModal();
-  showToast(🪪 ユーザーネームを「」に変更しました);
+  showToast(`🪪 ユーザーネームを「${res.name}」に変更しました`);
 }
 
 const btnChangeName = document.getElementById('btn-change-name');
