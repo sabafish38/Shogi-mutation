@@ -42,12 +42,20 @@
         <p class="entrance-tagline">敵の力を奪い、駒を自由に変異させよ</p>
       </div>
 
+      <!-- 週間シーズンバナー -->
+      <div class="season-banner">
+        <span class="season-badge" id="season-badge">🗓️ 2026 第45期 週間シーズン</span>
+        <span class="season-timer" id="season-timer">残り 4日</span>
+      </div>
+
       <!-- プレイヤーランク＆レートカード -->
       <div class="player-rank-card" id="entrance-player-card">
         <div class="rank-card-header">
           <div class="rank-badge-wrap">
             <span class="rank-icon">👑</span>
             <span id="player-rank-title" class="rank-title">3級</span>
+            <span id="player-title-badge" class="player-title-badge">新進気鋭の駒遣い</span>
+            <button id="btn-change-title" class="btn-change-title" title="称号を変更">変更</button>
           </div>
           <div class="rank-rating-box">
             <span class="rating-label">RATING</span>
@@ -61,7 +69,15 @@
           <div class="stat-col"><span class="stat-num" id="player-wins">0</span><span class="stat-lbl">勝</span></div>
           <div class="stat-col"><span class="stat-num" id="player-losses">0</span><span class="stat-lbl">敗</span></div>
           <div class="stat-col"><span class="stat-num" id="player-winrate">0%</span><span class="stat-lbl">勝率</span></div>
-          <div class="stat-col"><span class="stat-num" id="player-streak">0</span><span class="stat-lbl">連勝</span></div>
+          <div class="stat-col">
+            <span class="stat-num stat-streak-num" id="player-streak">🔥 0</span>
+            <span class="stat-lbl">連勝 (最高 <strong id="player-max-streak">0</strong>)</span>
+          </div>
+        </div>
+        <div class="rank-card-actions">
+          <button id="btn-open-cert" class="btn btn-cert-card" type="button">
+            🪪 戦績カードを発行・シェア
+          </button>
         </div>
       </div>
 
@@ -74,6 +90,7 @@
             <div class="mode-heading">
               <span class="mode-name">ランクマッチ</span>
               <span class="mode-tag tag-rank">レート変動あり</span>
+              <span class="mode-tag tag-bounty-chance">賞金首出現中!</span>
             </div>
             <p class="mode-desc">全国の段位・レーティングを競う真剣勝負！実力同格の相手と対局</p>
           </div>
@@ -105,6 +122,20 @@
           </div>
           <div class="mode-arrow">▶</div>
         </button>
+      </div>
+
+      <!-- 週間シーズンランキングセクション -->
+      <div class="season-ranking-card" id="season-ranking-card">
+        <div class="ranking-header">
+          <div class="ranking-title-wrap">
+            <span class="ranking-icon">📊</span>
+            <span class="ranking-title">週間シーズンランキング</span>
+          </div>
+          <span id="player-rank-pos-text" class="player-rank-pos">現在 28位</span>
+        </div>
+        <div id="ranking-list" class="ranking-list">
+          <!-- JSで動的描画（Top3 + 自分の周囲） -->
+        </div>
       </div>
 
       <!-- サブ導線（中断再開、ルール、解説） -->
@@ -473,6 +504,12 @@
         <div class="modal-body">
           <p class="modal-subtitle">実力レートを賭けた真剣勝負！</p>
           
+          <!-- 賞金首発生バナー（条件により発動） -->
+          <div id="bounty-match-banner" class="bounty-match-banner hidden">
+            <div class="bounty-badge">⚠️ BOUNTY TARGET</div>
+            <div class="bounty-title">賞金首出現！ 撃破でレート大量ボーナス獲得！</div>
+          </div>
+
           <div class="rank-matchup-card">
             <div class="matchup-side matchup-player">
               <span class="matchup-tag">あなた</span>
@@ -482,14 +519,14 @@
             </div>
             <div class="matchup-vs">VS</div>
             <div class="matchup-side matchup-opponent">
-              <span class="matchup-tag">対戦相手</span>
+              <span class="matchup-tag" id="rank-opp-tag">対戦相手</span>
               <span id="rank-matchup-opp-name" class="matchup-name">機動の鬼</span>
               <span id="rank-matchup-opp-rank" class="matchup-rank">3級</span>
               <span id="rank-matchup-opp-rating" class="matchup-rate">R 1215</span>
             </div>
           </div>
 
-          <div class="rank-match-rule-hint">
+          <div class="rank-match-rule-hint" id="rank-match-rule-hint">
             <span>勝敗によりレートが変動します（勝：+28pt前後 / 負：-16pt前後）</span>
           </div>
 
@@ -511,14 +548,58 @@
           <div class="rank-result-badge" id="rank-result-badge">ランクマッチ結果</div>
           <div class="rank-result-diff" id="rank-result-diff">+28 R</div>
           <div class="rank-result-current" id="rank-result-current">現在のレート: 1228 (3級)</div>
+          <div id="rank-bounty-bonus-desc" class="rank-bounty-bonus-desc hidden">⭐ 賞金首討伐ボーナス獲得！ (+20 R)</div>
           <div id="rank-up-banner" class="rank-up-banner hidden">🎉 昇級おめでとうございます！</div>
         </div>
 
         <div class="gameover-actions">
+          <button id="btn-gameover-cert" class="btn btn-cert-card">🪪 戦績カードを発行</button>
           <button id="btn-gameover-entrance" class="btn btn-header-back">🏠 タイトルへ</button>
           <button id="btn-gameover-share" class="btn btn-share" title="対局結果をXでシェア">𝕏 結果をシェア</button>
           <button id="btn-gameover-close" class="btn btn-secondary">盤面を見る</button>
           <button id="btn-gameover-restart" class="btn btn-primary">もう一度対局</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 称号選択モーダル -->
+    <div id="modal-title-select" class="modal-overlay hidden">
+      <div class="modal-card select-modal-card">
+        <div class="modal-header">
+          <h2>🎖️ 称号の変更</h2>
+          <button id="btn-close-title-modal" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">獲得した称号をセットして戦績カードや対局でアピールできます</p>
+          <div id="title-list-container" class="title-list-container">
+            <!-- JSで動的生成 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 戦績証明書（リザルトカード）モーダル -->
+    <div id="modal-cert-card" class="modal-overlay hidden">
+      <div class="modal-card cert-modal-card">
+        <div class="modal-header">
+          <h2>🪪 戦績証明書 (RANK CERTIFICATE)</h2>
+          <button id="btn-close-cert-modal" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">サイバー将棋風の公式戦績カードを自動生成しました</p>
+          
+          <div class="cert-canvas-wrap">
+            <canvas id="cert-canvas" width="840" height="480"></canvas>
+          </div>
+
+          <div class="cert-modal-actions">
+            <button id="btn-cert-share-x" class="btn btn-share btn-lg btn-full">
+              𝕏 でカードをシェア
+            </button>
+            <button id="btn-cert-download" class="btn btn-secondary btn-full">
+              💾 画像を保存
+            </button>
+          </div>
         </div>
       </div>
     </div>

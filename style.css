@@ -1846,3 +1846,344 @@ body {
   color: #fde68a;
   animation: pulse 1s infinite;
 }
+
+/* ==========================================
+   ① 週間シーズン ＆ ランキングボード
+   ========================================== */
+.season-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+}
+
+.season-badge {
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.03em;
+}
+
+.season-timer {
+  color: #fbbf24;
+  font-weight: 700;
+  background: rgba(251, 191, 36, 0.12);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* 称号バッジ */
+.player-title-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #0f172a;
+  background: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%);
+  padding: 2px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.btn-change-title {
+  background: #334155;
+  color: #94a3b8;
+  border: none;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn-change-title:hover {
+  background: #475569;
+  color: #fff;
+}
+
+/* 連勝ハイライト */
+.stat-streak-num {
+  color: #f97316 !important;
+  text-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
+}
+
+/* 戦績カード発行ボタン */
+.rank-card-actions {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-cert-card {
+  width: 100%;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #fff;
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.btn-cert-card:active {
+  transform: translateY(2px);
+}
+
+/* 週間ランキングカード */
+.season-ranking-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.ranking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ranking-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ranking-title {
+  font-size: 0.88rem;
+  font-weight: 900;
+  color: #fff;
+}
+
+.player-rank-pos {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ranking-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #0f172a;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  border: 1px solid transparent;
+}
+
+.ranking-row.is-player {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  font-weight: 800;
+}
+
+.ranking-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rank-pos-num {
+  font-size: 0.78rem;
+  font-weight: 900;
+  min-width: 20px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.rank-pos-num.gold {
+  color: #fbbf24;
+}
+
+.rank-pos-num.silver {
+  color: #cbd5e1;
+}
+
+.rank-pos-num.bronze {
+  color: #d97706;
+}
+
+.ranking-player-name {
+  color: #f1f5f9;
+}
+
+.ranking-player-title {
+  font-size: 0.62rem;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+.ranking-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ranking-tier-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fde68a;
+}
+
+.ranking-rate-val {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: #38bdf8;
+}
+
+/* ==========================================
+   ③ 賞金首（Bounty）システム
+   ========================================== */
+.tag-bounty-chance {
+  background: #dc2626;
+  color: #fff;
+  animation: pulse 1.2s infinite;
+}
+
+.bounty-match-banner {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.25) 0%, rgba(185, 28, 28, 0.1) 100%);
+  border: 1.5px solid #ef4444;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  text-align: center;
+  animation: pulse 1.5s infinite;
+}
+
+.bounty-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: #ef4444;
+  padding: 1px 8px;
+  border-radius: 999px;
+  margin-bottom: 3px;
+}
+
+.bounty-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fca5a5;
+}
+
+.rank-bounty-bonus-desc {
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #fbbf24;
+  margin-top: 4px;
+  animation: pulse 1s infinite;
+}
+
+/* ==========================================
+   ⑤ 戦績カードCanvasプレビュー＆称号モーダル
+   ========================================== */
+.cert-modal-card {
+  max-width: 520px;
+}
+
+.cert-canvas-wrap {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  margin-bottom: 12px;
+  background: #0b0f17;
+}
+
+#cert-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.cert-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 称号一覧 */
+.title-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.title-card-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.title-card-item.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+}
+
+.title-card-item.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #0f172a;
+}
+
+.title-card-name {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.title-card-cond {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.title-card-status {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.title-card-status.equipped {
+  background: #f59e0b;
+  color: #1e1b4b;
+}
+
+.title-card-status.unlocked {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.title-card-status.locked-badge {
+  background: #334155;
+  color: #64748b;
+}

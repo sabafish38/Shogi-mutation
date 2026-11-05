@@ -176,16 +176,30 @@ function showSuddenDeathBanner() {
 }
 
 // ==========================================
-// ユーザープロファイル・レーティング管理
+// ユーザープロファイル・レーティング・称号・シーズン管理
 // ==========================================
 const USER_PROFILE_KEY = 'muhou_shogi_user_profile_v1';
+
+const TITLE_DEFS = [
+  { id: 'novice', name: '新進気鋭の駒遣い', desc: '初期所持', cond: () => true },
+  { id: 'streak_3', name: '連勝の火付け役', desc: '3連勝を達成する', cond: p => p.maxStreak >= 3 },
+  { id: 'streak_5', name: '電光石火の常勝', desc: '5連勝を達成する', cond: p => p.maxStreak >= 5 },
+  { id: 'rate_1300', name: '2級の猛者', desc: 'レート1300到達', cond: p => p.rating >= 1300 },
+  { id: 'rate_1500', name: '初段の風格', desc: 'レート1500到達', cond: p => p.rating >= 1500 },
+  { id: 'rate_1800', name: '三段の覚醒', desc: 'レート1800到達', cond: p => p.rating >= 1800 },
+  { id: 'rate_2100', name: '無法竜王', desc: 'レート2100到達', cond: p => p.rating >= 2100 },
+  { id: 'wins_10', name: '歴戦の変異師', desc: '通算10勝達成', cond: p => p.wins >= 10 },
+  { id: 'bounty_hunter', name: '賞金首ハンター', desc: '賞金首を1回以上討伐', cond: p => (p.bountiesClaimed || 0) >= 1 }
+];
 
 let userProfile = {
   rating: 1200,
   wins: 0,
   losses: 0,
   streak: 0,
-  maxStreak: 0
+  maxStreak: 0,
+  equippedTitle: '新進気鋭の駒遣い',
+  bountiesClaimed: 0
 };
 
 function loadUserProfile() {
@@ -198,7 +212,9 @@ function loadUserProfile() {
         wins: typeof data.wins === 'number' ? data.wins : 0,
         losses: typeof data.losses === 'number' ? data.losses : 0,
         streak: typeof data.streak === 'number' ? data.streak : 0,
-        maxStreak: typeof data.maxStreak === 'number' ? data.maxStreak : 0
+        maxStreak: typeof data.maxStreak === 'number' ? data.maxStreak : 0,
+        equippedTitle: data.equippedTitle || '新進気鋭の駒遣い',
+        bountiesClaimed: typeof data.bountiesClaimed === 'number' ? data.bountiesClaimed : 0
       };
     }
   } catch (e) {
@@ -229,17 +245,39 @@ function getRankInfo(rating) {
   return { title: '名人', progress: 1 };
 }
 
+// 週間シーズン情報の算出
+function getSeasonInfo() {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const pastDaysOfYear = (now - startOfYear) / 86400000;
+  const weekNum = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+  
+  // 今週の日曜23:59:59までの残り日数
+  const dayOfWeek = now.getDay(); // 0: 日曜, 1: 月曜...
+  const daysLeft = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  const hoursLeft = 24 - now.getHours();
+
+  return {
+    year: now.getFullYear(),
+    seasonNumber: weekNum,
+    daysLeftText: daysLeft > 0 ? `残り ${daysLeft}日` : `残り ${hoursLeft}時間 (本日集計!)`
+  };
+}
+
 function renderUserProfile() {
   const rankInfo = getRankInfo(userProfile.rating);
   const elTitle = document.getElementById('player-rank-title');
+  const elTitleBadge = document.getElementById('player-title-badge');
   const elRating = document.getElementById('player-rating-val');
   const elProgress = document.getElementById('player-rank-progress');
   const elWins = document.getElementById('player-wins');
   const elLosses = document.getElementById('player-losses');
   const elWinrate = document.getElementById('player-winrate');
   const elStreak = document.getElementById('player-streak');
+  const elMaxStreak = document.getElementById('player-max-streak');
 
   if (elTitle) elTitle.textContent = rankInfo.title;
+  if (elTitleBadge) elTitleBadge.textContent = userProfile.equippedTitle;
   if (elRating) elRating.textContent = userProfile.rating;
   if (elProgress) elProgress.style.width = `${Math.min(100, Math.max(0, rankInfo.progress * 100))}%`;
   if (elWins) elWins.textContent = userProfile.wins;
@@ -248,7 +286,68 @@ function renderUserProfile() {
   const total = userProfile.wins + userProfile.losses;
   const rate = total > 0 ? Math.round((userProfile.wins / total) * 100) : 0;
   if (elWinrate) elWinrate.textContent = `${rate}%`;
-  if (elStreak) elStreak.textContent = userProfile.streak;
+  if (elStreak) elStreak.textContent = `🔥 ${userProfile.streak}`;
+  if (elMaxStreak) elMaxStreak.textContent = userProfile.maxStreak;
+
+  renderSeasonAndRanking();
+}
+
+// 週間シーズン＆全国ランキングボード描画
+function renderSeasonAndRanking() {
+  const sInfo = getSeasonInfo();
+  const elSeasonBadge = document.getElementById('season-badge');
+  const elSeasonTimer = document.getElementById('season-timer');
+  if (elSeasonBadge) elSeasonBadge.textContent = `🗓️ ${sInfo.year} 第${sInfo.seasonNumber}期 週間シーズン`;
+  if (elSeasonTimer) elSeasonTimer.textContent = sInfo.daysLeftText;
+
+  // プレイヤーのレートから仮想順位を算出（レートが高いほど上位）
+  // 名人(2300+): 1〜5位, 初段(1500): 40〜60位, 3級(1200): 120〜150位
+  const basePos = Math.max(1, Math.round(1800 - (userProfile.rating - 900) * 1.25));
+  const elPlayerPos = document.getElementById('player-rank-pos-text');
+  if (elPlayerPos) elPlayerPos.textContent = `現在 ${basePos}位 (上位${Math.max(1, Math.round(basePos / 20))}%)`;
+
+  const rankingListEl = document.getElementById('ranking-list');
+  if (!rankingListEl) return;
+  rankingListEl.innerHTML = '';
+
+  // 殿堂TOP3
+  const topPlayers = [
+    { pos: 1, name: '無法名人・零式', title: '無法竜王', rank: '名人', rating: 2420, medal: 'gold', medalEmoji: '🥇' },
+    { pos: 2, name: '天王山マスター', title: '天王山の覇者', rank: '竜王', rating: 2280, medal: 'silver', medalEmoji: '🥈' },
+    { pos: 3, name: '覚醒桂馬キング', title: '電光石火の常勝', rank: '四段', rating: 2050, medal: 'bronze', medalEmoji: '🥉' }
+  ];
+
+  // プレイヤー周辺のライバル
+  const pRank = getRankInfo(userProfile.rating).title;
+  const surrounding = [
+    { pos: Math.max(4, basePos - 1), name: '変異の探求者', title: '連勝の火付け役', rank: getRankInfo(userProfile.rating + 15).title, rating: userProfile.rating + 15, isPlayer: false },
+    { pos: basePos, name: 'あなた', title: userProfile.equippedTitle, rank: pRank, rating: userProfile.rating, isPlayer: true },
+    { pos: basePos + 1, name: '機動歩兵の達人', title: '新進気鋭の駒遣い', rank: getRankInfo(Math.max(1000, userProfile.rating - 18)).title, rating: Math.max(1000, userProfile.rating - 18), isPlayer: false }
+  ];
+
+  // 表示リスト作成
+  const displayRows = [...topPlayers, ...surrounding];
+  displayRows.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = `ranking-row ${row.isPlayer ? 'is-player' : ''}`;
+
+    const posBadge = row.medalEmoji
+      ? `<span class="rank-pos-num ${row.medal}">${row.medalEmoji}</span>`
+      : `<span class="rank-pos-num">${row.pos}</span>`;
+
+    rowEl.innerHTML = `
+      <div class="ranking-left">
+        ${posBadge}
+        <span class="ranking-player-name">${row.name}</span>
+        <span class="ranking-player-title">${row.title}</span>
+      </div>
+      <div class="ranking-right">
+        <span class="ranking-tier-badge">${row.rank}</span>
+        <span class="ranking-rate-val">R ${row.rating}</span>
+      </div>
+    `;
+    rankingListEl.appendChild(rowEl);
+  });
 }
 
 // 画面切替制御
@@ -1319,11 +1418,13 @@ function endGame(winner, reasonText) {
   const rankDiffEl = document.getElementById('rank-result-diff');
   const rankCurrEl = document.getElementById('rank-result-current');
   const rankUpBanner = document.getElementById('rank-up-banner');
+  const rankBountyEl = document.getElementById('rank-bounty-bonus-desc');
 
   if (state.mode === 'rank') {
     const isWin = (winner === state.playerSide);
     const oldRating = userProfile.rating;
     const oldRank = getRankInfo(oldRating).title;
+    const isBounty = state.rankOpponent && state.rankOpponent.isBounty;
 
     let delta = 0;
     if (isWin) {
@@ -1331,13 +1432,25 @@ function endGame(winner, reasonText) {
       userProfile.streak++;
       if (userProfile.streak > userProfile.maxStreak) userProfile.maxStreak = userProfile.streak;
       const streakBonus = Math.min(8, (userProfile.streak - 1) * 2);
-      delta = 26 + Math.floor(Math.random() * 5) + Math.max(0, streakBonus);
+      let baseDelta = 26 + Math.floor(Math.random() * 5) + Math.max(0, streakBonus);
+
+      // ③ 賞金首討伐ボーナス
+      if (isBounty) {
+        userProfile.bountiesClaimed = (userProfile.bountiesClaimed || 0) + 1;
+        baseDelta += 20;
+        if (rankBountyEl) rankBountyEl.classList.remove('hidden');
+      } else {
+        if (rankBountyEl) rankBountyEl.classList.add('hidden');
+      }
+
+      delta = baseDelta;
       userProfile.rating += delta;
     } else {
       userProfile.losses++;
       userProfile.streak = 0;
       delta = -(14 + Math.floor(Math.random() * 5));
       userProfile.rating = Math.max(1000, userProfile.rating + delta);
+      if (rankBountyEl) rankBountyEl.classList.add('hidden');
     }
     saveUserProfile();
     renderUserProfile();
@@ -2342,10 +2455,14 @@ function prepareRankMatchModal() {
     ? matched[Math.floor(Math.random() * matched.length)]
     : RANK_OPPONENTS[Math.floor(Math.random() * RANK_OPPONENTS.length)];
 
+  // ③ 賞金首（Bounty）判定：相手レートが自分より高い、または確率(35%)で発生
+  const isBounty = (oppRating > userProfile.rating + 10) || (Math.random() < 0.35);
+
   currentRankOpponent = {
     name: chosen.name,
     rating: oppRating,
-    rankTitle: oppRank.title
+    rankTitle: oppRank.title,
+    isBounty
   };
 
   const elPlayerRank = document.getElementById('rank-matchup-player-rank');
@@ -2353,12 +2470,37 @@ function prepareRankMatchModal() {
   const elOppName = document.getElementById('rank-matchup-opp-name');
   const elOppRank = document.getElementById('rank-matchup-opp-rank');
   const elOppRate = document.getElementById('rank-matchup-opp-rating');
+  const bountyBanner = document.getElementById('bounty-match-banner');
+  const oppTag = document.getElementById('rank-opp-tag');
+  const ruleHint = document.getElementById('rank-match-rule-hint');
 
   if (elPlayerRank) elPlayerRank.textContent = playerRank.title;
   if (elPlayerRate) elPlayerRate.textContent = `R ${userProfile.rating}`;
   if (elOppName) elOppName.textContent = currentRankOpponent.name;
   if (elOppRank) elOppRank.textContent = currentRankOpponent.rankTitle;
   if (elOppRate) elOppRate.textContent = `R ${currentRankOpponent.rating}`;
+
+  if (isBounty) {
+    if (bountyBanner) bountyBanner.classList.remove('hidden');
+    if (oppTag) {
+      oppTag.textContent = '⚠️ 賞金首 TARGET';
+      oppTag.style.background = '#ef4444';
+      oppTag.style.color = '#fff';
+    }
+    if (ruleHint) {
+      ruleHint.innerHTML = '<span style="color:#f87171;font-weight:800">⚠️ 賞金首マッチ！勝利時：レート大量ボーナス (+46〜+52pt) / 敗北時：通常減少</span>';
+    }
+  } else {
+    if (bountyBanner) bountyBanner.classList.add('hidden');
+    if (oppTag) {
+      oppTag.textContent = '対戦相手';
+      oppTag.style.background = 'rgba(255, 255, 255, 0.08)';
+      oppTag.style.color = '#94a3b8';
+    }
+    if (ruleHint) {
+      ruleHint.innerHTML = '<span>勝敗によりレートが変動します（勝：+28pt前後 / 負：-16pt前後）</span>';
+    }
+  }
 
   const modal = document.getElementById('modal-rank-match');
   if (modal) modal.classList.remove('hidden');
@@ -2396,6 +2538,318 @@ function startFreeMatch() {
   state.rankOpponent = null;
   showScreen('game');
   restartNewGame();
+}
+
+// 称号選択モーダル展開
+function openTitleSelectModal() {
+  const container = document.getElementById('title-list-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  TITLE_DEFS.forEach(def => {
+    const isUnlocked = def.cond(userProfile);
+    const isEquipped = userProfile.equippedTitle === def.name;
+
+    const card = document.createElement('div');
+    card.className = `title-card-item ${isEquipped ? 'active' : ''} ${!isUnlocked ? 'locked' : ''}`;
+
+    let statusHtml = '';
+    if (isEquipped) {
+      statusHtml = '<span class="title-card-status equipped">セット中</span>';
+    } else if (isUnlocked) {
+      statusHtml = '<span class="title-card-status unlocked">セット可能</span>';
+    } else {
+      statusHtml = '<span class="title-card-status locked-badge">未解放</span>';
+    }
+
+    card.innerHTML = `
+      <div>
+        <div class="title-card-name">${def.name}</div>
+        <div class="title-card-cond">${def.desc}</div>
+      </div>
+      <div>${statusHtml}</div>
+    `;
+
+    if (isUnlocked && !isEquipped) {
+      card.addEventListener('click', () => {
+        userProfile.equippedTitle = def.name;
+        saveUserProfile();
+        renderUserProfile();
+        document.getElementById('modal-title-select').classList.add('hidden');
+      });
+    }
+
+    container.appendChild(card);
+  });
+
+  document.getElementById('modal-title-select').classList.remove('hidden');
+}
+
+// ==========================================
+// ⑤ 戦績証明書（リザルトカード）Canvas描画
+// ==========================================
+function generateRankCertificateCanvas() {
+  const canvas = document.getElementById('cert-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // 1. 背景グラデーション
+  const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+  bgGrad.addColorStop(0, '#070b14');
+  bgGrad.addColorStop(0.5, '#0d1527');
+  bgGrad.addColorStop(1, '#050811');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // 微細グリッド背景
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 28) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y < h; y += 28) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // 2. ゴールド＆サイバー枠線
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(16, 16, w - 32, h - 32);
+
+  // コーナーアクセント（四隅のL字）
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 4;
+  const cLen = 22;
+  // 左上
+  ctx.beginPath(); ctx.moveTo(16, 16 + cLen); ctx.lineTo(16, 16); ctx.lineTo(16 + cLen, 16); ctx.stroke();
+  // 右上
+  ctx.beginPath(); ctx.moveTo(w - 16 - cLen, 16); ctx.lineTo(w - 16, 16); ctx.lineTo(w - 16, 16 + cLen); ctx.stroke();
+  // 左下
+  ctx.beginPath(); ctx.moveTo(16, h - 16 - cLen); ctx.lineTo(16, h - 16); ctx.lineTo(16 + cLen, h - 16); ctx.stroke();
+  // 右下
+  ctx.beginPath(); ctx.moveTo(w - 16 - cLen, h - 16); ctx.lineTo(w - 16, h - 16); ctx.lineTo(w - 16, h - 16 - cLen); ctx.stroke();
+
+  // 3. タイトルヘッダー
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = '900 13px -apple-system, sans-serif';
+  ctx.fillText('SHOGI: MUTATION  —  OFFICIAL RANK CERTIFICATE', 36, 48);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 24px -apple-system, sans-serif';
+  ctx.fillText('無法将棋 公式戦績認定証', 36, 80);
+
+  // プレイヤー称号
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 1;
+  const titleText = `🎖️ ${userProfile.equippedTitle}`;
+  ctx.font = 'bold 13px -apple-system, sans-serif';
+  const titleWidth = ctx.measureText(titleText).width + 18;
+  ctx.fillRect(36, 96, titleWidth, 24);
+  ctx.strokeRect(36, 96, titleWidth, 24);
+  ctx.fillStyle = '#fde68a';
+  ctx.fillText(titleText, 45, 113);
+
+  // 4. レーティング＆段位（大文字）
+  const rankInfo = getRankInfo(userProfile.rating);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = 'bold 12px -apple-system, sans-serif';
+  ctx.fillText('CURRENT TIER', 36, 155);
+
+  ctx.fillStyle = '#fde68a';
+  ctx.font = '900 46px -apple-system, sans-serif';
+  ctx.fillText(rankInfo.title, 36, 202);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = 'bold 12px -apple-system, sans-serif';
+  ctx.fillText('OFFICIAL RATING', 210, 155);
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '900 46px -apple-system, sans-serif';
+  ctx.fillText(`${userProfile.rating} R`, 210, 202);
+
+  // 5. 通算戦績ブロック
+  const total = userProfile.wins + userProfile.losses;
+  const winRate = total > 0 ? Math.round((userProfile.wins / total) * 100) : 0;
+  const sInfo = getSeasonInfo();
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillRect(36, 230, 430, 180);
+  ctx.strokeRect(36, 230, 430, 180);
+
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = 'bold 15px -apple-system, sans-serif';
+  ctx.fillText(`通算戦績:  ${userProfile.wins}勝 ${userProfile.losses}敗  (勝率 ${winRate}%)`, 54, 266);
+  ctx.fillText(`最高連勝記録:  🔥 ${userProfile.maxStreak} 連勝`, 54, 302);
+  ctx.fillText(`賞金首討伐実績:  🎯 ${userProfile.bountiesClaimed || 0} 体`, 54, 338);
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 13px -apple-system, sans-serif';
+  ctx.fillText(`参加シーズン:  ${sInfo.year} 第${sInfo.seasonNumber}期 週間シーズン`, 54, 384);
+
+  // 6. 右側：代表変異駒の5x5マトリックス図面
+  // 本局の味方最強駒、または高pt駒を取得
+  let repPiece = null;
+  const allyList = getAllAllyPieces(state.board, state.playerSide);
+  if (allyList.length > 0) {
+    allyList.sort((a, b) => getPieceTotalPt(b.piece) - getPieceTotalPt(a.piece));
+    repPiece = allyList[0].piece;
+  }
+
+  const rightBoxX = 490;
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+  ctx.fillRect(rightBoxX, 48, 314, 362);
+  ctx.strokeRect(rightBoxX, 48, 314, 362);
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '900 13px -apple-system, sans-serif';
+  ctx.fillText('FEATURED MUTATION UNIT', rightBoxX + 16, 74);
+
+  const pieceName = repPiece ? `${repPiece.name} (${getPieceTotalPt(repPiece)}pt)` : '無法の歩兵 (8pt)';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 16px -apple-system, sans-serif';
+  ctx.fillText(pieceName, rightBoxX + 16, 100);
+
+  // 5x5 ミニマトリックス描画
+  const mStartX = rightBoxX + 38;
+  const mStartY = 130;
+  const mCellSz = 46;
+
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const cx = mStartX + (dx + 2) * mCellSz;
+      const cy = mStartY + (dy + 2) * mCellSz;
+
+      if (dx === 0 && dy === 0) {
+        ctx.fillStyle = '#1e3a8a';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.fillRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+        ctx.strokeRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(repPiece ? repPiece.kanji : '歩', cx + mCellSz / 2, cy + mCellSz / 2);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+      } else {
+        const isRay = repPiece ? hasRayInDir(repPiece, dx, dy, true) : false;
+        const stepType = repPiece ? hasStepAt(repPiece, dx, dy, true) : 'none';
+
+        if (isRay) {
+          ctx.fillStyle = 'rgba(6, 182, 212, 0.35)';
+          ctx.strokeStyle = '#06b6d4';
+          ctx.fillRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+          ctx.strokeRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+          ctx.fillStyle = '#06b6d4';
+          ctx.font = 'bold 16px -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('∞', cx + mCellSz / 2, cy + mCellSz / 2);
+        } else if (stepType === 'evolved') {
+          ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.fillRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+          ctx.strokeRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = 'bold 14px -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('★', cx + mCellSz / 2, cy + mCellSz / 2);
+        } else if (stepType === 'initial') {
+          ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+          ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)';
+          ctx.fillRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+          ctx.strokeRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+          ctx.fillStyle = '#34d399';
+          ctx.font = 'bold 12px -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('●', cx + mCellSz / 2, cy + mCellSz / 2);
+        } else {
+          ctx.fillStyle = 'rgba(30, 41, 59, 0.4)';
+          ctx.strokeStyle = 'rgba(71, 85, 105, 0.4)';
+          ctx.fillRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+          ctx.strokeRect(cx + 2, cy + 2, mCellSz - 4, mCellSz - 4);
+        }
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+      }
+    }
+  }
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.fillText('●初期  ★進化済マス  ∞走り(直進無限)', rightBoxX + 46, 392);
+
+  // 7. フッターURL
+  ctx.fillStyle = '#64748b';
+  ctx.font = 'bold 11px -apple-system, sans-serif';
+  ctx.fillText('shogi.pop-ghost.com  |  無法将棋 MUTATION', 36, 442);
+}
+
+function openCertModal() {
+  generateRankCertificateCanvas();
+  const modal = document.getElementById('modal-cert-card');
+  if (modal) modal.classList.remove('hidden');
+}
+
+// 𝕏 でカードをシェア（Web Share API / Twitter Intent 連動）
+async function shareCertImage() {
+  const canvas = document.getElementById('cert-canvas');
+  if (!canvas) return;
+
+  const rankInfo = getRankInfo(userProfile.rating);
+  const tweetText = `『無法将棋』公式戦績証明書！\n段位: ${rankInfo.title} (${userProfile.rating} R) | 称号: ${userProfile.equippedTitle}\n最高連勝: 🔥 ${userProfile.maxStreak}連勝 | 賞金首: 🎯 ${userProfile.bountiesClaimed || 0}体討伐\n駒を変異・進化させて戦う新感覚Web将棋！\n#無法将棋 #将棋`;
+  const shareUrl = 'https://shogi.pop-ghost.com/';
+
+  // 1. Web Share APIで画像直接共有を試行
+  if (navigator.share && canvas.toBlob) {
+    try {
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      const file = new File([blob], `muhou_shogi_rank_${userProfile.rating}R.png`, { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: '無法将棋 公式戦績証明書',
+          text: tweetText,
+          url: shareUrl,
+          files: [file]
+        });
+        return;
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.warn('Web Share failed, falling back:', err);
+      } else {
+        return;
+      }
+    }
+  }
+
+  // 2. フォールバック: 画像を自動保存し、Twitter Web Intentを開く
+  downloadCertImage();
+  const twitterIntent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(shareUrl)}`;
+  window.open(twitterIntent, '_blank', 'noopener,noreferrer');
+}
+
+function downloadCertImage() {
+  const canvas = document.getElementById('cert-canvas');
+  if (!canvas) return;
+  const link = document.createElement('a');
+  link.download = `muhou_shogi_rank_${userProfile.rating}R.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
 }
 
 // イベントリスナー登録
@@ -2461,6 +2915,37 @@ sidePills.forEach(pill => {
     selectedComSide = pill.dataset.side || 'sente';
   });
 });
+
+// 称号選択モーダル関連
+const btnChangeTitle = document.getElementById('btn-change-title');
+if (btnChangeTitle) btnChangeTitle.addEventListener('click', openTitleSelectModal);
+
+const btnCloseTitleModal = document.getElementById('btn-close-title-modal');
+if (btnCloseTitleModal) {
+  btnCloseTitleModal.addEventListener('click', () => {
+    document.getElementById('modal-title-select').classList.add('hidden');
+  });
+}
+
+// 戦績証明書モーダル関連
+const btnOpenCert = document.getElementById('btn-open-cert');
+if (btnOpenCert) btnOpenCert.addEventListener('click', openCertModal);
+
+const btnGameoverCert = document.getElementById('btn-gameover-cert');
+if (btnGameoverCert) btnGameoverCert.addEventListener('click', openCertModal);
+
+const btnCloseCertModal = document.getElementById('btn-close-cert-modal');
+if (btnCloseCertModal) {
+  btnCloseCertModal.addEventListener('click', () => {
+    document.getElementById('modal-cert-card').classList.add('hidden');
+  });
+}
+
+const btnCertShareX = document.getElementById('btn-cert-share-x');
+if (btnCertShareX) btnCertShareX.addEventListener('click', shareCertImage);
+
+const btnCertDownload = document.getElementById('btn-cert-download');
+if (btnCertDownload) btnCertDownload.addEventListener('click', downloadCertImage);
 
 // エントランス補助ボタン
 const btnResume = document.getElementById('btn-resume-game');
