@@ -2104,19 +2104,28 @@ function cpuExecuteInstantEvolution(killerPiece, points) {
 // レンダリング (UI描画)
 // ==========================================
 
-function renderAll() {
-  // 後手番プレイヤー時は盤面＆手前・奥のプレイヤー配置を自動反転
-  const boardWrapper = document.querySelector('.board-wrapper');
-  const mainLayout = document.querySelector('.main-layout');
-  const isGotePlayer = (state.playerSide === 'gote');
 
-  if (boardWrapper) {
-    boardWrapper.classList.toggle('flip-board', isGotePlayer);
+// プレイヤーの手番視点に合わせて盤面とラベルを完全同期
+function updateBoardPerspective() {
+  const isGotePlayer = (state.playerSide === 'gote');
+  const boardEl = document.getElementById('shogi-board');
+  const mainLayout = document.querySelector('.main-layout');
+  const colLabels = document.querySelector('.col-labels');
+
+  if (boardEl) {
+    boardEl.classList.toggle('flip-board', isGotePlayer);
   }
   if (mainLayout) {
     mainLayout.classList.toggle('flip-players', isGotePlayer);
   }
+  if (colLabels) {
+    const numbers = isGotePlayer ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1];
+    colLabels.innerHTML = numbers.map(n => `<span>${n}</span>`).join('');
+  }
+}
 
+function renderAll() {
+  updateBoardPerspective();
   renderBoard();
   renderStatsAndStatus();
   renderEvolutionBox();
@@ -2386,7 +2395,11 @@ function renderInspector() {
   const innerComplete = isInnerRingComplete(piece, true);
 
   const isGote = piece.owner === 'gote';
-  const isOpponent = piece.owner !== state.turn;
+  // プレイヤー視点における敵駒判定（自軍の駒は先手・後手問わず常に上向き▲、敵駒は下向き▼）
+  const isOpponent = (state.mode === 'pvp')
+    ? (piece.owner !== state.turn)
+    : (piece.owner !== state.playerSide);
+  const shouldFlipMatrix = isOpponent;
 
   elInspKanji.textContent = getPieceDisplayLabel(piece, true);
   elInspKanji.classList.toggle('gote', isGote);
@@ -2404,9 +2417,9 @@ function renderInspector() {
   elInspOwnerBadge.classList.add(piece.owner === 'sente' ? 'sente-badge' : 'gote-badge');
   elInspOwnerBadge.textContent = piece.owner === 'sente' ? '☗ 先手' : '☖ 後手';
 
-  // 進行方向ヒントの向きを更新（相手駒・後手なら手前向き▼、先手なら奥向き▲）
+  // 進行方向ヒントの向きを更新（敵駒なら手前向き▼、自軍駒なら奥向き▲）
   if (elDirHint) {
-    if (isGote) {
+    if (shouldFlipMatrix) {
       elDirHint.textContent = '▼ 進行方向（手前・自陣向き）▼';
       elDirHint.classList.add('gote-dir');
     } else {
@@ -2415,7 +2428,7 @@ function renderInspector() {
     }
   }
   if (elDirHintBottom) {
-    if (isGote) {
+    if (shouldFlipMatrix) {
       elDirHintBottom.textContent = '▼ 進行方向 ▼';
       elDirHintBottom.classList.remove('hidden');
     } else {
@@ -2446,9 +2459,9 @@ function renderInspector() {
         }
         mCell.textContent = getPieceDisplayLabel(piece, true);
       } else {
-        // 相手駒（後手）の場合は盤面の実際の攻撃向きに合わせて上下・左右を反転表示
-        const checkDx = isGote ? -dx : dx;
-        const checkDy = isGote ? -dy : dy;
+        // 相手駒の場合は盤面の実際の攻撃向きに合わせて上下・左右を反転表示
+        const checkDx = shouldFlipMatrix ? -dx : dx;
+        const checkDy = shouldFlipMatrix ? -dy : dy;
 
         const dirX = Math.sign(checkDx);
         const dirY = Math.sign(checkDy);

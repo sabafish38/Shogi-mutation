@@ -2355,15 +2355,8 @@ body {
    後手番プレイヤー視点の自動盤面反転 (180deg)
    常に手前が自陣、奥が敵陣で直感的に操作可能！
    ========================================== */
-.board-wrapper.flip-board {
+#shogi-board.flip-board {
   transform: rotate(180deg);
-}
-
-/* ラベルの文字のみ180度カウンター回転して正立表示 */
-.board-wrapper.flip-board .col-labels span,
-.board-wrapper.flip-board .row-labels span {
-  transform: rotate(180deg);
-  display: inline-block;
 }
 
 /* プレイヤーバーの上下反転（手前が自分＝後手、奥が相手＝先手） */
