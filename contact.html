@@ -50,29 +50,110 @@
       font-size: 0.95rem;
       color: #cbd5e1;
     }
-    .contact-box {
+
+    /* 問い合わせフォームUI */
+    .contact-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #fde68a;
+    }
+    .form-group label .req {
+      color: #ef4444;
+      margin-left: 4px;
+      font-size: 0.8rem;
+    }
+    .form-input, .form-textarea, .form-select {
       background: #0d121c;
-      border: 1px dashed var(--accent-gold);
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-      margin-top: 20px;
-    }
-    .contact-btn {
-      display: inline-block;
-      margin-top: 12px;
-      padding: 10px 24px;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: #fff;
-      font-weight: 800;
+      border: 1px solid #2a374d;
       border-radius: 6px;
-      text-decoration: none;
-      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
-      transition: transform 0.1s ease;
+      padding: 10px 12px;
+      color: #f8fafc;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s ease;
     }
-    .contact-btn:active {
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      border-color: var(--evo-gold);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+    }
+    .form-textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+    .form-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .btn-submit {
+      width: 100%;
+      max-width: 320px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #1c1309;
+      font-size: 1rem;
+      font-weight: 900;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(245, 158, 11, 0.4);
+      transition: transform 0.08s ease, filter 0.15s ease;
+      touch-action: manipulation;
+    }
+    .btn-submit:active {
       transform: translateY(2px);
+      box-shadow: 0 1px 3px rgba(245, 158, 11, 0.4);
     }
+    .btn-submit:hover {
+      filter: brightness(1.1);
+    }
+
+    .form-success-box {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1.5px solid #10b981;
+      border-radius: 8px;
+      padding: 18px;
+      text-align: center;
+      color: #6ee7b7;
+      margin-top: 14px;
+    }
+    .form-success-box h3 {
+      font-size: 1.1rem;
+      margin-bottom: 6px;
+      color: #a7f3d0;
+    }
+
+    .direct-mail-box {
+      background: #0d121c;
+      border: 1px solid #1f2a3c;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 18px;
+      font-size: 0.88rem;
+    }
+    .direct-mail-box strong {
+      color: #fde68a;
+    }
+    .direct-mail-link {
+      color: #38bdf8;
+      text-decoration: underline;
+      font-weight: 700;
+    }
+
     .btn-back-home {
       display: inline-flex;
       align-items: center;
@@ -84,6 +165,7 @@
       border-radius: 6px;
       text-decoration: none;
       transition: transform 0.1s ease;
+      touch-action: manipulation;
     }
     .btn-back-home:active {
       transform: translateY(2px);
@@ -102,14 +184,53 @@
 
     <main>
       <div class="legal-card">
-        <h2>当サイトに関するお問い合わせ</h2>
+        <h2>お問い合わせフォーム</h2>
         <p>『無法将棋』（pop-ghost.com）をご利用いただきありがとうございます。</p>
-        <p>ゲームのバグ報告、不具合のご連絡、機能改善のご要望、取材や広告掲載、権利関連のお問い合わせなどにつきましては、下記のお問い合わせフォームよりご連絡いただけますようお願い申し上げます。</p>
+        <p>ゲームの不具合報告、ゲームバランス改善のご要望、取材やご質問などにつきましては、以下のフォームよりお気軽にお問い合わせください。</p>
 
-        <div class="contact-box">
-          <p style="font-weight: 700; color: #fde68a;">Googleフォームから直接メッセージを送信できます</p>
-          <p style="font-size: 0.85rem; color: var(--text-muted);">※ 通常数日以内に内容を確認させていただいております。</p>
-          <a href="https://forms.gle/" target="_blank" rel="noopener" class="contact-btn">✉️ お問い合わせフォームを開く</a>
+        <!-- 問い合わせフォーム -->
+        <form id="contact-form" class="contact-form">
+          <div class="form-group">
+            <label for="contact-name">お名前 / ニックネーム <span class="req">※必須</span></label>
+            <input type="text" id="contact-name" class="form-input" placeholder="例: 将棋太郎" required>
+          </div>
+
+          <div class="form-group">
+            <label for="contact-email">メールアドレス <span class="req">※必須</span></label>
+            <input type="email" id="contact-email" class="form-input" placeholder="例: user@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="contact-category">お問い合わせ種別</label>
+            <select id="contact-category" class="form-select">
+              <option value="bug">不具合・バグの報告</option>
+              <option value="balance">ゲームバランス・機能要望</option>
+              <option value="inquiry">一般的なお問い合わせ・ご質問</option>
+              <option value="business">取材・掲載・ビジネスのご連絡</option>
+              <option value="other">その他</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="contact-message">お問い合わせ内容 <span class="req">※必須</span></label>
+            <textarea id="contact-message" class="form-textarea" placeholder="お問い合わせ内容をご入力ください" required></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-submit">✉️ 送信する</button>
+            <small style="color:var(--text-muted)">※ 送信後、お使いのメーラーまたは直接送信画面が起動します。</small>
+          </div>
+        </form>
+
+        <div id="contact-success" class="form-success-box" style="display: none;">
+          <h3>✅ お問い合わせを受け付けました</h3>
+          <p>メッセージの送信準備が完了しました。内容を確認次第、必要に応じてご返信させていただきます。</p>
+        </div>
+
+        <div class="direct-mail-box">
+          <p>直接メールでのお問い合わせも受け付けております：<br>
+          <strong>メール：</strong> <a href="mailto:info@pop-ghost.com?subject=【無法将棋】お問い合わせ" class="direct-mail-link">info@pop-ghost.com</a>
+          </p>
         </div>
       </div>
 
@@ -118,6 +239,7 @@
         <p><strong>サイト名：</strong>無法将棋 (SHOGI: MUTATION)</p>
         <p><strong>ドメイン：</strong>https://pop-ghost.com/</p>
         <p><strong>運営者：</strong>sabafish38</p>
+        <p><strong>連絡先：</strong>上記フォームまたは <a href="mailto:info@pop-ghost.com" class="direct-mail-link">info@pop-ghost.com</a></p>
         <p><strong>主なコンテンツ：</strong>オリジナルWebブラウザ将棋ゲームの提供・開発</p>
       </div>
     </main>
@@ -126,5 +248,37 @@
       <p>&copy; 2026 pop-ghost.com / sabafish38 All Rights Reserved.</p>
     </footer>
   </div>
+
+  <script>
+    const form = document.getElementById('contact-form');
+    const successBox = document.getElementById('contact-success');
+
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('contact-name').value;
+        const email = document.getElementById('contact-email').value;
+        const category = document.getElementById('contact-category').value;
+        const message = document.getElementById('contact-message').value;
+
+        // メーラー起動リンクを構築
+        const subject = encodeURIComponent(`【無法将棋 お問い合わせ】${category} (${name}様より)`);
+        const body = encodeURIComponent(
+          `お名前: ${name}\n` +
+          `メールアドレス: ${email}\n` +
+          `種別: ${category}\n\n` +
+          `【お問い合わせ内容】\n${message}\n`
+        );
+
+        // mailtoの起動
+        window.location.href = `mailto:info@pop-ghost.com?subject=${subject}&body=${body}`;
+
+        // 完了表示
+        if (successBox) {
+          successBox.style.display = 'block';
+        }
+      });
+    }
+  </script>
 </body>
 </html>
