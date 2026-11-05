@@ -1,9 +1,10 @@
-const CACHE_NAME = 'muhou-shogi-v6';
+const CACHE_NAME = 'muhou-shogi-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './game.js',
+  './online.js',
   './manifest.json',
   './favicon.svg',
   './icon-192.svg',

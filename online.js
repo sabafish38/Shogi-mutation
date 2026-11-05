@@ -114,7 +114,7 @@ async function startQuickMatchmaking() {
         setupConnectionEvents(conn, '全国の猛者');
         conn.send({
           type: 'hello_guest',
-          name: 'あなた (挑戦者)',
+          name: userProfile.name || '全国の挑戦者',
           rank: getRankInfo(userProfile.rating).title,
           rating: userProfile.rating,
           title: userProfile.equippedTitle
@@ -141,7 +141,7 @@ async function startQuickMatchmaking() {
           conn.on('open', () => {
             conn.send({
               type: 'hello_host',
-              name: '全国の対局者',
+              name: userProfile.name || '全国の対局者',
               rank: getRankInfo(userProfile.rating).title,
               rating: userProfile.rating,
               title: userProfile.equippedTitle
@@ -193,7 +193,7 @@ async function createFriendRoom() {
     conn.on('open', () => {
       conn.send({
         type: 'hello_host',
-        name: '部屋主 (先手)',
+        name: userProfile.name || '部屋主',
         rank: getRankInfo(userProfile.rating).title,
         rating: userProfile.rating,
         title: userProfile.equippedTitle
@@ -229,7 +229,7 @@ async function joinFriendRoom(inputCode) {
     setupConnectionEvents(conn, '友達 (部屋主)');
     conn.send({
       type: 'hello_guest',
-      name: '友達 (後手)',
+      name: userProfile.name || '挑戦者',
       rank: getRankInfo(userProfile.rating).title,
       rating: userProfile.rating,
       title: userProfile.equippedTitle
@@ -261,11 +261,16 @@ function setupConnectionEvents(conn, defaultOpponentName) {
     if (!data) return;
 
     if (data.type === 'hello_host' || data.type === 'hello_guest') {
-      // 相手のプロフィール情報を受信
+      // 相手のプロフィール情報を受信 (NGワードチェック)
+      let oppName = (data.name || defaultOpponentName || '通信対戦相手').slice(0, 10);
+      if (typeof validateUserName === 'function') {
+        const v = validateUserName(oppName);
+        if (!v.valid) oppName = '対局者';
+      }
       opponentProfile = {
-        name: data.name || defaultOpponentName,
+        name: oppName,
         rank: data.rank || '初段',
-        rating: data.rating || 1200,
+        rating: typeof data.rating === 'number' ? data.rating : 1200,
         title: data.title || '全国の猛者'
       };
       startOnlineGameSession(onlinePlayerSide, opponentProfile);

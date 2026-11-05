@@ -192,7 +192,52 @@ const TITLE_DEFS = [
   { id: 'bounty_hunter', name: '賞金首ハンター', desc: '賞金首を1回以上討伐', cond: p => (p.bountiesClaimed || 0) >= 1 }
 ];
 
+// ==========================================
+// ユーザーネーム管理 ＆ 過激ワード (NGワード) フィルター
+// ==========================================
+const NG_WORDS = [
+  // 脅迫・暴力・死
+  '死ね', 'しね', 'シネ', '氏ね', '殺す', 'ころす', 'コロス', '殺害', '自殺', '首吊り', 'ぶっ殺す', 'くたばれ', '消えろ', '刺す',
+  // 差別・中傷
+  'ガイジ', 'がいじ', '障害者', 'キチガイ', 'きちがい', '気違い', '白痴', '池沼', '部落',
+  // 罵倒
+  'カス', 'かす', 'ゴミ', 'ごみ', 'クソ', 'くそ', '糞', '馬鹿', 'バカ', 'ばか', '阿呆', 'アホ', 'あほ', '低能',
+  // 性的・ハラスメント
+  'ちんぽ', 'チンポ', 'ちんこ', 'チンコ', 'ペニス', 'まんこ', 'マンコ', 'おまんこ', 'オマンコ', 'ヴァギナ',
+  'セックス', 'せっくす', '性交', 'オナニー', 'おなにー', '射精', '精液', '巨乳', 'パイパン',
+  'レイプ', 'れいぷ', '強姦', '輪姦', '痴漢', '乱交', '露出狂',
+  // 英語スラング・暴言・ヘイト
+  'fuck', 'fck', 'fuk', 'shit', 'bitch', 'cunt', 'dick', 'pussy', 'cock', 'asshole', 'bastard',
+  'motherfucker', 'retard', 'nigger', 'nigga', 'whore', 'slut', 'kill', 'die', 'suicide',
+  'sex', 'porn', 'hentai', 'rape', 'hitler', 'nazi'
+];
+
+function validateUserName(rawName) {
+  if (!rawName) {
+    return { valid: false, error: 'ユーザーネームを入力してください' };
+  }
+  const trimmed = rawName.trim();
+  if (trimmed.length < 1 || trimmed.length > 10) {
+    return { valid: false, error: '1文字以上10文字以内で入力してください' };
+  }
+
+  // Unicode NFKC正規化（全角英数記号を半角へ、濁点合字の統一など）
+  const normalized = trimmed.normalize('NFKC').toLowerCase();
+  // 記号や空白を除去した連続テキスト（例: 死_ね、f.u.c.k などの回避を検出）
+  const stripped = normalized.replace(/[\s_\-\.\*\/\\\+~!?#&@~〜・、。]/g, '');
+
+  for (const ng of NG_WORDS) {
+    const ngNorm = ng.normalize('NFKC').toLowerCase();
+    if (stripped.includes(ngNorm) || normalized.includes(ngNorm)) {
+      return { valid: false, error: '不適切な表現が含まれているため設定できません' };
+    }
+  }
+
+  return { valid: true, name: trimmed };
+}
+
 let userProfile = {
+  name: '名無し棋士',
   rating: 1200,
   wins: 0,
   losses: 0,
@@ -208,6 +253,7 @@ function loadUserProfile() {
     if (raw) {
       const data = JSON.parse(raw);
       userProfile = {
+        name: (typeof data.name === 'string' && data.name.trim()) ? data.name.trim().slice(0, 10) : '名無し棋士',
         rating: typeof data.rating === 'number' ? data.rating : 1200,
         wins: typeof data.wins === 'number' ? data.wins : 0,
         losses: typeof data.losses === 'number' ? data.losses : 0,
@@ -276,6 +322,8 @@ function renderUserProfile() {
   const elStreak = document.getElementById('player-streak');
   const elMaxStreak = document.getElementById('player-max-streak');
 
+  const elPlayerDisplayName = document.getElementById('player-display-name');
+  if (elPlayerDisplayName) elPlayerDisplayName.textContent = userProfile.name || '名無し棋士';
   if (elTitle) elTitle.textContent = rankInfo.title;
   if (elTitleBadge) elTitleBadge.textContent = userProfile.equippedTitle;
   if (elRating) elRating.textContent = userProfile.rating;
@@ -321,7 +369,7 @@ function renderSeasonAndRanking() {
   const pRank = getRankInfo(userProfile.rating).title;
   const surrounding = [
     { pos: Math.max(4, basePos - 1), name: '変異の探求者', title: '連勝の火付け役', rank: getRankInfo(userProfile.rating + 15).title, rating: userProfile.rating + 15, isPlayer: false },
-    { pos: basePos, name: 'あなた', title: userProfile.equippedTitle, rank: pRank, rating: userProfile.rating, isPlayer: true },
+    { pos: basePos, name: ${userProfile.name} (あなた), title: userProfile.equippedTitle, rank: pRank, rating: userProfile.rating, isPlayer: true },
     { pos: basePos + 1, name: '機動歩兵の達人', title: '新進気鋭の駒遣い', rank: getRankInfo(Math.max(1000, userProfile.rating - 18)).title, rating: Math.max(1000, userProfile.rating - 18), isPlayer: false }
   ];
 
@@ -599,12 +647,13 @@ function updatePlayerNames() {
     }
   } else {
     const cpuLabel = state.mode === 'cpu-hard' ? 'CPU (強敵)' : state.mode === 'cpu-easy' ? 'CPU (入門)' : 'CPU (標準)';
+    const myLabel = userProfile.name || 'あなた';
     if (state.playerSide === 'sente') {
-      senteNameEl.textContent = 'あなた';
+      senteNameEl.textContent = myLabel;
       goteNameEl.textContent = cpuLabel;
     } else {
       senteNameEl.textContent = cpuLabel;
-      goteNameEl.textContent = 'あなた';
+      goteNameEl.textContent = myLabel;
     }
   }
 }
@@ -2738,8 +2787,12 @@ function generateRankCertificateCanvas() {
   ctx.fillText('SHOGI: MUTATION  —  OFFICIAL RANK CERTIFICATE', 36, 48);
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = '900 24px -apple-system, sans-serif';
-  ctx.fillText('無法将棋 公式戦績認定証', 36, 80);
+  ctx.font = '900 22px -apple-system, sans-serif';
+  ctx.fillText('無法将棋 公式戦績認定証', 36, 78);
+
+  ctx.fillStyle = '#93c5fd';
+  ctx.font = 'bold 15px -apple-system, sans-serif';
+  ctx.fillText(🪪 棋士名:  殿, 36, 100);
 
   // プレイヤー称号
   ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
@@ -3010,6 +3063,66 @@ sidePills.forEach(pill => {
     selectedComSide = pill.dataset.side || 'sente';
   });
 });
+
+
+// ユーザーネーム編集モーダル関連
+function openNameEditModal() {
+  const modal = document.getElementById('modal-name-edit');
+  const input = document.getElementById('input-user-name');
+  const err = document.getElementById('name-error-msg');
+  if (!modal || !input) return;
+  input.value = userProfile.name || '';
+  if (err) {
+    err.textContent = '';
+    err.classList.add('hidden');
+  }
+  modal.classList.remove('hidden');
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeNameEditModal() {
+  const modal = document.getElementById('modal-name-edit');
+  if (modal) modal.classList.add('hidden');
+}
+
+function handleSaveUserName() {
+  const input = document.getElementById('input-user-name');
+  const err = document.getElementById('name-error-msg');
+  if (!input) return;
+  const res = validateUserName(input.value);
+  if (!res.valid) {
+    if (err) {
+      err.textContent = res.error;
+      err.classList.remove('hidden');
+    }
+    return;
+  }
+  userProfile.name = res.name;
+  saveUserProfile();
+  renderUserProfile();
+  updatePlayerNames();
+  closeNameEditModal();
+  showToast(🪪 ユーザーネームを「」に変更しました);
+}
+
+const btnChangeName = document.getElementById('btn-change-name');
+if (btnChangeName) btnChangeName.addEventListener('click', openNameEditModal);
+
+const btnCloseNameModal = document.getElementById('btn-close-name-modal');
+if (btnCloseNameModal) btnCloseNameModal.addEventListener('click', closeNameEditModal);
+
+const btnSaveUserName = document.getElementById('btn-save-user-name');
+if (btnSaveUserName) btnSaveUserName.addEventListener('click', handleSaveUserName);
+
+const inputUserName = document.getElementById('input-user-name');
+if (inputUserName) {
+  inputUserName.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveUserName();
+    }
+  });
+}
 
 // 称号選択モーダル関連
 const btnChangeTitle = document.getElementById('btn-change-title');

@@ -2386,3 +2386,81 @@ body {
 .main-layout.flip-players .log-ticker-bar {
   order: 7;
 }
+
+
+/* ユーザーネーム表示バー */
+.player-profile-name-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.player-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.name-badge-icon {
+  font-size: 1.1rem;
+}
+
+.player-display-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f6ad55;
+  text-shadow: 0 0 8px rgba(246, 173, 85, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-change-name {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.btn-change-name:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: #ffd700;
+  color: #fff;
+}
+
+.btn-change-name:active {
+  transform: translateY(2px);
+}
+
+/* ユーザーネーム入力エラーメッセージ */
+.name-error-msg {
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.12);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  text-align: left;
+  line-height: 1.4;
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}

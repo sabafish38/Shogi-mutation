@@ -32,7 +32,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7?v=7">
 </head>
 <body>
   <div class="app-container">
@@ -52,6 +52,13 @@
 
       <!-- プレイヤーランク＆レートカード -->
       <div class="player-rank-card" id="entrance-player-card">
+        <div class="player-profile-name-bar">
+          <div class="player-name-wrap">
+            <span class="name-badge-icon">🪪</span>
+            <span id="player-display-name" class="player-display-name">名無し棋士</span>
+          </div>
+          <button id="btn-change-name" class="btn-change-name" type="button">✏️ 名前変更</button>
+        </div>
         <div class="rank-card-header">
           <div class="rank-badge-wrap">
             <span class="rank-icon">👑</span>
@@ -577,6 +584,29 @@
       </div>
     </div>
 
+    <!-- ユーザーネーム変更モーダル -->
+    <div id="modal-name-edit" class="modal-overlay hidden">
+      <div class="modal-card select-modal-card">
+        <div class="modal-header">
+          <h2>✏️ ユーザーネームの変更</h2>
+          <button id="btn-close-name-modal" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">全国ランキングやオンライン対戦で表示される名前を設定します（1〜10文字）</p>
+          
+          <div class="setting-item">
+            <label for="input-user-name" class="setting-lbl">新しいユーザーネーム:</label>
+            <input type="text" id="input-user-name" class="styled-input" placeholder="例: 変異の鬼" maxlength="10">
+            <div id="name-error-msg" class="name-error-msg hidden"></div>
+          </div>
+
+          <div class="setting-actions">
+            <button id="btn-save-user-name" class="btn btn-primary btn-full btn-lg">変更を保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 称号選択モーダル -->
     <div id="modal-title-select" class="modal-overlay hidden">
       <div class="modal-card select-modal-card">
@@ -712,13 +742,10 @@
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <!-- ゲームスクリプト群 -->
-  <script src="firebase-config.js"></script>
-  <script src="online.js?v=6"></script>
-  <script src="game.js?v=6"></script>
+  <script src="online.js?v=7"></script>
+  <script src="game.js?v=7"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
