@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>無法将棋 - SHOGI: MUTATION</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- スマホ最適化 1行コンパクトヘッダー -->
+    <header class="app-header">
+      <div class="logo-area">
+        <h1>無法将棋 <span class="subtitle">MUTATION</span></h1>
+      </div>
+      <div class="header-controls">
+        <button id="btn-undo" class="btn btn-header" title="1手戻す">↩ 待った</button>
+        <button id="btn-restart" class="btn btn-header btn-primary" title="新規対局">🔄 新規</button>
+        <button id="btn-settings" class="btn btn-header btn-secondary" title="設定">⚙️ 設定</button>
+        <button id="btn-rules" class="btn btn-header btn-outline" title="ルール">❓ ルール</button>
+      </div>
+    </header>
+
+    <!-- メイン対局画面 -->
+    <main class="main-layout">
+      <!-- 相手（後手/上側）プレイヤーバー -->
+      <div id="card-gote" class="player-bar gote-bar">
+        <div class="player-meta">
+          <span class="player-badge gote-badge">☖ 後手</span>
+          <span id="gote-name" class="player-name">CPU</span>
+        </div>
+        <div class="player-indicators">
+          <div class="indicator-item bank-item">
+            <span class="ind-label">所持</span>
+            <span id="gote-bank-pt" class="ind-value bank-val">0</span><small>pt</small>
+          </div>
+          <div class="indicator-item">
+            <span class="ind-label">軍勢</span>
+            <span id="gote-total-pt" class="ind-value">54</span><small>pt</small>
+          </div>
+          <div class="indicator-item">
+            <span class="ind-label">残存</span>
+            <span id="gote-piece-count" class="ind-value">20</span><small>枚</small>
+          </div>
+          <span id="gote-max-piece" class="hidden"></span>
+        </div>
+      </div>
+
+      <!-- 手番＆サドンデス状況バナー -->
+      <div id="status-banner" class="status-banner">
+        <div id="turn-indicator" class="turn-text">先手の番です</div>
+        <div id="sub-status" class="sub-status-text">動かす駒を選択してください</div>
+      </div>
+
+      <!-- 相手の進化通知タブ (相手番終了時に表示) -->
+      <div id="enemy-evo-notification" class="enemy-evo-toast hidden">
+        <div class="enemy-evo-header">
+          <div class="enemy-evo-title">
+            <span class="enemy-evo-icon">⚡</span>
+            <span id="enemy-evo-title-text">相手が駒を進化させました！</span>
+          </div>
+          <button id="btn-close-enemy-evo" class="enemy-evo-close-btn" title="閉じる">✕</button>
+        </div>
+        <div id="enemy-evo-body" class="enemy-evo-body"></div>
+        <div class="enemy-evo-actions">
+          <button id="btn-inspect-enemy-evo" class="btn-inspect-evo">👁️ 相手の進化駒を盤上で確認</button>
+        </div>
+      </div>
+
+      <!-- 将棋盤セクション -->
+      <section class="board-section">
+        <div class="board-wrapper">
+          <!-- 筋（9〜1）ラベル -->
+          <div class="col-labels">
+            <span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+          </div>
+          <div class="board-middle">
+            <!-- 将棋盤グリッド -->
+            <div id="shogi-board" class="shogi-board"></div>
+            <!-- 段（一〜九）ラベル -->
+            <div class="row-labels">
+              <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>七</span><span>八</span><span>九</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 盤面直下のミニ凡例 -->
+        <div class="board-mini-legend">
+          <span><strong style="color:var(--evo-gold)">★５五</strong>: 天王山(+1pt)</span>
+          <span><span class="legend-dot dot-step"></span>移動</span>
+          <span><span class="legend-dot dot-ray"></span>走り(∞)</span>
+          <span><span class="legend-dot dot-enemy"></span>敵利き(赤)</span>
+        </div>
+      </section>
+
+      <!-- 自分（先手/下側）プレイヤーバー -->
+      <div id="card-sente" class="player-bar sente-bar active-turn">
+        <div class="player-meta">
+          <span class="player-badge sente-badge">☗ 先手</span>
+          <span id="sente-name" class="player-name">あなた</span>
+        </div>
+        <div class="player-indicators">
+          <div class="indicator-item bank-item">
+            <span class="ind-label">所持</span>
+            <span id="sente-bank-pt" class="ind-value bank-val">0</span><small>pt</small>
+          </div>
+          <div class="indicator-item">
+            <span class="ind-label">軍勢</span>
+            <span id="sente-total-pt" class="ind-value">54</span><small>pt</small>
+          </div>
+          <div class="indicator-item">
+            <span class="ind-label">残存</span>
+            <span id="sente-piece-count" class="ind-value">20</span><small>枚</small>
+          </div>
+          <span id="sente-max-piece" class="hidden"></span>
+        </div>
+      </div>
+
+      <!-- 進化＆インスペクター統合ドック（スマホで常時見やすい省スペース配置） -->
+      <div id="evolution-box" class="evolution-inspector-dock">
+        <!-- ドック上部：選択駒ステータス ＆ ポイント割り振りアクション -->
+        <div class="dock-header">
+          <div class="piece-mini-info">
+            <div id="insp-kanji" class="mini-kanji">？</div>
+            <div class="mini-details">
+              <div class="mini-title-row">
+                <span id="insp-name" class="mini-name">駒を選択</span>
+                <span id="inspector-owner-badge" class="owner-mini-badge hidden">先手</span>
+              </div>
+              <div class="mini-sub-row">
+                <span id="insp-points" class="mini-pt">持ち: - pt</span>
+                <span id="insp-tier" class="mini-tier"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dock-evo-actions">
+            <div class="dock-points-badge">
+              <span>残 <strong id="evo-remaining-pt">0</strong>pt</span>
+              <span class="alloc-badge">割当 <strong id="evo-spending-pt">0</strong>pt</span>
+            </div>
+            <div class="dock-buttons">
+              <button id="btn-evo-reset" class="btn btn-secondary btn-dock" disabled>取消</button>
+              <button id="btn-evo-confirm" class="btn btn-accent btn-dock" disabled>進化確定</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="evo-capture-msg" class="dock-caption">駒をタップして移動、または下のマトリックスで進化</div>
+
+        <!-- 5x5 移動・進化マトリックス -->
+        <div class="dock-matrix-area">
+          <div class="matrix-direction-hint">▲ 進行方向 ▲</div>
+          <div id="move-matrix" class="move-matrix"></div>
+          <div class="matrix-quick-legend">
+            <span>●初期</span>
+            <span>★進化済</span>
+            <span><strong style="color:var(--evo-gold)">＋</strong>解放(1pt)</span>
+            <span><strong style="color:var(--ray-cyan)">★/＋∞</strong>走り覚醒(1pt)</span>
+            <span><strong style="color:var(--ray-cyan)">∞</strong>走り</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 最新ログ1行ティッカー（タップで全履歴モーダル展開） -->
+      <div class="log-ticker-bar" id="btn-view-log">
+        <span class="ticker-icon">📜</span>
+        <span id="latest-log-text" class="ticker-text">対局開始！駒の数字は持ちポイントです</span>
+        <span class="ticker-badge">履歴</span>
+      </div>
+    </main>
+
+    <!-- 設定モーダル（モード・手番切替） -->
+    <div id="settings-modal" class="modal-overlay hidden">
+      <div class="modal-card settings-card">
+        <div class="modal-header">
+          <h2>⚙️ 対局設定</h2>
+          <button id="btn-close-settings" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-item">
+            <label for="game-mode">対戦モード:</label>
+            <select id="game-mode" class="styled-select">
+              <option value="cpu-normal" selected>VS CPU（標準）</option>
+              <option value="cpu-hard">VS CPU（強敵）</option>
+              <option value="cpu-easy">VS CPU（入門）</option>
+              <option value="pvp">2人対戦（ローカル）</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label for="player-side">手番（VS CPU時）:</label>
+            <select id="player-side" class="styled-select">
+              <option value="sente" selected>先手（下側・青）</option>
+              <option value="gote">後手（上側・赤）</option>
+            </select>
+          </div>
+          <div class="setting-actions">
+            <button id="btn-apply-settings" class="btn btn-primary btn-full">適用して新規対局</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 対局ログモーダル -->
+    <div id="log-modal" class="modal-overlay hidden">
+      <div class="modal-card log-modal-card">
+        <div class="modal-header">
+          <h2>📜 対局ログ履歴</h2>
+          <button id="btn-close-log" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="battle-log" class="log-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ルール説明モーダル -->
+    <div id="rules-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>📖 無法将棋（SHOGI: MUTATION）ルール</h2>
+          <button id="btn-close-rules" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="rule-block">
+            <h4>1. 駒の表記＝「持ちポイント」</h4>
+            <p>各駒には漢字の代わりに<strong>現在の持ちポイント（数字）</strong>が書かれています（👑マークが付いた「8」は王将です）。</p>
+            <table class="rule-table">
+              <thead>
+                <tr><th>初期数値</th><th>元の駒</th><th>初期の移動性能</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>1</strong></td><td>歩兵</td><td>前1マス</td></tr>
+                <tr><td><strong>1 (∞)</strong></td><td>香車</td><td>前方向へ直進（走り）</td></tr>
+                <tr><td><strong>2</strong></td><td>桂馬</td><td>前2方向へ桂馬ジャンプ</td></tr>
+                <tr><td><strong>4 (×)</strong></td><td>角行</td><td>斜め4方向へ直進（走り）</td></tr>
+                <tr><td><strong>4 (＋)</strong></td><td>飛車</td><td>縦横4方向へ直進（走り）</td></tr>
+                <tr><td><strong>5</strong></td><td>銀将</td><td>前3方向＋斜め後ろ2方向（1マス）</td></tr>
+                <tr><td><strong>6</strong></td><td>金将</td><td>十字4方向＋斜め前2方向（1マス）</td></tr>
+                <tr><td><strong>👑 8</strong></td><td>王将 / 玉将</td><td>全周囲8方向（1マス）※取られたら敗北</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="rule-block">
+            <h4>2. 天王山（５五）制圧ボーナス（連続上限3回）</h4>
+            <p>盤面の中央（<strong>５五</strong>）に自分の駒を駐留させていると、<strong>自分の手番開始時に毎ターン ＋1pt のボーナスポイント</strong>が所持バンクに加算されます！ただし、同じ駒での居座りボーナスは<strong>「連続最大3回（3pt）まで」</strong>です。中央から出撃するか、別の駒で入り直すことで再びエネルギーを得られます。</p>
+          </div>
+          <div class="rule-block">
+            <h4>3. 敵駒撃破で「即時進化」＆ポイント獲得</h4>
+            <p>相手の駒を取ると、その駒の持ちポイントを吸収し、<strong>手番を消費せずその場で倒した駒や味方駒を即時進化</strong>させることができます（使わなかったポイントは貯金可能）。</p>
+          </div>
+          <div class="rule-block">
+            <h4>4. 5×5 自由進化マトリックス</h4>
+            <ul>
+              <li><strong>全24マス自由解放</strong>：周囲1マス（内周8マス）だけでなく、<strong>周囲2マス（外周16マス：2マス直進や桂馬ジャンプ）も制限なく最初から1ptで自由に解放可能</strong>です！</li>
+              <li><strong>王将・玉将の神聖固定</strong>：王将・玉将は神聖なシンボルのため、進化できず周囲8方向・8pt固定です。</li>
+            </ul>
+          </div>
+          <div class="rule-block">
+            <h4>5. 「走り(直進無限)」への覚醒ルール</h4>
+            <p>同じ直進方向（縦・横・斜め8方向）の<strong>1マス目と2マス目（直進2歩）の両方をすでに開放している場合のみ</strong>、外周の2マス目から <strong>＋1pt</strong> でその方向を<strong>「走り（直進無限：∞）」</strong>へ覚醒させることができます！（飛車や角のようにどこまでも直進できるようになります）</p>
+          </div>
+          <div class="rule-block">
+            <h4>6. サドンデス機能（引き分け完全防止）</h4>
+            <p>80手に達すると<strong>「🔥 サドンデス」</strong>に突入！手番開始時に毎ターン <strong>＋1pt の過熱エネルギー</strong>が両軍に供給され、決着が加速します。さらに<strong>120手に到達した場合は、盤上＋バンクの「総獲得ポイント数」が多い側の判定勝利</strong>となります。万が一、総ポイントが完全同点の場合は<strong>「最後に天王山（５五）を制圧していたプレイヤーの勝利」</strong>となり、引き分けは100%発生しません！</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 決着モーダル -->
+    <div id="gameover-modal" class="modal-overlay hidden">
+      <div class="modal-card gameover-card">
+        <h2 id="gameover-title">勝負あり！</h2>
+        <p id="gameover-desc" class="gameover-desc">先手の勝利です！</p>
+        <div class="gameover-actions">
+          <button id="btn-gameover-close" class="btn btn-secondary">盤面を見る</button>
+          <button id="btn-gameover-restart" class="btn btn-primary">もう一度対局する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 王手バナー（画面全体・一時的演出） -->
+    <div id="check-banner" class="check-banner-overlay hidden">
+      <div class="check-banner-content">
+        <div class="check-banner-glow"></div>
+        <div class="check-banner-kanji">王　手</div>
+        <div id="check-banner-target" class="check-banner-sub">CHECK !</div>
+      </div>
+    </div>
+
+    <!-- サドンデス突入バナー（画面全体・一時的演出） -->
+    <div id="sudden-death-banner" class="check-banner-overlay hidden sudden-death-overlay">
+      <div class="check-banner-content sudden-death-content">
+        <div class="check-banner-glow sudden-death-glow"></div>
+        <div class="check-banner-kanji sudden-death-title">🔥 SUDDEN DEATH</div>
+        <div class="check-banner-sub sudden-death-sub">サドンデス突入！ 毎ターン+1pt過熱供給 ＆ 120手到達で総ポイント判定決着！</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
