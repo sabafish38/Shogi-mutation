@@ -144,7 +144,7 @@ let suddenDeathBannerTimer = null;
 // 王手バナー（画面全体・一時的演出）を表示
 function showCheckBanner(targetOwner) {
   if (!elCheckBanner) return;
-  const targetLabel = targetOwner === 'sente' ? '☗ 先手玉に王手！' : '☖ 後手玉に王手！';
+  const targetLabel = targetOwner === 'sente' ? '先手玉に王手！' : '後手玉に王手！';
   if (elCheckBannerTarget) {
     elCheckBannerTarget.textContent = `${targetLabel} (CHECK!)`;
   }
@@ -334,7 +334,7 @@ function renderUserProfile() {
   const total = userProfile.wins + userProfile.losses;
   const rate = total > 0 ? Math.round((userProfile.wins / total) * 100) : 0;
   if (elWinrate) elWinrate.textContent = `${rate}%`;
-  if (elStreak) elStreak.textContent = `🔥 ${userProfile.streak}`;
+  if (elStreak) elStreak.textContent = `${userProfile.streak}`;
   if (elMaxStreak) elMaxStreak.textContent = userProfile.maxStreak;
 
   renderSeasonAndRanking();
@@ -345,7 +345,7 @@ function renderSeasonAndRanking() {
   const sInfo = getSeasonInfo();
   const elSeasonBadge = document.getElementById('season-badge');
   const elSeasonTimer = document.getElementById('season-timer');
-  if (elSeasonBadge) elSeasonBadge.textContent = `🗓️ ${sInfo.year} 第${sInfo.seasonNumber}期 週間シーズン`;
+  if (elSeasonBadge) elSeasonBadge.textContent = `${sInfo.year} 第${sInfo.seasonNumber}期 週間シーズン`;
   if (elSeasonTimer) elSeasonTimer.textContent = sInfo.daysLeftText;
 
   // プレイヤーのレートから仮想順位を算出（レートが高いほど上位）
@@ -360,9 +360,9 @@ function renderSeasonAndRanking() {
 
   // 殿堂TOP3
   const topPlayers = [
-    { pos: 1, name: '無法名人・零式', title: '無法竜王', rank: '名人', rating: 2420, medal: 'gold', medalEmoji: '🥇' },
-    { pos: 2, name: '天王山マスター', title: '天王山の覇者', rank: '竜王', rating: 2280, medal: 'silver', medalEmoji: '🥈' },
-    { pos: 3, name: '覚醒桂馬キング', title: '電光石火の常勝', rank: '四段', rating: 2050, medal: 'bronze', medalEmoji: '🥉' }
+    { pos: 1, name: '無法名人・零式', title: '無法竜王', rank: '名人', rating: 2420, medal: 'gold', medalLabel: '1位' },
+    { pos: 2, name: '天王山マスター', title: '天王山の覇者', rank: '竜王', rating: 2280, medal: 'silver', medalLabel: '2位' },
+    { pos: 3, name: '覚醒桂馬キング', title: '電光石火の常勝', rank: '四段', rating: 2050, medal: 'bronze', medalLabel: '3位' }
   ];
 
   // プレイヤー周辺のライバル
@@ -379,8 +379,8 @@ function renderSeasonAndRanking() {
     const rowEl = document.createElement('div');
     rowEl.className = `ranking-row ${row.isPlayer ? 'is-player' : ''}`;
 
-    const posBadge = row.medalEmoji
-      ? `<span class="rank-pos-num ${row.medal}">${row.medalEmoji}</span>`
+    const posBadge = row.medalLabel
+      ? `<span class="rank-pos-num ${row.medal}">${row.medalLabel}</span>`
       : `<span class="rank-pos-num">${row.pos}</span>`;
 
     rowEl.innerHTML = `
@@ -425,7 +425,7 @@ function checkSavedGameResumeButton() {
       const data = JSON.parse(raw);
       if (data && data.phase === 'play' && data.movesCount > 0) {
         btnResume.classList.remove('hidden');
-        btnResume.textContent = `⚔️ 前回の対局を再開 (${data.movesCount}手目)`;
+        btnResume.textContent = `前回の対局を再開 (${data.movesCount}手目)`;
         return;
       }
     } catch (e) {}
@@ -516,7 +516,7 @@ function loadGameFromStorage() {
       }
     }
 
-    addLog('💾 前回の対局データを再開しました');
+    addLog('前回の対局データを再開しました');
     renderAll();
 
     // 再読み込み時にCPU番なら自動で思考再開
@@ -602,11 +602,11 @@ function initGame() {
   elBattleLog.innerHTML = '';
   
   if (state.mode === 'rank' && state.rankOpponent) {
-    addLog(`🏆 ランクマッチ開始！ 対戦相手: ${state.rankOpponent.name} (${state.rankOpponent.rankTitle} R${state.rankOpponent.rating})`);
+    addLog(`真剣勝負開始！ 対戦相手: ${state.rankOpponent.name} (${state.rankOpponent.rankTitle} R${state.rankOpponent.rating})`);
   } else if (state.mode === 'online') {
     const opp = state.onlineOpponent || { name: '対戦相手' };
-    const mySideSymbol = state.playerSide === 'sente' ? '☗ 先手（青）' : '☖ 後手（赤）';
-    addLog(`🌐 オンライン対局開始！ あなたは【${mySideSymbol}】です。対戦相手: ${opp.name}`, 'log-capture');
+    const mySideSymbol = state.playerSide === 'sente' ? '先手（青）' : '後手（赤）';
+    addLog(`通信対局開始！ あなたは【${mySideSymbol}】です。対戦相手: ${opp.name}`, 'log-capture');
   } else {
     addLog('対局開始！駒の数字は「持ちポイント」です。敵を倒してポイントを貯め、手番で「移動」か「進化」を選びましょう。');
   }
@@ -708,10 +708,10 @@ function getPieceTotalPt(piece, includePending = false) {
   return pt;
 }
 
-// 駒の表示ラベル（例: "👑8" や "4"）
+// 駒の表示ラベル（例: "8" や "4"）
 function getPieceDisplayLabel(piece, includePending = false) {
   const pt = getPieceTotalPt(piece, includePending);
-  return piece.type === 'ou' ? `👑${pt}` : `${pt}`;
+  return piece.type === 'ou' ? `王${pt}` : `${pt}`;
 }
 
 // 相対座標(dx, dy)にその駒がステップ移動を持っているか判定
@@ -953,7 +953,7 @@ function onCellClick(r, c) {
     state.inspectedPiece = clickedPiece;
   }
 
-  // ★重要バグ修正: 撃破即時進化フェーズ中、盤面クリックで移動が誤発火してフェーズが破壊されるのを完全防止！
+  // 重要バグ修正: 撃破即時進化フェーズ中、盤面クリックで移動が誤発火してフェーズが破壊されるのを完全防止！
   // 自軍の駒をクリックした場合は進化対象インスペクターを切り替えるのみ
   if (state.phase === 'instant_evo') {
     if (clickedPiece && clickedPiece.owner === state.turn) {
@@ -1041,7 +1041,7 @@ function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
     state.lastTennozanOwner = movingPiece.owner;
   }
 
-  const sideSymbol = state.turn === 'sente' ? '☗先手' : '☖後手';
+  const sideSymbol = state.turn === 'sente' ? '先手' : '後手';
   const posStr = formatPos(toR, toC);
   const moverLabel = getPieceDisplayLabel(movingPiece);
 
@@ -1060,7 +1060,7 @@ function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
     }
 
     addLog(
-      `${sideSymbol} ${posStr}【${moverLabel}】が 敵の【${targetLabel}(${targetPiece.name})】を撃破！ ⚡＋${gainedPt}pt 吸収！`,
+      `${sideSymbol} ${posStr}【${moverLabel}】が 敵の【${targetLabel}(${targetPiece.name})】を撃破！ ＋${gainedPt}pt 吸収！`,
       'log-capture'
     );
 
@@ -1178,48 +1178,48 @@ function getDirectionDescription(piece, dx, dy, isRay) {
   const isGote = piece.owner === 'gote';
 
   if (isRay) {
-    if (boardDx === 0 && boardDy > 0) return isGote ? '⬇️ 手前直進無限（前進ビーム！∞）' : '⬇️ 手前直進無限（後退ビーム！∞）';
-    if (boardDx === 0 && boardDy < 0) return isGote ? '⬆️ 奥直進無限（後退ビーム！∞）' : '⬆️ 奥直進無限（前進ビーム・香車化！∞）';
-    if (boardDx < 0 && boardDy === 0) return '⬅️ 左横直進無限（左ビーム！∞）';
-    if (boardDx > 0 && boardDy === 0) return '➡️ 右横直進無限（右ビーム！∞）';
-    if (boardDx < 0 && boardDy > 0) return '↙️ 手前左斜め直進無限（斜めビーム！∞）';
-    if (boardDx > 0 && boardDy > 0) return '↘️ 手前右斜め直進無限（斜めビーム！∞）';
-    if (boardDx < 0 && boardDy < 0) return '↖️ 奥左斜め直進無限（斜めビーム！∞）';
-    if (boardDx > 0 && boardDy < 0) return '↗️ 奥右斜め直進無限（斜めビーム！∞）';
+    if (boardDx === 0 && boardDy > 0) return isGote ? ' 手前直進無限（前進ビーム！∞）' : ' 手前直進無限（後退ビーム！∞）';
+    if (boardDx === 0 && boardDy < 0) return isGote ? ' 奥直進無限（後退ビーム！∞）' : ' 奥直進無限（前進ビーム・香車化！∞）';
+    if (boardDx < 0 && boardDy === 0) return ' 左横直進無限（左ビーム！∞）';
+    if (boardDx > 0 && boardDy === 0) return ' 右横直進無限（右ビーム！∞）';
+    if (boardDx < 0 && boardDy > 0) return '↙ 手前左斜め直進無限（斜めビーム！∞）';
+    if (boardDx > 0 && boardDy > 0) return ' 手前右斜め直進無限（斜めビーム！∞）';
+    if (boardDx < 0 && boardDy < 0) return '↖ 奥左斜め直進無限（斜めビーム！∞）';
+    if (boardDx > 0 && boardDy < 0) return ' 奥右斜め直進無限（斜めビーム！∞）';
     return '∞ 直進無限（走り覚醒！）';
   }
 
   // ステップ移動 (1マスまたは2マス)
   const ring = Math.max(Math.abs(boardDx), Math.abs(boardDy));
   if (ring === 1) {
-    if (boardDx === 0 && boardDy > 0) return isGote ? '⬇️ 手前1マス（前進）' : '⬇️ 手前1マス（引く手・後退）';
-    if (boardDx === 0 && boardDy < 0) return isGote ? '⬆️ 奥1マス（引く手・後退）' : '⬆️ 奥1マス（前進）';
-    if (boardDx < 0 && boardDy > 0) return '↙️ 手前左斜め1マス';
-    if (boardDx > 0 && boardDy > 0) return '↘️ 手前右斜め1マス';
-    if (boardDx < 0 && boardDy === 0) return '⬅️ 左横1マス';
-    if (boardDx > 0 && boardDy === 0) return '➡️ 右横1マス';
-    if (boardDx < 0 && boardDy < 0) return '↖️ 奥左斜め1マス';
-    if (boardDx > 0 && boardDy < 0) return '↗️ 奥右斜め1マス';
+    if (boardDx === 0 && boardDy > 0) return isGote ? ' 手前1マス（前進）' : ' 手前1マス（引く手・後退）';
+    if (boardDx === 0 && boardDy < 0) return isGote ? ' 奥1マス（引く手・後退）' : ' 奥1マス（前進）';
+    if (boardDx < 0 && boardDy > 0) return '↙ 手前左斜め1マス';
+    if (boardDx > 0 && boardDy > 0) return ' 手前右斜め1マス';
+    if (boardDx < 0 && boardDy === 0) return ' 左横1マス';
+    if (boardDx > 0 && boardDy === 0) return ' 右横1マス';
+    if (boardDx < 0 && boardDy < 0) return '↖ 奥左斜め1マス';
+    if (boardDx > 0 && boardDy < 0) return ' 奥右斜め1マス';
   } else if (ring === 2) {
     // 2マス直進
-    if (boardDx === 0 && boardDy === 2) return isGote ? '⬇️ 手前2マス直進（2歩跳び）' : '⬇️ 手前2マス直進（後退）';
-    if (boardDx === 0 && boardDy === -2) return isGote ? '⬆️ 奥2マス直進（後退）' : '⬆️ 奥2マス直進（2歩跳び）';
-    if (boardDx === -2 && boardDy === 0) return '⬅️ 左2マス直進';
-    if (boardDx === 2 && boardDy === 0) return '➡️ 右2マス直進';
-    if (boardDx === -2 && boardDy === 2) return '↙️ 手前左斜め2マス跳び';
-    if (boardDx === 2 && boardDy === 2) return '↘️ 手前右斜め2マス跳び';
-    if (boardDx === -2 && boardDy === -2) return '↖️ 奥左斜め2マス跳び';
-    if (boardDx === 2 && boardDy === -2) return '↗️ 奥右斜め2マス跳び';
+    if (boardDx === 0 && boardDy === 2) return isGote ? ' 手前2マス直進（2歩跳び）' : ' 手前2マス直進（後退）';
+    if (boardDx === 0 && boardDy === -2) return isGote ? ' 奥2マス直進（後退）' : ' 奥2マス直進（2歩跳び）';
+    if (boardDx === -2 && boardDy === 0) return ' 左2マス直進';
+    if (boardDx === 2 && boardDy === 0) return ' 右2マス直進';
+    if (boardDx === -2 && boardDy === 2) return '↙ 手前左斜め2マス跳び';
+    if (boardDx === 2 && boardDy === 2) return ' 手前右斜め2マス跳び';
+    if (boardDx === -2 && boardDy === -2) return '↖ 奥左斜め2マス跳び';
+    if (boardDx === 2 && boardDy === -2) return ' 奥右斜め2マス跳び';
 
     // 桂馬ジャンプ (8方向)
-    if (boardDy === 2 && boardDx === -1) return '⬇️↙️ 手前左の桂馬ジャンプ';
-    if (boardDy === 2 && boardDx === 1) return '⬇️↘️ 手前右の桂馬ジャンプ';
-    if (boardDy === -2 && boardDx === -1) return '⬆️↖️ 奥左の桂馬ジャンプ';
-    if (boardDy === -2 && boardDx === 1) return '⬆️↗️ 奥右の桂馬ジャンプ';
-    if (boardDx === -2 && boardDy === 1) return '⬅️↙️ 左横手前の桂馬ジャンプ';
-    if (boardDx === -2 && boardDy === -1) return '⬅️↖️ 左横奥の桂馬ジャンプ';
-    if (boardDx === 2 && boardDy === 1) return '➡️↘️ 右横手前の桂馬ジャンプ';
-    if (boardDx === 2 && boardDy === -1) return '➡️↗️ 右横奥の桂馬ジャンプ';
+    if (boardDy === 2 && boardDx === -1) return '↙ 手前左の桂馬ジャンプ';
+    if (boardDy === 2 && boardDx === 1) return ' 手前右の桂馬ジャンプ';
+    if (boardDy === -2 && boardDx === -1) return '↖ 奥左の桂馬ジャンプ';
+    if (boardDy === -2 && boardDx === 1) return ' 奥右の桂馬ジャンプ';
+    if (boardDx === -2 && boardDy === 1) return '↙ 左横手前の桂馬ジャンプ';
+    if (boardDx === -2 && boardDy === -1) return '↖ 左横奥の桂馬ジャンプ';
+    if (boardDx === 2 && boardDy === 1) return ' 右横手前の桂馬ジャンプ';
+    if (boardDx === 2 && boardDy === -1) return ' 右横奥の桂馬ジャンプ';
   }
 
   return `マス移動 (${dx}, ${dy})`;
@@ -1240,7 +1240,7 @@ function showEnemyEvolutionNotification(reports) {
   }
 
   const first = reports[0];
-  const sideSymbol = first && first.owner === 'sente' ? '☗先手' : '☖相手';
+  const sideSymbol = first && first.owner === 'sente' ? '先手' : '相手';
   if (elTitle) {
     elTitle.textContent = `${sideSymbol}が駒を進化させました！`;
   }
@@ -1250,7 +1250,7 @@ function showEnemyEvolutionNotification(reports) {
     const card = document.createElement('div');
     card.className = 'enemy-evo-piece-card';
 
-    const pSide = rep.owner === 'sente' ? '☗' : '☖';
+    const pSide = rep.owner === 'sente' ? '先手' : '後手';
     const changesHtml = rep.changes
       .map(ch => `<li class="enemy-evo-change-item ${ch.isRay ? 'is-ray' : ''}">${ch.desc}</li>`)
       .join('');
@@ -1330,7 +1330,7 @@ function confirmEvolutionTurn() {
     }
   }
 
-  const sideSymbol = state.turn === 'sente' ? '☗先手' : '☖後手';
+  const sideSymbol = state.turn === 'sente' ? '先手' : '後手';
   if (spentPt > 0) {
     const details = [];
     for (const { found, count, rays } of evolvedSummary.values()) {
@@ -1341,7 +1341,7 @@ function confirmEvolutionTurn() {
     }
 
     addLog(
-      `⚡ ${sideSymbol}が進化：${details.join('、')} （残り所持: ${state.bank[state.turn]}pt）`,
+      `${sideSymbol}が進化：${details.join('、')} （残り所持: ${state.bank[state.turn]}pt）`,
       'log-evo'
     );
 
@@ -1415,14 +1415,14 @@ function getTotalArmyPoints(owner) {
 function endTurn() {
   state.movesCount++;
   state.turn = state.turn === 'sente' ? 'gote' : 'sente';
-  const sideSymbol = state.turn === 'sente' ? '☗先手' : '☖後手';
+  const sideSymbol = state.turn === 'sente' ? '先手' : '後手';
 
   // 1. サドンデス突入判定（80手以上）
   if (state.movesCount >= 80 && !state.isSuddenDeath && state.phase !== 'gameover') {
     state.isSuddenDeath = true;
     showSuddenDeathBanner();
     addLog(
-      '🔥【サドンデス発動！】80手を超えたためサドンデスに突入！毎ターン両軍に過熱エネルギー(+1pt)が供給されます！120手到達で総ポイント判定！',
+      '【サドンデス発動！】80手を超えたためサドンデスに突入！毎ターン両軍に過熱エネルギー(+1pt)が供給されます！120手到達で総ポイント判定！',
       'log-capture'
     );
   }
@@ -1455,7 +1455,7 @@ function endTurn() {
   // 3. サドンデス過熱ボーナス（毎ターン手番側に +1pt 自動支給）
   if (state.isSuddenDeath && state.phase !== 'gameover') {
     state.bank[state.turn] += 1;
-    addLog(`🔥【サドンデス過熱】${sideSymbol}に過熱エネルギー ＋1pt！ (残り ${120 - state.movesCount}手で総pt判定)`, 'log-evo');
+    addLog(`【サドンデス過熱】${sideSymbol}に過熱エネルギー ＋1pt！ (残り ${120 - state.movesCount}手で総pt判定)`, 'log-evo');
   }
 
   // 4. 【案A: 天王山（５五）連続居座り上限3回ルール】
@@ -1473,12 +1473,12 @@ function endTurn() {
       state.bank[state.turn] += 1;
       state.tennozanStreak[state.turn]++;
       addLog(
-        `👑【天王山制圧】${sideSymbol}が５五（中央）を支配中（${state.tennozanStreak[state.turn]}/3回目）！ ＋1pt ボーナス獲得！（所持: ${state.bank[state.turn]}pt）`,
+        `【天王山制圧】${sideSymbol}が５五（中央）を支配中（${state.tennozanStreak[state.turn]}/3回目）！ ＋1pt ボーナス獲得！（所持: ${state.bank[state.turn]}pt）`,
         'log-capture'
       );
     } else {
       addLog(
-        `👑【天王山上限】５五の居座りボーナス上限（3回）に達しています。別の駒で入り直すか敵から奪回すると再獲得できます。`
+        `【天王山上限】５五の居座りボーナス上限（3回）に達しています。別の駒で入り直すか敵から奪回すると再獲得できます。`
       );
     }
   } else {
@@ -1498,7 +1498,7 @@ function endTurn() {
 
   // 手番が回ってきた側の玉が王手されているかチェック
   if (state.phase !== 'gameover' && isKingInCheck(state.board, state.turn)) {
-    addLog(`⚠️【王手！】${sideSymbol}の玉に王手がかかりました！`, 'log-capture');
+    addLog(`【王手！】${sideSymbol}の玉に王手がかかりました！`, 'log-capture');
     showCheckBanner(state.turn);
   }
 
@@ -1515,7 +1515,7 @@ function endGame(winner, reasonText) {
   const title = document.getElementById('gameover-title');
   const desc = document.getElementById('gameover-desc');
 
-  const winnerLabel = winner === 'sente' ? '☗ 先手' : '☖ 後手';
+  const winnerLabel = winner === 'sente' ? '先手' : '後手';
   title.textContent = `${winnerLabel}の勝利！`;
   desc.textContent = reasonText;
 
@@ -1536,7 +1536,7 @@ function endGame(winner, reasonText) {
 
     const resultBadgeEl = document.getElementById('rank-result-badge');
     if (resultBadgeEl) {
-      resultBadgeEl.textContent = isOnline ? '🌐 オンライン対戦結果' : '🏆 ランクマッチ結果';
+      resultBadgeEl.textContent = isOnline ? '通信対戦結果' : '真剣勝負結果';
     }
 
     let delta = 0;
@@ -1583,7 +1583,7 @@ function endGame(winner, reasonText) {
       rankCurrEl.textContent = `新レート: ${newRating} (${newRank})`;
 
       if (isWin && oldRank !== newRank) {
-        rankUpBanner.textContent = `🎉 昇級・昇段！ ${oldRank} ➔ ${newRank}`;
+        rankUpBanner.textContent = `昇級・昇段！ ${oldRank} → ${newRank}`;
         rankUpBanner.classList.remove('hidden');
       } else {
         rankUpBanner.classList.add('hidden');
@@ -1594,7 +1594,7 @@ function endGame(winner, reasonText) {
   }
 
   modal.classList.remove('hidden');
-  addLog(`🏆 ${winnerLabel}の勝利！ (${reasonText})`);
+  addLog(`${winnerLabel}の勝利！ (${reasonText})`);
 }
 
 // ヘルパー：盤上の指定陣営の駒一覧を取得
@@ -2279,7 +2279,7 @@ function renderBoard() {
         if (piece.type === 'ou') {
           const crownEl = document.createElement('span');
           crownEl.className = 'piece-crown';
-          crownEl.textContent = '👑';
+          crownEl.textContent = '王';
           pieceEl.appendChild(crownEl);
         }
 
@@ -2336,7 +2336,7 @@ function renderStatsAndStatus() {
   elCardSente.classList.toggle('active-turn', state.turn === 'sente');
   elCardGote.classList.toggle('active-turn', state.turn === 'gote');
 
-  const turnLabel = state.turn === 'sente' ? '☗ 先手' : '☖ 後手';
+  const turnLabel = state.turn === 'sente' ? '先手' : '後手';
   const movesText = state.movesCount > 0 ? ` (${state.movesCount}手目)` : '';
 
   elStatusBanner.classList.toggle('sudden-death-mode', state.isSuddenDeath && state.phase !== 'gameover');
@@ -2347,20 +2347,20 @@ function renderStatsAndStatus() {
     elSubStatus.textContent = '「新規対局」で最初から遊べます';
   } else if (state.phase === 'instant_evo') {
     elStatusBanner.classList.add('evo-mode');
-    elTurnIndicator.textContent = `⚡ 撃破ボーナス！ ${turnLabel}の即時進化${movesText}`;
+    elTurnIndicator.textContent = `撃破ボーナス！ ${turnLabel}の即時進化${movesText}`;
     elSubStatus.textContent = '倒した駒や味方駒の移動マスを解放し、「進化を確定」で相手番へ進みます（手番消費なし！）';
   } else if (state.pendingEvo.length > 0) {
     elStatusBanner.classList.add('evo-mode');
-    elTurnIndicator.textContent = `⚡ ${turnLabel}：進化ポイントを割り振り中${movesText}`;
+    elTurnIndicator.textContent = `${turnLabel}：進化ポイントを割り振り中${movesText}`;
     elSubStatus.textContent = `「進化を確定してターン終了」を押すと手番を終了します（振り直しで移動に戻れます）`;
   } else {
     const inCheck = isKingInCheck(state.board, state.turn);
     if (inCheck) {
       elStatusBanner.classList.add('evo-mode');
-      elTurnIndicator.textContent = `⚠️ ${turnLabel}の番です（王手！）${movesText}`;
+      elTurnIndicator.textContent = `${turnLabel}の番（王手）${movesText}`;
       elSubStatus.textContent = '王手をかけられています！玉を逃がすか、防いでください！';
     } else if (state.isSuddenDeath) {
-      elTurnIndicator.textContent = `🔥【サドンデス】${turnLabel}の番${movesText}`;
+      elTurnIndicator.textContent = `【サドンデス】${turnLabel}の番${movesText}`;
       if (isCPUTurn()) {
         elSubStatus.textContent = `CPU思考中...（残り ${120 - state.movesCount}手で総ポイント判定）`;
       } else {
@@ -2455,16 +2455,16 @@ function renderInspector() {
   elInspName.textContent = `元駒: ${piece.name}（初期 ${piece.basePt}pt）`;
   elInspPoints.textContent = `現在の持ちポイント: ${totalPt} pt ${addedPt > 0 ? `(進化 +${addedPt}pt)` : ''}`;
   if (piece.type === 'ou') {
-    elInspTier.textContent = '👑 神聖な王将（進化不可・全周囲8方向固定）';
+    elInspTier.textContent = '王将（全周囲8方向固定・変異不可）';
   } else if (isOpponent) {
-    elInspTier.textContent = '👁️ 相手駒（盤面の攻撃向きに合わせて上下反転表示中）';
+    elInspTier.textContent = '相手駒（盤面の向きに合わせて反転表示中）';
   } else {
-    elInspTier.textContent = '🌟 5×5全24マス（周囲2マス・桂馬ジャンプ等）を自由に1ptで解放可能！';
+    elInspTier.textContent = '5×5全24マス（周囲2マス・桂馬跳び等）を1ptで解放可能';
   }
 
   elInspOwnerBadge.classList.remove('hidden', 'sente-badge', 'gote-badge');
   elInspOwnerBadge.classList.add(piece.owner === 'sente' ? 'sente-badge' : 'gote-badge');
-  elInspOwnerBadge.textContent = piece.owner === 'sente' ? '☗ 先手' : '☖ 後手';
+  elInspOwnerBadge.textContent = piece.owner === 'sente' ? '先手' : '後手';
 
   // 進行方向ヒントの向きを更新（敵駒なら手前向き▼、自軍駒なら奥向き▲）
   if (elDirHint) {
@@ -2534,7 +2534,7 @@ function renderInspector() {
           mCell.title = '走り覚醒中';
         } else if (stepType === 'pending') {
           mCell.classList.add('pending-unlock');
-          mCell.innerHTML = '<span>★+1</span><small style="font-size:0.55rem">取消可</small>';
+          mCell.innerHTML = '<span>+1</span><small style="font-size:0.55rem">取消可</small>';
           mCell.title = 'クリックで割り振りを取り消します';
         } else if (isRay) {
           mCell.classList.add('has-ray');
@@ -2542,11 +2542,11 @@ function renderInspector() {
         } else if (rayUpgradable) {
           // 2マス開放済みの外周マス：クリックで走りに昇格可能！
           mCell.classList.add('can-unlock', 'can-ray-upgrade');
-          mCell.innerHTML = '<span>★/＋∞</span>';
+          mCell.innerHTML = '<span>覚醒</span>';
           mCell.title = '2マス開放完了！1pt消費してこの方向を「走り(直進無限)」に覚醒！';
         } else if (stepType === 'evolved') {
           mCell.classList.add('has-evolved');
-          mCell.textContent = '★';
+          mCell.textContent = '済';
         } else if (stepType === 'initial') {
           mCell.classList.add('has-step');
           mCell.textContent = '●';
@@ -2627,12 +2627,12 @@ function prepareRankMatchModal() {
   if (isBounty) {
     if (bountyBanner) bountyBanner.classList.remove('hidden');
     if (oppTag) {
-      oppTag.textContent = '⚠️ 賞金首 TARGET';
+      oppTag.textContent = '賞金首 TARGET';
       oppTag.style.background = '#ef4444';
       oppTag.style.color = '#fff';
     }
     if (ruleHint) {
-      ruleHint.innerHTML = '<span style="color:#f87171;font-weight:800">⚠️ 賞金首マッチ！勝利時：レート大量ボーナス (+46〜+52pt) / 敗北時：通常減少</span>';
+      ruleHint.innerHTML = '<span style="color:#f87171;font-weight:800">賞金首マッチ！勝利時：レート大量ボーナス (+46〜+52pt) / 敗北時：通常減少</span>';
     }
   } else {
     if (bountyBanner) bountyBanner.classList.add('hidden');
@@ -2800,13 +2800,13 @@ function generateRankCertificateCanvas() {
 
   ctx.fillStyle = '#fde68a';
   ctx.font = 'bold 15px "Noto Serif JP", serif';
-  ctx.fillText(`🪪 棋士名: ${userProfile.name || '名無し棋士'} 殿`, 36, 108);
+  ctx.fillText(`棋士名: ${userProfile.name || '名無し棋士'} 殿`, 36, 108);
 
   // プレイヤー称号
   ctx.fillStyle = 'rgba(212, 175, 55, 0.15)';
   ctx.strokeStyle = '#d4af37';
   ctx.lineWidth = 1;
-  const titleText = `🎖️ ${userProfile.equippedTitle}`;
+  const titleText = `${userProfile.equippedTitle}`;
   ctx.font = 'bold 12px "Noto Serif JP", serif';
   const titleWidth = ctx.measureText(titleText).width + 18;
   ctx.fillRect(36, 118, titleWidth, 24);
@@ -2845,8 +2845,8 @@ function generateRankCertificateCanvas() {
   ctx.fillStyle = '#f1f5f9';
   ctx.font = 'bold 15px -apple-system, sans-serif';
   ctx.fillText(`通算戦績:  ${userProfile.wins}勝 ${userProfile.losses}敗  (勝率 ${winRate}%)`, 54, 266);
-  ctx.fillText(`最高連勝記録:  🔥 ${userProfile.maxStreak} 連勝`, 54, 302);
-  ctx.fillText(`賞金首討伐実績:  🎯 ${userProfile.bountiesClaimed || 0} 体`, 54, 338);
+  ctx.fillText(`最高連勝記録:  ${userProfile.maxStreak} 連勝`, 54, 302);
+  ctx.fillText(`賞金首討伐実績:  ${userProfile.bountiesClaimed || 0} 体`, 54, 338);
 
   ctx.fillStyle = '#38bdf8';
   ctx.font = 'bold 13px -apple-system, sans-serif';
@@ -2921,7 +2921,7 @@ function generateRankCertificateCanvas() {
           ctx.font = 'bold 14px -apple-system, sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('★', cx + mCellSz / 2, cy + mCellSz / 2);
+          ctx.fillText('済', cx + mCellSz / 2, cy + mCellSz / 2);
         } else if (stepType === 'initial') {
           ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
           ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)';
@@ -2946,7 +2946,7 @@ function generateRankCertificateCanvas() {
 
   ctx.fillStyle = '#94a3b8';
   ctx.font = '10px -apple-system, sans-serif';
-  ctx.fillText('●初期  ★進化済マス  ∞走り(直進無限)', rightBoxX + 46, 392);
+  ctx.fillText('初期 / 変異済 / 直進無限', rightBoxX + 46, 392);
 
   // 7. フッターURL
   ctx.fillStyle = '#64748b';
@@ -2960,13 +2960,13 @@ function openCertModal() {
   if (modal) modal.classList.remove('hidden');
 }
 
-// 𝕏 でカードをシェア（Web Share API / Twitter Intent 連動）
+//  でカードをシェア（Web Share API / Twitter Intent 連動）
 async function shareCertImage() {
   const canvas = document.getElementById('cert-canvas');
   if (!canvas) return;
 
   const rankInfo = getRankInfo(userProfile.rating);
-  const tweetText = `『無法将棋』公式戦績証明書！\n段位: ${rankInfo.title} (${userProfile.rating} R) | 称号: ${userProfile.equippedTitle}\n最高連勝: 🔥 ${userProfile.maxStreak}連勝 | 賞金首: 🎯 ${userProfile.bountiesClaimed || 0}体討伐\n駒を変異・進化させて戦う新感覚Web将棋！\n#無法将棋 #将棋`;
+  const tweetText = `『無法将棋』公式戦績証明書！\n段位: ${rankInfo.title} (${userProfile.rating} R) | 称号: ${userProfile.equippedTitle}\n最高連勝:  ${userProfile.maxStreak}連勝 | 賞金首:  ${userProfile.bountiesClaimed || 0}体討伐\n駒を変異・進化させて戦う新感覚Web将棋！\n#無法将棋 #将棋`;
   const shareUrl = 'https://shogi.pop-ghost.com/';
 
   // 1. Web Share APIで画像直接共有を試行
@@ -3110,7 +3110,7 @@ function handleSaveUserName() {
   renderUserProfile();
   updatePlayerNames();
   closeNameEditModal();
-  showToast(`🪪 ユーザーネームを「${res.name}」に変更しました`);
+  showToast(`ユーザーネームを「${res.name}」に変更しました`);
 }
 
 const btnChangeName = document.getElementById('btn-change-name');
@@ -3239,7 +3239,7 @@ if (btnShare) {
     const isWin = state.winner === state.playerSide;
     const sentePt = getAllAllyPieces(state.board, 'sente').reduce((sum, { piece }) => sum + getPieceTotalPt(piece), 0);
     const gotePt = getAllAllyPieces(state.board, 'gote').reduce((sum, { piece }) => sum + getPieceTotalPt(piece), 0);
-    const resultText = isWin ? '勝利しました！🎉' : '対局終了！';
+    const resultText = isWin ? '勝利しました！' : '対局終了';
     const rankInfo = getRankInfo(userProfile.rating);
     const modeText = state.mode === 'rank' ? ` [ランクマッチ ${rankInfo.title} R${userProfile.rating}]` : '';
     const tweetText = `『無法将棋』で${resultText}${modeText}（${state.movesCount}手 / 軍勢: 先手${sentePt}pt vs 後手${gotePt}pt）\n駒を自由に変異・進化させて戦う新感覚Web将棋！\n#無法将棋 #将棋`;

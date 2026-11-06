@@ -35,21 +35,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700;900&family=Yuji+Boku&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
   <div class="app-container">
     <!-- エントランス（タイトル・モード選択）画面 -->
     <section id="view-entrance" class="view-entrance">
       <div class="entrance-hero">
-        <div class="hero-badge">百鬼変異絵巻 ── REVOLUTION SHOGI</div>
+        <div class="hero-badge">REVOLUTION SHOGI</div>
         <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span></h1>
-        <p class="entrance-tagline">敵の力を奪い、駒を自由に変異させよ</p>
+        <p class="entrance-tagline">盤上撃破で獲得した霊力により、駒の移動特性を直接変異・覚醒させる非対称戦略将棋</p>
       </div>
 
       <!-- 週間シーズンバナー -->
       <div class="season-banner">
-        <span class="season-badge" id="season-badge">📜 2026 第45期 週間シーズン</span>
+        <span class="season-badge" id="season-badge">2026 第45期 週間シーズン</span>
         <span class="season-timer" id="season-timer">残り 4日</span>
       </div>
 
@@ -57,14 +57,12 @@
       <div class="player-rank-card" id="entrance-player-card">
         <div class="player-profile-name-bar">
           <div class="player-name-wrap">
-            <span class="name-badge-icon">🎴</span>
             <span id="player-display-name" class="player-display-name">名無し棋士</span>
           </div>
-          <button id="btn-change-name" class="btn-change-name" type="button">✏️ 名前変更</button>
+          <button id="btn-change-name" class="btn-change-name" type="button">名前変更</button>
         </div>
         <div class="rank-card-header">
           <div class="rank-badge-wrap">
-            <span class="rank-icon">🏯</span>
             <span id="player-rank-title" class="rank-title">3級</span>
             <span id="player-title-badge" class="player-title-badge">新進気鋭の駒遣い</span>
             <button id="btn-change-title" class="btn-change-title" title="称号を変更">変更</button>
@@ -82,107 +80,72 @@
           <div class="stat-col"><span class="stat-num" id="player-losses">0</span><span class="stat-lbl">敗</span></div>
           <div class="stat-col"><span class="stat-num" id="player-winrate">0%</span><span class="stat-lbl">勝率</span></div>
           <div class="stat-col">
-            <span class="stat-num stat-streak-num" id="player-streak">🔥 0</span>
+            <span class="stat-num stat-streak-num" id="player-streak">0</span>
             <span class="stat-lbl">連勝 (最高 <strong id="player-max-streak">0</strong>)</span>
           </div>
         </div>
         <div class="rank-card-actions">
-          <button id="btn-open-cert" class="btn btn-cert-card" type="button">
-            📜 戦績免状を発行・伝承
+            戦績免状を発行・保存
+            戦績免状を発行・保存
           </button>
         </div>
       </div>
 
       <!-- ゲームモード選択リスト -->
+      <!-- ゲームモード選択（左揃え・非対称Bento構造・1pxボーダー） -->
       <div class="entrance-modes">
-        <!-- オンライン対戦 -->
-        <button id="btn-mode-online" class="mode-card mode-online" type="button">
-          <div class="mode-icon-box">
-            <svg viewBox="0 0 32 32" class="mode-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 8h24M6 12h20" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-              <path d="M9 8v18M23 8v18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-              <path d="M9 12h14" stroke="currentColor" stroke-width="1.8"/>
-              <path d="M16 12v4" stroke="currentColor" stroke-width="1.6"/>
-              <circle cx="16" cy="21" r="3" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2 2"/>
-            </svg>
-          </div>
-          <div class="mode-info">
-            <div class="mode-heading">
-              <span class="mode-name">オンライン対戦</span>
-              <span class="mode-tag tag-online">全国 ＆ 友合言葉</span>
-            </div>
-            <p class="mode-desc">全国の猛者とリアルタイム対局！合言葉で知己を招いての一騎打ちも可能</p>
-          </div>
-          <div class="mode-arrow">❯</div>
-        </button>
-
-        <!-- ランクマッチ -->
+        <!-- 主軸：ランクマッチ -->
         <button id="btn-mode-rank" class="mode-card mode-rank" type="button">
-          <div class="mode-icon-box">
-            <svg viewBox="0 0 32 32" class="mode-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16 4c-5 0-9 4-9 9 0 3.5 2.2 6.5 5.5 8l-1.5 8h10l-1.5-8c3.3-1.5 5.5-4.5 5.5-8 0-5-4-9-9-9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M16 8v9M11 13h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-              <circle cx="16" cy="13" r="2.5" fill="currentColor"/>
-            </svg>
-          </div>
           <div class="mode-info">
             <div class="mode-heading">
-              <span class="mode-name">真剣勝負 (格付戦)</span>
-              <span class="mode-tag tag-rank">レート変動あり</span>
-              <span class="mode-tag tag-bounty-chance">賞金首出現中!</span>
+              <span class="mode-name">真剣勝負（格付戦）</span>
+              <span class="mode-tag tag-rank">公式レート戦</span>
+              <span class="mode-tag tag-bounty-chance">賞金首出現中</span>
             </div>
-            <p class="mode-desc">全国の段位・レーティングを競う真剣勝負！実力同格の好敵手と対局</p>
+            <p class="mode-desc">全国の棋士と段位・レーティングを競う真剣対局。実力同格の相手とマッチングします。</p>
           </div>
-          <div class="mode-arrow">❯</div>
         </button>
 
-        <!-- COMと対戦 -->
-        <button id="btn-mode-com" class="mode-card mode-com" type="button">
-          <div class="mode-icon-box">
-            <svg viewBox="0 0 32 32" class="mode-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 5l4.5 6.5M26 5l-4.5 6.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-              <path d="M5 15c0 6.5 4.5 12 11 12s11-5.5 11-12c0-4-3-8-11-8s-11 4-11 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M10 16l3-1M22 16l-3-1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-              <circle cx="11.5" cy="16.5" r="1.5" fill="currentColor"/>
-              <circle cx="20.5" cy="16.5" r="1.5" fill="currentColor"/>
-              <path d="M11 22c2-1.5 8-1.5 10 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </div>
+        <!-- 通信対局 -->
+        <button id="btn-mode-online" class="mode-card mode-online" type="button">
           <div class="mode-info">
             <div class="mode-heading">
-              <span class="mode-name">百鬼討伐 (からくり対局)</span>
-              <span class="mode-tag tag-com">特訓・難易度選択</span>
+              <span class="mode-name">通信対局（遠隔戦）</span>
+              <span class="mode-tag tag-online">P2P通信</span>
             </div>
-            <p class="mode-desc">入門・標準・強敵から選んで対戦。先手・後手も自由に選べます</p>
+            <p class="mode-desc">合言葉による友人間の一騎打ち、または全国即時マッチングによる遠隔対局。</p>
           </div>
-          <div class="mode-arrow">❯</div>
         </button>
 
-        <!-- フリーマッチ -->
-        <button id="btn-mode-free" class="mode-card mode-free" type="button">
-          <div class="mode-icon-box">
-            <svg viewBox="0 0 32 32" class="mode-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16 26l-11-9c3-4 8-6 11-6s8 2 11 6l-11 9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M16 26v-15M16 26l-6-13M16 26l6-13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-              <circle cx="16" cy="26" r="1.6" fill="currentColor"/>
-            </svg>
-          </div>
-          <div class="mode-info">
-            <div class="mode-heading">
-              <span class="mode-name">手合わせ (対面対局)</span>
-              <span class="mode-tag tag-free">2人対局 (一端末)</span>
+        <!-- 非対称サブグリッド（からくり & 対面） -->
+        <div class="modes-sub-grid">
+          <button id="btn-mode-com" class="mode-card mode-com" type="button">
+            <div class="mode-info">
+              <div class="mode-heading">
+                <span class="mode-name">からくり対局（演習）</span>
+                <span class="mode-tag tag-com">難易度3段階</span>
+              </div>
+              <p class="mode-desc">入門・標準・強敵から選んで対戦。先後選択自由。</p>
             </div>
-            <p class="mode-desc">1台の端末で互いに対局（Pass & Play）。レート変動なしで自由に遊べます</p>
-          </div>
-          <div class="mode-arrow">❯</div>
-        </button>
+          </button>
+
+          <button id="btn-mode-free" class="mode-card mode-free" type="button">
+            <div class="mode-info">
+              <div class="mode-heading">
+                <span class="mode-name">対面対局（相酌）</span>
+                <span class="mode-tag tag-free">端末共有</span>
+              </div>
+              <p class="mode-desc">1台の端末で対局。レート変動なし。</p>
+            </div>
+          </button>
+        </div>
       </div>
 
       <!-- 週間シーズンランキングセクション -->
       <div class="season-ranking-card" id="season-ranking-card">
         <div class="ranking-header">
           <div class="ranking-title-wrap">
-            <span class="ranking-icon">📊</span>
+            
             <span class="ranking-title">週間シーズンランキング</span>
           </div>
           <span id="player-rank-pos-text" class="player-rank-pos">現在 28位</span>
@@ -195,11 +158,11 @@
       <!-- サブ導線（中断再開、ルール、解説） -->
       <div class="entrance-footer-actions">
         <button id="btn-resume-game" class="btn btn-resume hidden" type="button">
-          ♟️ 前回の対局を再開
+          前回の対局を再開
         </button>
         <div class="entrance-aux-btns">
-          <button id="btn-entrance-rules" class="btn btn-aux" type="button">❓ ルール・遊び方</button>
-          <button id="btn-entrance-about" class="btn btn-aux" type="button">🏮 変異指南</button>
+          <button id="btn-entrance-rules" class="btn btn-aux" type="button">ルール・遊び方</button>
+          <button id="btn-entrance-about" class="btn btn-aux" type="button">変異指南</button>
         </div>
       </div>
     </section>
@@ -209,14 +172,14 @@
       <!-- スマホ最適化 1行コンパクトヘッダー -->
       <header class="app-header">
         <div class="logo-area">
-          <button id="btn-back-entrance" class="btn btn-header-back" title="タイトルへ戻る">🏠 タイトル</button>
+          <button id="btn-back-entrance" class="btn btn-header-back" title="タイトルへ戻る">タイトル</button>
           <h1>無法将棋 <span class="subtitle">MUTATION</span></h1>
         </div>
         <div class="header-controls">
           <button id="btn-undo" class="btn btn-header" title="1手戻す">↩ 待った</button>
-          <button id="btn-restart" class="btn btn-header btn-primary" title="新規対局">🔄 新規</button>
-          <button id="btn-settings" class="btn btn-header btn-secondary" title="設定">⚙️ 設定</button>
-          <button id="btn-rules" class="btn btn-header btn-outline" title="ルール">❓ ルール</button>
+          <button id="btn-restart" class="btn btn-header btn-primary" title="新規対局">新規対局</button>
+          <button id="btn-settings" class="btn btn-header btn-secondary" title="設定">設定</button>
+          <button id="btn-rules" class="btn btn-header btn-outline" title="ルール">ルール</button>
         </div>
       </header>
 
@@ -225,7 +188,7 @@
       <!-- 相手（後手/上側）プレイヤーバー -->
       <div id="card-gote" class="player-bar gote-bar">
         <div class="player-meta">
-          <span class="player-badge gote-badge">☖ 後手</span>
+          <span class="player-badge gote-badge">後手</span>
           <span id="gote-name" class="player-name">CPU</span>
         </div>
         <div class="player-indicators">
@@ -255,14 +218,14 @@
       <div id="enemy-evo-notification" class="enemy-evo-toast hidden">
         <div class="enemy-evo-header">
           <div class="enemy-evo-title">
-            <span class="enemy-evo-icon">⚡</span>
+            <span class="enemy-evo-icon">[通知]</span>
             <span id="enemy-evo-title-text">相手が駒を進化させました！</span>
           </div>
-          <button id="btn-close-enemy-evo" class="enemy-evo-close-btn" title="閉じる">✕</button>
+          <button id="btn-close-enemy-evo" class="enemy-evo-close-btn" title="閉じる"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div id="enemy-evo-body" class="enemy-evo-body"></div>
         <div class="enemy-evo-actions">
-          <button id="btn-inspect-enemy-evo" class="btn-inspect-evo">👁️ 相手の進化駒を盤上で確認</button>
+          <button id="btn-inspect-enemy-evo" class="btn-inspect-evo">相手の進化駒を盤上で確認</button>
         </div>
       </div>
 
@@ -285,7 +248,7 @@
 
         <!-- 盤面直下のミニ凡例 -->
         <div class="board-mini-legend">
-          <span><strong style="color:var(--evo-gold)">★５五</strong>: 天王山(+1pt)</span>
+          <span><strong style="color:var(--evo-gold)">5五</strong>: 天王山(+1pt)</span>
           <span><span class="legend-dot dot-step"></span>移動</span>
           <span><span class="legend-dot dot-ray"></span>走り(∞)</span>
           <span><span class="legend-dot dot-enemy"></span>敵利き(赤)</span>
@@ -295,7 +258,7 @@
       <!-- 自分（先手/下側）プレイヤーバー -->
       <div id="card-sente" class="player-bar sente-bar active-turn">
         <div class="player-meta">
-          <span class="player-badge sente-badge">☗ 先手</span>
+          <span class="player-badge sente-badge">先手</span>
           <span id="sente-name" class="player-name">あなた</span>
         </div>
         <div class="player-indicators">
@@ -354,9 +317,9 @@
           <div id="matrix-direction-hint-bottom" class="matrix-direction-hint gote-hint hidden">▼ 進行方向 ▼</div>
           <div class="matrix-quick-legend">
             <span>●初期</span>
-            <span>★進化済</span>
+            <span>進化済</span>
             <span><strong style="color:var(--evo-gold)">＋</strong>解放(1pt)</span>
-            <span><strong style="color:var(--ray-cyan)">★/＋∞</strong>走り覚醒(1pt)</span>
+            <span><strong style="color:var(--ray-cyan)">直進</strong>直進無限(1pt)</span>
             <span><strong style="color:var(--ray-cyan)">∞</strong>走り</span>
           </div>
         </div>
@@ -364,7 +327,7 @@
 
       <!-- 最新ログ1行ティッカー（タップで全履歴モーダル展開） -->
       <div class="log-ticker-bar" id="btn-view-log">
-        <span class="ticker-icon">📜</span>
+        
         <span id="latest-log-text" class="ticker-text">対局開始！駒の数字は持ちポイントです</span>
         <span class="ticker-badge">履歴</span>
       </div>
@@ -407,8 +370,8 @@
     <div id="settings-modal" class="modal-overlay hidden">
       <div class="modal-card settings-card">
         <div class="modal-header">
-          <h2>⚙️ 対局設定</h2>
-          <button id="btn-close-settings" class="btn-close">✕</button>
+          <h2>対局設定</h2>
+          <button id="btn-close-settings" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div class="modal-body">
           <div class="setting-item">
@@ -438,8 +401,8 @@
     <div id="log-modal" class="modal-overlay hidden">
       <div class="modal-card log-modal-card">
         <div class="modal-header">
-          <h2>📜 対局ログ履歴</h2>
-          <button id="btn-close-log" class="btn-close">✕</button>
+          <h2>対局ログ履歴</h2>
+          <button id="btn-close-log" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div class="modal-body">
           <div id="battle-log" class="log-list"></div>
@@ -451,13 +414,13 @@
     <div id="rules-modal" class="modal-overlay hidden">
       <div class="modal-card">
         <div class="modal-header">
-          <h2>📖 無法将棋（SHOGI: MUTATION）ルール</h2>
-          <button id="btn-close-rules" class="btn-close">✕</button>
+          <h2>無法将棋 規定・手引</h2>
+          <button id="btn-close-rules" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div class="modal-body">
           <div class="rule-block">
             <h4>1. 駒の表記＝「持ちポイント」</h4>
-            <p>各駒には漢字の代わりに<strong>現在の持ちポイント（数字）</strong>が書かれています（👑マークが付いた「8」は王将です）。</p>
+            <p>各駒には漢字の代わりに<strong>現在の持ちポイント（数字）</strong>が書かれています（「王8」は王将です）。</p>
             <table class="rule-table">
               <thead>
                 <tr><th>初期数値</th><th>元の駒</th><th>初期の移動性能</th></tr>
@@ -470,7 +433,7 @@
                 <tr><td><strong>4 (＋)</strong></td><td>飛車</td><td>縦横4方向へ直進（走り）</td></tr>
                 <tr><td><strong>5</strong></td><td>銀将</td><td>前3方向＋斜め後ろ2方向（1マス）</td></tr>
                 <tr><td><strong>6</strong></td><td>金将</td><td>十字4方向＋斜め前2方向（1マス）</td></tr>
-                <tr><td><strong>👑 8</strong></td><td>王将 / 玉将</td><td>全周囲8方向（1マス）※取られたら敗北</td></tr>
+                <tr><td><strong>王 8</strong></td><td>王将 / 玉将</td><td>全周囲8方向（1マス）※取られたら敗北</td></tr>
               </tbody>
             </table>
           </div>
@@ -495,7 +458,7 @@
           </div>
           <div class="rule-block">
             <h4>6. サドンデス機能（引き分け完全防止）</h4>
-            <p>80手に達すると<strong>「🔥 サドンデス」</strong>に突入！手番開始時に毎ターン <strong>＋1pt の過熱エネルギー</strong>が両軍に供給され、決着が加速します。さらに<strong>120手に到達した場合は、盤上＋バンクの「総獲得ポイント数」が多い側の判定勝利</strong>となります。万が一、総ポイントが完全同点の場合は<strong>「最後に天王山（５五）を制圧していたプレイヤーの勝利」</strong>となり、引き分けは100%発生しません！</p>
+            <p>80手に達すると<strong>「サドンデス」</strong>に突入！手番開始時に毎ターン <strong>＋1pt の過熱エネルギー</strong>が両軍に供給され、決着が加速します。さらに<strong>120手に到達した場合は、盤上＋バンクの「総獲得ポイント数」が多い側の判定勝利</strong>となります。万が一、総ポイントが完全同点の場合は<strong>「最後に天王山（５五）を制圧していたプレイヤーの勝利」</strong>となり、引き分けは100%発生しません！</p>
           </div>
         </div>
       </div>
@@ -505,8 +468,8 @@
     <div id="modal-com-select" class="modal-overlay hidden">
       <div class="modal-card select-modal-card">
         <div class="modal-header">
-          <h2>🤖 COMと対戦</h2>
-          <button id="btn-close-com-select" class="btn-close">✕</button>
+          <h2>からくり対局（COM）</h2>
+          <button id="btn-close-com-select" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div class="modal-body">
           <p class="modal-subtitle">強さと手番を選択して対局を開始します</p>
@@ -533,10 +496,10 @@
             <label class="setting-lbl">手番を選択:</label>
             <div class="pills-grid-half" id="com-side-pills">
               <button type="button" class="pill-btn active" data-side="sente">
-                <span class="pill-title">☗ 先手（下側・青）</span>
+                <span class="pill-title">先手（下側・青）</span>
               </button>
               <button type="button" class="pill-btn" data-side="gote">
-                <span class="pill-title">☖ 後手（上側・赤）</span>
+                <span class="pill-title">後手（上側・赤）</span>
               </button>
             </div>
           </div>
@@ -552,15 +515,15 @@
     <div id="modal-rank-match" class="modal-overlay hidden">
       <div class="modal-card select-modal-card">
         <div class="modal-header">
-          <h2>🏆 ランクマッチ</h2>
-          <button id="btn-close-rank-modal" class="btn-close">✕</button>
+          <h2>真剣勝負（格付戦）</h2>
+          <button id="btn-close-rank-modal" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div class="modal-body">
           <p class="modal-subtitle">実力レートを賭けた真剣勝負！</p>
           
           <!-- 賞金首発生バナー（条件により発動） -->
           <div id="bounty-match-banner" class="bounty-match-banner hidden">
-            <div class="bounty-badge">⚠️ BOUNTY TARGET</div>
+            <div class="bounty-badge">BOUNTY TARGET / 賞金首</div>
             <div class="bounty-title">賞金首出現！ 撃破でレート大量ボーナス獲得！</div>
           </div>
 
@@ -602,14 +565,14 @@
           <div class="rank-result-badge" id="rank-result-badge">ランクマッチ結果</div>
           <div class="rank-result-diff" id="rank-result-diff">+28 R</div>
           <div class="rank-result-current" id="rank-result-current">現在のレート: 1228 (3級)</div>
-          <div id="rank-bounty-bonus-desc" class="rank-bounty-bonus-desc hidden">⭐ 賞金首討伐ボーナス獲得！ (+20 R)</div>
-          <div id="rank-up-banner" class="rank-up-banner hidden">🎉 昇級おめでとうございます！</div>
+          <div id="rank-bounty-bonus-desc" class="rank-bounty-bonus-desc hidden">賞金首討伐ボーナス獲得！ (+20 R)</div>
+          <div id="rank-up-banner" class="rank-up-banner hidden">昇級・昇段達成</div>
         </div>
 
         <div class="gameover-actions">
-          <button id="btn-gameover-cert" class="btn btn-cert-card">🪪 戦績カードを発行</button>
-          <button id="btn-gameover-entrance" class="btn btn-header-back">🏠 タイトルへ</button>
-          <button id="btn-gameover-share" class="btn btn-share" title="対局結果をXでシェア">𝕏 結果をシェア</button>
+          <button id="btn-gameover-cert" class="btn btn-cert-card">戦績免状を確認・発行</button>
+          <button id="btn-gameover-entrance" class="btn btn-header-back">タイトルへ</button>
+          <button id="btn-gameover-share" class="btn btn-share" title="対局結果をXでシェア">結果を記録・共有</button>
           <button id="btn-gameover-close" class="btn btn-secondary">盤面を見る</button>
           <button id="btn-gameover-restart" class="btn btn-primary">もう一度対局</button>
         </div>
@@ -620,8 +583,8 @@
     <div id="modal-name-edit" class="modal-overlay hidden">
       <div class="modal-card select-modal-card">
         <div class="modal-header">
-          <h2>✏️ ユーザーネームの変更</h2>
-          <button id="btn-close-name-modal" class="btn-close">✕</button>
+          <h2>ユーザーネームの変更</h2>
+          <button id="btn-close-name-modal" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div class="modal-body">
           <p class="modal-subtitle">全国ランキングやオンライン対戦で表示される名前を設定します（1〜10文字）</p>
@@ -643,8 +606,8 @@
     <div id="modal-title-select" class="modal-overlay hidden">
       <div class="modal-card select-modal-card">
         <div class="modal-header">
-          <h2>🎖️ 称号の変更</h2>
-          <button id="btn-close-title-modal" class="btn-close">✕</button>
+          <h2>称号の変更</h2>
+          <button id="btn-close-title-modal" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div class="modal-body">
           <p class="modal-subtitle">獲得した称号をセットして戦績カードや対局でアピールできます</p>
@@ -659,8 +622,8 @@
     <div id="modal-cert-card" class="modal-overlay hidden">
       <div class="modal-card cert-modal-card">
         <div class="modal-header">
-          <h2>🪪 戦績証明書 (RANK CERTIFICATE)</h2>
-          <button id="btn-close-cert-modal" class="btn-close">✕</button>
+          <h2>戦績免状（公式記録）</h2>
+          <button id="btn-close-cert-modal" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div class="modal-body">
           <p class="modal-subtitle">サイバー将棋風の公式戦績カードを自動生成しました</p>
@@ -671,10 +634,10 @@
 
           <div class="cert-modal-actions">
             <button id="btn-cert-share-x" class="btn btn-share btn-lg btn-full">
-              𝕏 でカードをシェア
+              結果を伝承・共有
             </button>
             <button id="btn-cert-download" class="btn btn-secondary btn-full">
-              💾 画像を保存
+              免状画像を保存
             </button>
           </div>
         </div>
@@ -685,8 +648,8 @@
     <div id="modal-online-select" class="modal-overlay hidden">
       <div class="modal-card select-modal-card">
         <div class="modal-header">
-          <h2>🌐 オンライン対戦</h2>
-          <button id="btn-close-online-modal" class="btn-close">✕</button>
+          <h2>通信対局</h2>
+          <button id="btn-close-online-modal" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
         </div>
         <div class="modal-body">
           <p class="modal-subtitle">全国のプレイヤーとリアルタイム対局！</p>
@@ -694,14 +657,14 @@
           <div class="online-modes-grid">
             <!-- クイックマッチ -->
             <button id="btn-online-quick" class="online-choice-btn btn-primary" type="button">
-              <span class="choice-icon">⚡</span>
+              
               <span class="choice-title">全国ランダムマッチ</span>
               <span class="choice-sub">今すぐ誰かと対局を開始</span>
             </button>
 
             <!-- 合言葉で部屋作成 -->
             <button id="btn-online-create-friend" class="online-choice-btn btn-secondary" type="button">
-              <span class="choice-icon">🔑</span>
+              
               <span class="choice-title">合言葉で部屋を作る</span>
               <span class="choice-sub">友達に対局番号を教えて対戦</span>
             </button>
@@ -739,7 +702,7 @@
         <h2>対局室を作成しました！</h2>
         <p class="friend-code-desc">友達に以下の「合言葉（4桁）」を教えてください</p>
         <div class="friend-room-code-badge" id="friend-room-code-display">----</div>
-        <button id="btn-copy-friend-link" class="btn btn-aux" style="margin-bottom:12px;width:100%" type="button">📋 招待リンクをコピー</button>
+        <button id="btn-copy-friend-link" class="btn btn-aux" style="margin-bottom:12px;width:100%" type="button">招待リンクをコピー</button>
         <div class="matchmaking-spinner"></div>
         <p class="matchmaking-status-text">友達の入室を待機しています...</p>
         <button id="btn-cancel-friend-waiting" class="btn btn-secondary btn-full">
@@ -764,7 +727,7 @@
     <div id="sudden-death-banner" class="check-banner-overlay hidden sudden-death-overlay">
       <div class="check-banner-content sudden-death-content">
         <div class="check-banner-glow sudden-death-glow"></div>
-        <div class="check-banner-kanji sudden-death-title">🔥 SUDDEN DEATH</div>
+        <div class="check-banner-kanji sudden-death-title">SUDDEN DEATH / 決着延長</div>
         <div class="check-banner-sub sudden-death-sub">サドンデス突入！ 毎ターン+1pt過熱供給 ＆ 120手到達で総ポイント判定決着！</div>
       </div>
     </div>
@@ -776,8 +739,8 @@
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
 
   <!-- ゲームスクリプト群 -->
-  <script src="online.js?v=11"></script>
-  <script src="game.js?v=11"></script>
+  <script src="online.js?v=12"></script>
+  <script src="game.js?v=12"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
