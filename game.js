@@ -969,6 +969,15 @@ function onCellClick(r, c) {
 
   // 重要バグ修正: 撃破即時進化フェーズ中、盤面クリックで移動が誤発火してフェーズが破壊されるのを完全防止！
   // 自軍の駒をクリックした場合は進化対象インスペクターを切り替えるのみ
+  // 相手の進化待機中または撃破即時進化フェーズ中のガード
+  if (state.phase === 'remote_evo') {
+    if (clickedPiece) {
+      state.inspectedPiece = clickedPiece;
+      renderAll();
+    }
+    return;
+  }
+
   if (state.phase === 'instant_evo') {
     if (clickedPiece && clickedPiece.owner === state.turn) {
       state.inspectedPiece = clickedPiece;
@@ -1077,6 +1086,15 @@ function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
       `${sideSymbol} ${posStr}【${moverLabel}】が 敵の【${targetLabel}(${targetPiece.name})】を撃破！ ＋${gainedPt}pt 吸収！`,
       'log-capture'
     );
+
+    // オンライン対戦で相手が撃破した場合：相手の進化確定パケット待ちフェーズへ
+    if (state.mode === 'online' && !syncOnline) {
+      state.bank[state.turn] += gainedPt;
+      state.phase = 'remote_evo';
+      state.inspectedPiece = movingPiece;
+      renderAll();
+      return;
+    }
 
     // 【案1: 撃破時即時進化】手番をパスせず、撃破と同時に進化を実行！
     startInstantEvolution(gainedPt, targetPiece.name, movingPiece);
@@ -1472,29 +1490,30 @@ function confirmEvolutionTurn() {
       state.pendingOpponentEvoNotification = evoReports;
     }
 
-    // オンライン対局時の進化確定データ送信
-    if (state.mode === 'online' && state.turn === state.playerSide && typeof sendOnlineEvolutionAction === 'function') {
-      const pendingCopy = state.pendingEvo.map(p => ({ ...p }));
-      const details = [];
-      for (const { found, count, rays } of evolvedSummary.values()) {
-        const posStr = formatPos(found.r, found.c);
-        const rayText = rays > 0 ? ` (走り+${rays})` : '';
-        details.push({
-          name: found.piece.name,
-          pieceId: found.piece.id,
-          posStr,
-          count,
-          totalPt: getPieceTotalPt(found.piece, false),
-          changes: state.pendingEvo.filter(p => p.pieceId === found.piece.id).map(alloc => ({
-            isRay: alloc.type === 'ray',
-            dx: alloc.dx,
-            dy: alloc.dy,
-            desc: getDirectionDescription(found.piece, alloc.dx, alloc.dy, alloc.type === 'ray')
-          }))
-        });
-      }
-      sendOnlineEvolutionAction(pendingCopy, spentPt, details);
+  }
+
+  // オンライン対局時の進化確定データ送信 (0pt割り振りの場合も含め必ず送信して相手クライアントのフェーズを完了)
+  if (state.mode === 'online' && state.turn === state.playerSide && typeof sendOnlineEvolutionAction === 'function') {
+    const pendingCopy = state.pendingEvo.map(p => ({ ...p }));
+    const details = [];
+    for (const { found, count, rays } of evolvedSummary.values()) {
+      const posStr = formatPos(found.r, found.c);
+      const rayText = rays > 0 ? ` (走り+${rays})` : '';
+      details.push({
+        name: found.piece.name,
+        pieceId: found.piece.id,
+        posStr,
+        count,
+        totalPt: getPieceTotalPt(found.piece, false),
+        changes: state.pendingEvo.filter(p => p.pieceId === found.piece.id).map(alloc => ({
+          isRay: alloc.type === 'ray',
+          dx: alloc.dx,
+          dy: alloc.dy,
+          desc: getDirectionDescription(found.piece, alloc.dx, alloc.dy, alloc.type === 'ray')
+        }))
+      });
     }
+    sendOnlineEvolutionAction(pendingCopy, spentPt, details);
   }
 
   state.phase = 'play';
@@ -2448,6 +2467,10 @@ function renderStatsAndStatus() {
     elStatusBanner.classList.remove('evo-mode', 'sudden-death-mode');
     elTurnIndicator.textContent = '対局終了';
     elSubStatus.textContent = '「新規対局」で最初から遊べます';
+  } else if (state.phase === 'remote_evo') {
+    elStatusBanner.classList.add('evo-mode');
+    elTurnIndicator.textContent = `相手が霊力を配分中...${movesText}`;
+    elSubStatus.textContent = '相手プレイヤーが獲得した霊力で駒を変異・進化させています（待機中）';
   } else if (state.phase === 'instant_evo') {
     elStatusBanner.classList.add('evo-mode');
     elTurnIndicator.textContent = `撃破ボーナス！ ${turnLabel}の即時進化${movesText}`;

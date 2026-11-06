@@ -294,18 +294,24 @@ function setupConnectionEvents(conn, defaultOpponentName, role) {
     } else if (data.type === 'move') {
       executeMove(data.fromR, data.fromC, data.toR, data.toC, false);
     } else if (data.type === 'evolution') {
+      const remoteSide = (onlinePlayerSide === 'sente' ? 'gote' : 'sente');
+      if (typeof data.spendingPt === 'number' && data.spendingPt > 0) {
+        state.bank[remoteSide] = Math.max(0, state.bank[remoteSide] - data.spendingPt);
+      }
       if (data.pendingEvo && data.pendingEvo.length > 0) {
-        applyRemoteEvolution(data.pendingEvo, onlinePlayerSide === 'sente' ? 'gote' : 'sente');
+        applyRemoteEvolution(data.pendingEvo, remoteSide);
       }
       if (data.evoLogs && data.evoLogs.length > 0) {
         showEnemyEvolutionNotification(data.evoLogs);
       }
+      state.phase = 'play';
+      state.pendingEvo = [];
       endTurn();
     }
   });
 
   conn.on('close', () => {
-    if (state.phase === 'play') {
+    if (state.phase !== 'gameover') {
       endGame(onlinePlayerSide, '相手プレイヤーの通信が切断されました（不戦勝）');
     }
   });
