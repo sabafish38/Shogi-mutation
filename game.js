@@ -1,3 +1,6 @@
+(function() {
+  'use strict';
+
 /**
  * 無法将棋 - SHOGI: MUTATION
  * メインゲームロジック & CPU思考エンジン
@@ -513,21 +516,68 @@ let userProfile = {
   bountiesClaimed: 0
 };
 
+// ==========================================
+// 【防御レベル2】プロフィール改変検知・ソルト付きハッシュ署名
+// ==========================================
+const PROFILE_SALT = 'MUHOU_2026_ANTI_TAMPER_!k8x#q';
+
+function computeProfileChecksum(data) {
+  const payload = [
+    data.name || '',
+    data.rating != null ? data.rating : 1200,
+    data.wins != null ? data.wins : 0,
+    data.losses != null ? data.losses : 0,
+    data.streak != null ? data.streak : 0,
+    data.maxStreak != null ? data.maxStreak : 0,
+    data.equippedTitle || '',
+    data.bountiesClaimed != null ? data.bountiesClaimed : 0,
+    PROFILE_SALT
+  ].join(':');
+
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < payload.length; i++) {
+    hash ^= payload.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+}
+
 function loadUserProfile() {
   try {
     const raw = localStorage.getItem(USER_PROFILE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      userProfile = {
-        name: (typeof data.name === 'string' && data.name.trim()) ? data.name.trim().slice(0, 10) : '名無し棋士',
-        rating: typeof data.rating === 'number' ? data.rating : 1200,
-        wins: typeof data.wins === 'number' ? data.wins : 0,
-        losses: typeof data.losses === 'number' ? data.losses : 0,
-        streak: typeof data.streak === 'number' ? data.streak : 0,
-        maxStreak: typeof data.maxStreak === 'number' ? data.maxStreak : 0,
-        equippedTitle: data.equippedTitle || '新進気鋭の駒遣い',
-        bountiesClaimed: typeof data.bountiesClaimed === 'number' ? data.bountiesClaimed : 0
-      };
+      const expectedSig = computeProfileChecksum(data);
+      // 過去バージョン（署名なし）の正規データ移行用緩和判定
+      const isLegacyValid = !data._sig && (data.rating >= 800 && data.rating <= 1500) && (data.wins >= 0 && data.wins <= 10);
+      const isSigValid = (data._sig === expectedSig);
+
+      if (isSigValid || isLegacyValid) {
+        userProfile = {
+          name: (typeof data.name === 'string' && data.name.trim()) ? data.name.trim().slice(0, 10) : '名無し棋士',
+          rating: typeof data.rating === 'number' ? Math.max(800, Math.min(3000, data.rating)) : 1200,
+          wins: typeof data.wins === 'number' ? Math.max(0, data.wins) : 0,
+          losses: typeof data.losses === 'number' ? Math.max(0, data.losses) : 0,
+          streak: typeof data.streak === 'number' ? Math.max(0, data.streak) : 0,
+          maxStreak: typeof data.maxStreak === 'number' ? Math.max(0, data.maxStreak) : 0,
+          equippedTitle: data.equippedTitle || '新進気鋭の駒遣い',
+          bountiesClaimed: typeof data.bountiesClaimed === 'number' ? Math.max(0, data.bountiesClaimed) : 0
+        };
+        saveUserProfile();
+      } else {
+        console.warn('Tamper detected in user profile! Resetting to safe defaults.');
+        userProfile = {
+          name: '名無し棋士',
+          rating: 1200,
+          wins: 0,
+          losses: 0,
+          streak: 0,
+          maxStreak: 0,
+          equippedTitle: '新進気鋭の駒遣い',
+          bountiesClaimed: 0
+        };
+        saveUserProfile();
+      }
     }
   } catch (e) {
     console.warn('Failed to load user profile:', e);
@@ -536,7 +586,11 @@ function loadUserProfile() {
 
 function saveUserProfile() {
   try {
-    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(userProfile));
+    const toSave = {
+      ...userProfile,
+      _sig: computeProfileChecksum(userProfile)
+    };
+    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(toSave));
   } catch (e) {
     console.warn('Failed to save user profile:', e);
   }
@@ -690,6 +744,10 @@ function checkSavedGameResumeButton() {
     try {
       const data = JSON.parse(raw);
       if (data && data.phase === 'play' && data.movesCount > 0) {
+        if (data._sig && data._sig !== computeStateChecksum(data)) {
+          btnResume.classList.add('hidden');
+          return;
+        }
         btnResume.classList.remove('hidden');
         btnResume.textContent = `前回の対局を再開 (${data.movesCount}手目)`;
         return;
@@ -703,6 +761,25 @@ function checkSavedGameResumeButton() {
 // ローカルストレージ自動保存・復元（リロード対策）
 // ==========================================
 const STORAGE_KEY = 'muhou_shogi_saved_state_v1';
+const STATE_SALT = 'MUHOU_MIDGAME_SEC_#89p!z';
+
+function computeStateChecksum(data) {
+  const payload = [
+    data.turn,
+    data.movesCount,
+    data.bank ? `${data.bank.sente},${data.bank.gote}` : '',
+    data.tennozanStreak,
+    data.mode,
+    STATE_SALT
+  ].join(':');
+
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < payload.length; i++) {
+    hash ^= payload.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+}
 
 function saveGameToStorage() {
   if (state.mode === 'online') return;
@@ -724,8 +801,9 @@ function saveGameToStorage() {
       playerSide: state.playerSide,
       rankOpponent: state.rankOpponent || null,
       recentLogs: state.recentLogs || [],
-      inGameScreen: !!(document.getElementById('view-game') && !document.getElementById('view-game').classList.contains('hidden') && state.phase === 'play')
+      inGameScreen: (state.phase === 'play')
     };
+    data._sig = computeStateChecksum(data);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (err) {
     console.warn('LocalStorage save error:', err);
@@ -739,58 +817,29 @@ function loadGameFromStorage() {
     const data = JSON.parse(raw);
     if (!data || !data.board || !Array.isArray(data.board) || data.board.length !== 9) return false;
 
+    // 改変検知
+    if (data._sig && data._sig !== computeStateChecksum(data)) {
+      console.warn('Tamper detected in midgame state! Discarding saved game.');
+      clearGameStorage();
+      return false;
+    }
+
     state.board = data.board;
     state.turn = data.turn || 'sente';
     state.phase = data.phase || 'play';
     state.bank = data.bank || { sente: 0, gote: 0 };
     state.lastMove = data.lastMove || null;
-    state.nextPieceId = data.nextPieceId || 1;
+    state.nextPieceId = data.nextPieceId || 100;
     state.movesCount = data.movesCount || 0;
-    state.tennozanStreak = data.tennozanStreak || { sente: 0, gote: 0 };
+    state.tennozanStreak = data.tennozanStreak || 0;
     state.lastTennozanPieceId = data.lastTennozanPieceId || null;
     state.lastTennozanOwner = data.lastTennozanOwner || null;
-    state.isSuddenDeath = data.isSuddenDeath || false;
+    state.isSuddenDeath = !!data.isSuddenDeath;
     state.history = data.history || [];
-    state.mode = data.mode || 'cpu-normal';
+    state.mode = data.mode || 'com';
     state.playerSide = data.playerSide || 'sente';
     state.rankOpponent = data.rankOpponent || null;
-    state.pendingEvo = [];
-    state.selectedCell = null;
-    state.validMoves = [];
-    state.inspectedPiece = null;
     state.recentLogs = data.recentLogs || [];
-    state.wasInGameScreen = !!data.inGameScreen;
-
-    const elGameMode = document.getElementById('game-mode');
-    if (elGameMode && state.mode !== 'rank') elGameMode.value = state.mode;
-    const elPlayerSide = document.getElementById('player-side');
-    if (elPlayerSide) elPlayerSide.value = state.playerSide;
-
-    updatePlayerNames();
-
-    // ログ復元
-    if (elBattleLog) elBattleLog.innerHTML = '';
-    if (state.recentLogs && state.recentLogs.length > 0) {
-      for (let i = state.recentLogs.length - 1; i >= 0; i--) {
-        const item = state.recentLogs[i];
-        const entry = document.createElement('div');
-        entry.className = `log-entry ${item.extraClass || ''}`;
-        entry.textContent = item.text;
-        if (elBattleLog) elBattleLog.prepend(entry);
-      }
-      const ticker = document.getElementById('latest-log-text');
-      if (ticker && state.recentLogs[0]) {
-        ticker.textContent = state.recentLogs[0].text;
-      }
-    }
-
-    addLog('前回の対局データを再開しました');
-    renderAll();
-
-    // 再読み込み時にCPU番なら自動で思考再開
-    if (isCPUTurn() && state.phase === 'play') {
-      setTimeout(cpuDecideAction, 600);
-    }
 
     return true;
   } catch (err) {
@@ -1340,8 +1389,8 @@ function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
   }
 
   // オンライン対局時の指し手送信
-  if (syncOnline && state.mode === 'online' && state.turn === state.playerSide && typeof sendOnlineMoveAction === 'function') {
-    sendOnlineMoveAction(fromR, fromC, toR, toC, targetPiece);
+  if (syncOnline && state.mode === 'online' && state.turn === state.playerSide && window.MuhouOnline && typeof window.MuhouOnline.sendOnlineMoveAction === 'function') {
+    window.MuhouOnline.sendOnlineMoveAction(fromR, fromC, toR, toC, targetPiece);
   }
 
   state.board[toR][toC] = movingPiece;
@@ -1810,7 +1859,7 @@ function confirmEvolutionTurn() {
   }
 
   // オンライン対局時の進化確定データ送信 (0pt割り振りの場合も含め必ず送信して相手クライアントのフェーズを完了)
-  if (state.mode === 'online' && state.turn === state.playerSide && typeof sendOnlineEvolutionAction === 'function') {
+  if (state.mode === 'online' && state.turn === state.playerSide && window.MuhouOnline && typeof window.MuhouOnline.sendOnlineEvolutionAction === 'function') {
     const pendingCopy = state.pendingEvo.map(p => ({ ...p }));
     const details = [];
     for (const { found, count, rays } of evolvedSummary.values()) {
@@ -1830,7 +1879,7 @@ function confirmEvolutionTurn() {
         }))
       });
     }
-    sendOnlineEvolutionAction(pendingCopy, spentPt, details);
+    window.MuhouOnline.sendOnlineEvolutionAction(pendingCopy, spentPt, details);
   }
 
   state.phase = 'play';
@@ -3946,14 +3995,14 @@ const btnOnlineQuick = document.getElementById('btn-online-quick');
 if (btnOnlineQuick) {
   btnOnlineQuick.addEventListener('click', () => {
     document.getElementById('modal-online-select').classList.add('hidden');
-    startQuickMatchmaking();
+    if (window.MuhouOnline) window.MuhouOnline.startQuickMatchmaking();
   });
 }
 
 const btnCancelMatchmaking = document.getElementById('btn-cancel-matchmaking');
 if (btnCancelMatchmaking) {
   btnCancelMatchmaking.addEventListener('click', () => {
-    cancelMatchmaking();
+    if (window.MuhouOnline) window.MuhouOnline.cancelMatchmaking();
   });
 }
 
@@ -3961,14 +4010,14 @@ const btnOnlineCreateFriend = document.getElementById('btn-online-create-friend'
 if (btnOnlineCreateFriend) {
   btnOnlineCreateFriend.addEventListener('click', () => {
     document.getElementById('modal-online-select').classList.add('hidden');
-    createFriendRoom();
+    if (window.MuhouOnline) window.MuhouOnline.createFriendRoom();
   });
 }
 
 const btnCancelFriendWaiting = document.getElementById('btn-cancel-friend-waiting');
 if (btnCancelFriendWaiting) {
   btnCancelFriendWaiting.addEventListener('click', () => {
-    hideFriendModal();
+    if (window.MuhouOnline) window.MuhouOnline.hideFriendModal();
   });
 }
 
@@ -3977,7 +4026,7 @@ if (btnOnlineJoinFriend) {
   btnOnlineJoinFriend.addEventListener('click', () => {
     const inputCode = document.getElementById('input-room-code');
     if (inputCode && inputCode.value) {
-      joinFriendRoom(inputCode.value);
+      if (window.MuhouOnline) window.MuhouOnline.joinFriendRoom(inputCode.value);
     } else {
       alert('合言葉（4桁の数字）を入力してください');
     }
@@ -4005,3 +4054,197 @@ if (btnCopyFriendLink) {
     }
   });
 }
+
+
+// ==========================================
+// 【防御レベル1】P2P相互着手・進化検証エンジン
+// ==========================================
+
+function validateRemoteMove(fromR, fromC, toR, toC, remoteSide) {
+  if (state.phase !== 'play') {
+    return { valid: false, reason: '現在対局フェーズではありません' };
+  }
+  if (state.turn !== remoteSide) {
+    return { valid: false, reason: '手番ではないプレイヤーからの着手です' };
+  }
+  if (!Number.isInteger(fromR) || !Number.isInteger(fromC) || !Number.isInteger(toR) || !Number.isInteger(toC)) {
+    return { valid: false, reason: '着手座標が整数ではありません' };
+  }
+  if (fromR < 0 || fromR >= BOARD_SIZE || fromC < 0 || fromC >= BOARD_SIZE ||
+      toR < 0 || toR >= BOARD_SIZE || toC < 0 || toC >= BOARD_SIZE) {
+    return { valid: false, reason: '盤面範囲外への不正な移動です' };
+  }
+  const piece = state.board[fromR][fromC];
+  if (!piece) {
+    return { valid: false, reason: '指定された移動元に駒が存在しません' };
+  }
+  if (piece.owner !== remoteSide) {
+    return { valid: false, reason: '自軍以外の駒を移動させることはできません' };
+  }
+  const validMoves = getValidMovesForPiece(state.board, fromR, fromC);
+  const isMoveLegal = validMoves.some(([vr, vc]) => vr === toR && vc === toC);
+  if (!isMoveLegal) {
+    return { valid: false, reason: 'ルール上移動不可能な位置への着手です' };
+  }
+  return { valid: true };
+}
+
+function validateRemoteEvolution(pendingList, spendingPt, remoteSide) {
+  if (state.phase !== 'play') {
+    return { valid: false, reason: '現在対局中ではありません' };
+  }
+  if (state.turn !== remoteSide) {
+    return { valid: false, reason: '手番ではないプレイヤーからの進化です' };
+  }
+  if (!Number.isInteger(spendingPt) || spendingPt < 0) {
+    return { valid: false, reason: '消費ポイントが不正です' };
+  }
+  if (spendingPt > state.bank[remoteSide]) {
+    return { valid: false, reason: `所持ポイント(${state.bank[remoteSide]}pt)を超過する消費(${spendingPt}pt)です` };
+  }
+  if (!Array.isArray(pendingList)) {
+    return { valid: false, reason: '進化データが配列ではありません' };
+  }
+  if (spendingPt !== pendingList.length) {
+    return { valid: false, reason: '消費ポイントと進化指定数が一致しません' };
+  }
+
+  // 0ptパス（スキップ）の場合は合格
+  if (pendingList.length === 0) {
+    return { valid: true };
+  }
+
+  // 駒ごとのシミュレーションによる厳格な逐次適法性チェック
+  const simulatedPieces = new Map();
+  for (let i = 0; i < pendingList.length; i++) {
+    const item = pendingList[i];
+    if (!item || typeof item.pieceId !== 'string') {
+      return { valid: false, reason: '進化データの形式が不正です' };
+    }
+    let simPiece = simulatedPieces.get(item.pieceId);
+    if (!simPiece) {
+      const found = findPieceById(state.board, item.pieceId);
+      if (!found) {
+        return { valid: false, reason: '盤面に存在しない駒への進化指定です' };
+      }
+      if (found.piece.owner !== remoteSide) {
+        return { valid: false, reason: '相手軍の駒を進化させることはできません' };
+      }
+      if (found.piece.type === 'ou') {
+        return { valid: false, reason: '王将は進化できません' };
+      }
+      // クローンを作成して段階検証
+      simPiece = JSON.parse(JSON.stringify(found.piece));
+      if (!simPiece.evolvedSteps) simPiece.evolvedSteps = [];
+      if (!simPiece.evolvedRays) simPiece.evolvedRays = [];
+      simulatedPieces.set(item.pieceId, simPiece);
+    }
+
+    const { dx, dy, type } = item;
+    if (!Number.isInteger(dx) || !Number.isInteger(dy)) {
+      return { valid: false, reason: '進化相対座標が整数ではありません' };
+    }
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2 || (dx === 0 && dy === 0)) {
+      return { valid: false, reason: '進化相対座標が許容範囲外です' };
+    }
+
+    if (type === 'ray') {
+      if (!canUpgradeToRay(simPiece, dx, dy, false)) {
+        return { valid: false, reason: `大駒直線化の条件を満たしていません (dx:${dx}, dy:${dy})` };
+      }
+      simPiece.evolvedRays.push([dx, dy]);
+    } else {
+      if (!canUnlockCoord(simPiece, dx, dy, false)) {
+        return { valid: false, reason: `指定座標への進化は不可能です (dx:${dx}, dy:${dy})` };
+      }
+      simPiece.evolvedSteps.push([dx, dy]);
+    }
+  }
+
+  return { valid: true };
+}
+
+function executeRemoteMove(fromR, fromC, toR, toC, remoteSide) {
+  const check = validateRemoteMove(fromR, fromC, toR, toC, remoteSide);
+  if (!check.valid) {
+    return check;
+  }
+  executeMove(fromR, fromC, toR, toC, false);
+  return { valid: true };
+}
+
+function executeRemoteEvolution(pendingList, spendingPt, evoLogs, remoteSide) {
+  const check = validateRemoteEvolution(pendingList, spendingPt, remoteSide);
+  if (!check.valid) {
+    return check;
+  }
+
+  if (typeof spendingPt === 'number' && spendingPt > 0) {
+    state.bank[remoteSide] = Math.max(0, state.bank[remoteSide] - spendingPt);
+  }
+
+  if (Array.isArray(pendingList) && pendingList.length > 0) {
+    applyRemoteEvolution(pendingList, remoteSide);
+  }
+
+  if (Array.isArray(evoLogs) && evoLogs.length > 0) {
+    showEnemyEvolutionNotification(evoLogs);
+  }
+
+  state.phase = 'play';
+  state.pendingEvo = [];
+  endTurn();
+  return { valid: true };
+}
+
+function applyRemoteEvolution(pendingList, owner) {
+  pendingList.forEach(item => {
+    const found = findPieceById(state.board, item.pieceId);
+    if (!found) return;
+    const p = found.piece;
+
+    if (item.type === 'ray') {
+      if (!p.evolvedRays) p.evolvedRays = [];
+      p.evolvedRays.push([item.dx, item.dy]);
+    } else {
+      if (!p.evolvedSteps) p.evolvedSteps = [];
+      p.evolvedSteps.push([item.dx, item.dy]);
+    }
+  });
+
+  renderAll();
+}
+
+function startOnlineGameSession(mySide, oppPlayer) {
+  state.mode = 'online';
+  state.playerSide = mySide;
+  state.onlineOpponent = oppPlayer || {
+    name: '通信相手',
+    title: '全国の猛者',
+    rank: '初段',
+    rating: 1200
+  };
+
+  showScreen('game');
+  restartNewGame();
+}
+
+// ==========================================
+// 【防御レベル2】不変（Frozen）ゲームエンジン公開ブリッジ
+// ==========================================
+window.MuhouEngine = Object.freeze({
+  validateRemoteMove,
+  validateRemoteEvolution,
+  executeRemoteMove,
+  executeRemoteEvolution,
+  startOnlineGameSession,
+  endGame,
+  isGameOver: () => state.phase === 'gameover',
+  getUserProfile: () => ({ ...userProfile }),
+  getRankInfo,
+  validateUserName,
+  renderAll,
+  getSoundSystem: () => SoundSystem
+});
+
+})();
