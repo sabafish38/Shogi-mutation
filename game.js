@@ -2735,6 +2735,8 @@ function renderBoard() {
     for (let c = 0; c < 9; c++) {
       const cell = document.createElement('div');
       cell.className = 'board-cell';
+      cell.dataset.r = r;
+      cell.dataset.c = c;
 
       // 直前の移動ハイライト
       if (state.lastMove) {
