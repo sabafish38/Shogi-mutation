@@ -3044,13 +3044,7 @@ function renderInspector() {
   elInspKanji.classList.toggle('gote', isGote);
   elInspName.textContent = `元駒: ${piece.name}（初期 ${piece.basePt}pt）`;
   elInspPoints.textContent = `現在の持ちポイント: ${totalPt} pt ${addedPt > 0 ? `(進化 +${addedPt}pt)` : ''}`;
-  if (piece.type === 'ou') {
-    elInspTier.textContent = '王将（全周囲8方向固定・変異不可）';
-  } else if (isOpponent) {
-    elInspTier.textContent = '相手駒（盤面の向きに合わせて反転表示中）';
-  } else {
-    elInspTier.textContent = '5×5全24マス（周囲2マス・桂馬跳び等）を1ptで解放可能';
-  }
+  if (elInspTier) elInspTier.textContent = '';
 
   elInspOwnerBadge.classList.remove('hidden', 'sente-badge', 'gote-badge');
   elInspOwnerBadge.classList.add(piece.owner === 'sente' ? 'sente-badge' : 'gote-badge');
@@ -3061,13 +3055,7 @@ function renderInspector() {
     elInspKanjiTop.classList.toggle('gote', isGote);
     elInspNameTop.textContent = `元駒: ${piece.name}（初期 ${piece.basePt}pt）`;
     elInspPointsTop.textContent = `現在の持ちポイント: ${totalPt} pt ${addedPt > 0 ? `(進化 +${addedPt}pt)` : ''}`;
-    if (piece.type === 'ou') {
-      elInspTierTop.textContent = '王将（全周囲8方向固定・変異不可）';
-    } else if (piece.owner === 'sente') {
-      elInspTierTop.textContent = '相手駒（盤面の向きに合わせて反転表示中）';
-    } else {
-      elInspTierTop.textContent = '5×5全24マス（周囲2マス・桂馬跳び等）を1ptで解放可能';
-    }
+    if (elInspTierTop) elInspTierTop.textContent = '';
     elInspOwnerBadgeTop.classList.remove('hidden', 'sente-badge', 'gote-badge');
     elInspOwnerBadgeTop.classList.add(piece.owner === 'sente' ? 'sente-badge' : 'gote-badge');
     elInspOwnerBadgeTop.textContent = piece.owner === 'sente' ? '先手' : '後手';
@@ -3904,8 +3892,16 @@ if (btnEntranceRules) {
 const btnEntranceAbout = document.getElementById('btn-entrance-about');
 if (btnEntranceAbout) {
   btnEntranceAbout.addEventListener('click', () => {
-    const aboutSec = document.getElementById('site-about-section');
-    if (aboutSec) aboutSec.scrollIntoView({ behavior: 'smooth' });
+    const rulesModal = document.getElementById('rules-modal');
+    if (rulesModal) rulesModal.classList.remove('hidden');
+  });
+}
+
+const btnFooterRules = document.getElementById('btn-footer-rules');
+if (btnFooterRules) {
+  btnFooterRules.addEventListener('click', () => {
+    const rulesModal = document.getElementById('rules-modal');
+    if (rulesModal) rulesModal.classList.remove('hidden');
   });
 }
 

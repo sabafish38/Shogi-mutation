@@ -221,7 +221,7 @@
               </div>
               <div class="mini-sub-row">
                 <span id="insp-points-top" class="mini-pt">持ち: - pt</span>
-                <span id="insp-tier-top" class="mini-tier"></span>
+                <span id="insp-tier-top" class="mini-tier hidden"></span>
               </div>
             </div>
           </div>
@@ -339,7 +339,7 @@
               </div>
               <div class="mini-sub-row">
                 <span id="insp-points" class="mini-pt">持ち: - pt</span>
-                <span id="insp-tier" class="mini-tier"></span>
+                <span id="insp-tier" class="mini-tier hidden"></span>
               </div>
             </div>
           </div>
@@ -382,31 +382,10 @@
     </main>
     </div> <!-- /#view-game -->
 
-    <!-- SEO & AdSense審査対策：高品質オリジナル解説セクション -->
-    <section id="site-about-section" class="site-about-section">
-      <h2>無法将棋 (SHOGI: MUTATION) とは？</h2>
-      <p>『無法将棋』は、伝統的な日本の将棋をベースに、「各駒の動けるマス数をポイント化し、倒した敵のポイントを吸収して自軍の駒を自由に変異・進化させていく」新感覚のWebブラウザ対戦将棋ゲームです。インストール不要・会員登録不要で、PCやスマートフォンのブラウザから今すぐ完全無料で遊べます。</p>
-
-      <h3>ゲームの基本ルールと特徴</h3>
-      <ul>
-        <li><strong>駒の数字＝持ちポイント</strong>：各駒の表面には現在の持ちポイントが表示されています（歩1pt、桂2pt、角・飛4pt、銀5pt、金6pt、王8pt）。</li>
-        <li><strong>敵駒撃破で「即時進化」</strong>：相手の駒を取ると、その駒のポイントを即座に吸収！手番を消費せず、倒した駒や味方の駒へ自由に移動マスを割り振って進化できます（使わなかったポイントはバンクに貯金可能）。</li>
-        <li><strong>5×5 全24マス自由解放マトリックス</strong>：周囲1マスだけでなく、外周の直進2マスや桂馬ジャンプ（8方向）も1ptで制限なく自由に解放できます。自分だけのオリジナル機体を作り上げましょう。</li>
-        <li><strong>走り(直進無限：∞)の覚醒</strong>：同方向の1マス目と2マス目の両方を開放すると、外周マスから1ptで飛車や角、香車のような「走り（直進無限）」へアップグレードできます。</li>
-        <li><strong>天王山（５五）制圧ボーナス</strong>：盤面の中央「５五」に駒を駐留させると、手番開始時に毎ターン+1ptのボーナス（最大3連続）。中央の覇権を争う熱い駆け引きが楽しめます。</li>
-        <li><strong>サドンデス＆完全決着判定</strong>：80手を超えるとサドンデスへ突入し過熱供給が開始。120手に達した場合は総獲得ポイント数、同点時は「最後に５五を制圧していたプレイヤー」が勝利となり、引き分けは絶対に発生しません。</li>
-      </ul>
-
-      <h3>よくあるご質問（FAQ）</h3>
-      <p><strong>Q. 無料で遊べますか？</strong><br>A. はい、すべてのモードを完全無料でプレイいただけます。</p>
-      <p><strong>Q. 途中でページを再読み込みしたらどうなりますか？</strong><br>A. 対局データは自動的に端末内に保存されるため、リロードしても直前の局面からそのまま再開できます。</p>
-      <p><strong>Q. スマートフォンで遊べますか？</strong><br>A. スマートフォン縦画面に最適化されており、操作の誤爆防止やトグル選択解除など快適なタッチ操作に対応しています。</p>
-    </section>
-
     <!-- サイト共通フッター（法的記載・ナビゲーション） -->
     <footer class="site-footer">
       <nav class="footer-nav">
-        <a href="#site-about-section">ゲーム解説・ルール</a>
+        <button id="btn-footer-rules" class="footer-link-btn" type="button">ゲームルール</button>
         <a href="./privacy.html">プライバシーポリシー</a>
         <a href="./terms.html">利用規約・免責事項</a>
         <a href="./contact.html">お問い合わせ</a>
