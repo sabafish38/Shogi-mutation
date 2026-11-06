@@ -662,6 +662,65 @@ function renderUserProfile() {
   renderSeasonAndRanking();
 }
 
+// ==========================================
+// 週間シーズン＆全国ランキングボード
+// ==========================================
+let currentRankingTab = 'top'; // 'top' | 'near' | 'rivals'
+const RIVALS_STORAGE_KEY = 'muhou_shogi_rivals_v1';
+
+// 全国TOP棋士データ（殿堂1〜15位）
+const NATIONWIDE_TOP_PLAYERS = [
+  { pos: 1, name: '無法名人・零式', title: '無法竜王', rank: '名人', rating: 2420, medal: 'gold', medalLabel: '1位', isBounty: true },
+  { pos: 2, name: '天王山マスター', title: '天王山の覇者', rank: '竜王', rating: 2280, medal: 'silver', medalLabel: '2位' },
+  { pos: 3, name: '覚醒桂馬キング', title: '電光石火の常勝', rank: '四段', rating: 2050, medal: 'bronze', medalLabel: '3位' },
+  { pos: 4, name: '鉄壁の防壁将軍', title: '堅陣の守護神', rank: '四段', rating: 2010 },
+  { pos: 5, name: '神速歩兵隊長', title: '先駆けの一撃', rank: '三段', rating: 1985 },
+  { pos: 6, name: '変異銀将の使徒', title: '変異調律士', rank: '三段', rating: 1940, isBounty: true },
+  { pos: 7, name: '飛翔の角行マスター', title: '斜線の支配者', rank: '二段', rating: 1915 },
+  { pos: 8, name: '盤上の奇術師', title: '変幻自在の指し手', rank: '二段', rating: 1880 },
+  { pos: 9, name: '堅牢金将・不動', title: '金城鉄壁', rank: '初段', rating: 1850 },
+  { pos: 10, name: '機動歩兵の達人', title: '新進気鋭の駒遣い', rank: '初段', rating: 1820 },
+  { pos: 11, name: '疾風怒濤の香車', title: '猪突猛進の覇気', rank: '初段', rating: 1790 },
+  { pos: 12, name: '覚醒飛車ストライカー', title: '盤上の大砲', rank: '1級', rating: 1765 },
+  { pos: 13, name: '深淵の読み手', title: '終盤の魔術師', rank: '1級', rating: 1740 },
+  { pos: 14, name: '変異狂騒曲', title: '混沌の設計者', rank: '2級', rating: 1710 },
+  { pos: 15, name: '盤上の黒豹', title: '奇襲のスペシャリスト', rank: '2級', rating: 1680 }
+];
+
+function loadRivalPlayers() {
+  try {
+    const raw = localStorage.getItem(RIVALS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveRivalPlayers(list) {
+  try {
+    localStorage.setItem(RIVALS_STORAGE_KEY, JSON.stringify(list.slice(0, 30)));
+  } catch (e) {
+    console.error('Failed to save rival players', e);
+  }
+}
+
+function recordRivalPlayer(name, rating, rankTitle, isWin, extra = {}) {
+  const rivals = loadRivalPlayers();
+  const dateStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const entry = {
+    id: `rival_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    name: name,
+    rating: rating,
+    rankTitle: rankTitle,
+    isWin: !!isWin,
+    isBounty: !!extra.isBounty,
+    date: dateStr,
+    timestamp: Date.now()
+  };
+  rivals.unshift(entry);
+  saveRivalPlayers(rivals);
+}
+
 // 週間シーズン＆全国ランキングボード描画
 function renderSeasonAndRanking() {
   const sInfo = getSeasonInfo();
@@ -676,48 +735,159 @@ function renderSeasonAndRanking() {
   const elPlayerPos = document.getElementById('player-rank-pos-text');
   if (elPlayerPos) elPlayerPos.textContent = `現在 ${basePos}位 (上位${Math.max(1, Math.round(basePos / 20))}%)`;
 
+  // タブボタンのアクティブ更新
+  const tabTop = document.getElementById('tab-ranking-top');
+  const tabNear = document.getElementById('tab-ranking-near');
+  const tabRivals = document.getElementById('tab-ranking-rivals');
+  if (tabTop) {
+    tabTop.classList.toggle('active', currentRankingTab === 'top');
+    tabTop.setAttribute('aria-selected', currentRankingTab === 'top' ? 'true' : 'false');
+  }
+  if (tabNear) {
+    tabNear.classList.toggle('active', currentRankingTab === 'near');
+    tabNear.setAttribute('aria-selected', currentRankingTab === 'near' ? 'true' : 'false');
+  }
+  if (tabRivals) {
+    tabRivals.classList.toggle('active', currentRankingTab === 'rivals');
+    tabRivals.setAttribute('aria-selected', currentRankingTab === 'rivals' ? 'true' : 'false');
+  }
+
   const rankingListEl = document.getElementById('ranking-list');
   if (!rankingListEl) return;
   rankingListEl.innerHTML = '';
 
-  // 殿堂TOP3
-  const topPlayers = [
-    { pos: 1, name: '無法名人・零式', title: '無法竜王', rank: '名人', rating: 2420, medal: 'gold', medalLabel: '1位' },
-    { pos: 2, name: '天王山マスター', title: '天王山の覇者', rank: '竜王', rating: 2280, medal: 'silver', medalLabel: '2位' },
-    { pos: 3, name: '覚醒桂馬キング', title: '電光石火の常勝', rank: '四段', rating: 2050, medal: 'bronze', medalLabel: '3位' }
-  ];
-
-  // プレイヤー周辺のライバル
   const pRank = getRankInfo(userProfile.rating).title;
-  const surrounding = [
-    { pos: Math.max(4, basePos - 1), name: '変異の探求者', title: '連勝の火付け役', rank: getRankInfo(userProfile.rating + 15).title, rating: userProfile.rating + 15, isPlayer: false },
-    { pos: basePos, name: `${userProfile.name} (あなた)`, title: userProfile.equippedTitle, rank: pRank, rating: userProfile.rating, isPlayer: true },
-    { pos: basePos + 1, name: '機動歩兵の達人', title: '新進気鋭の駒遣い', rank: getRankInfo(Math.max(1000, userProfile.rating - 18)).title, rating: Math.max(1000, userProfile.rating - 18), isPlayer: false }
-  ];
 
-  // 表示リスト作成
-  const displayRows = [...topPlayers, ...surrounding];
-  displayRows.forEach(row => {
-    const rowEl = document.createElement('div');
-    rowEl.className = `ranking-row ${row.isPlayer ? 'is-player' : ''}`;
+  if (currentRankingTab === 'top') {
+    // 全国TOP表示（1〜15位 ＋ 圏外なら区切り線＆プレイヤー現在位置）
+    const list = [...NATIONWIDE_TOP_PLAYERS];
+    let playerIncluded = false;
 
-    const posBadge = row.medalLabel
-      ? `<span class="rank-pos-num ${row.medal}">${row.medalLabel}</span>`
-      : `<span class="rank-pos-num">${row.pos}</span>`;
+    // もしプレイヤーが15位以内なら差し替え/挿入
+    const displayList = [];
+    list.forEach(p => {
+      if (!playerIncluded && basePos === p.pos) {
+        displayList.push({
+          pos: basePos,
+          name: `${userProfile.name} (あなた)`,
+          title: userProfile.equippedTitle,
+          rank: pRank,
+          rating: userProfile.rating,
+          isPlayer: true
+        });
+        playerIncluded = true;
+      } else {
+        displayList.push({ ...p, isPlayer: false });
+      }
+    });
 
-    rowEl.innerHTML = `
-      <div class="ranking-left">
-        ${posBadge}
-        <span class="ranking-player-name">${row.name}</span>
-        <span class="ranking-player-title">${row.title}</span>
-      </div>
-      <div class="ranking-right">
-        <span class="ranking-tier-badge">${row.rank}</span>
-        <span class="ranking-rate-val">R ${row.rating}</span>
-      </div>
-    `;
-    rankingListEl.appendChild(rowEl);
-  });
+    displayList.forEach(row => {
+      rankingListEl.appendChild(createRankingRowElement(row));
+    });
+
+    // プレイヤーが15位より下の場合は区切り線とプレイヤー位置を表示
+    if (!playerIncluded && basePos > 15) {
+      const divider = document.createElement('div');
+      divider.className = 'ranking-divider';
+      divider.textContent = '······';
+      rankingListEl.appendChild(divider);
+
+      const playerRow = {
+        pos: basePos,
+        name: `${userProfile.name} (あなた)`,
+        title: userProfile.equippedTitle,
+        rank: pRank,
+        rating: userProfile.rating,
+        isPlayer: true
+      };
+      rankingListEl.appendChild(createRankingRowElement(playerRow));
+    }
+  } else if (currentRankingTab === 'near') {
+    // あなたの周辺表示（前後ライバル）
+    const surroundingPool = [
+      { offsetPos: -3, offsetRate: +42, name: '変異の探求者', title: '連勝の火付け役' },
+      { offsetPos: -2, offsetRate: +28, name: '天王山チェイサー', title: '中央制圧の鬼' },
+      { offsetPos: -1, offsetRate: +14, name: '桂馬跳梁', title: '奇襲電撃戦' },
+      { offsetPos: 0,  offsetRate: 0,   name: `${userProfile.name} (あなた)`, title: userProfile.equippedTitle, isPlayer: true },
+      { offsetPos: +1, offsetRate: -14, name: '不動の金将', title: '堅守の闘志' },
+      { offsetPos: +2, offsetRate: -26, name: '機動歩兵の達人', title: '新進気鋭の駒遣い' },
+      { offsetPos: +3, offsetRate: -40, name: '香車疾駆士', title: '一直線の気概' }
+    ];
+
+    surroundingPool.forEach(item => {
+      const pos = Math.max(1, basePos + item.offsetPos);
+      const rating = Math.max(1000, userProfile.rating + item.offsetRate);
+      const rank = item.isPlayer ? pRank : getRankInfo(rating).title;
+      const row = {
+        pos,
+        name: item.name,
+        title: item.title,
+        rank,
+        rating,
+        isPlayer: !!item.isPlayer
+      };
+      rankingListEl.appendChild(createRankingRowElement(row));
+    });
+  } else if (currentRankingTab === 'rivals') {
+    // 対戦ライバル表示（過去に対戦したプレイヤー履歴）
+    const rivals = loadRivalPlayers();
+    if (rivals.length === 0) {
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'ranking-empty';
+      emptyEl.innerHTML = '対戦履歴はまだありません。<br>「真剣勝負（格付戦）」や「通信対局」を行うと、拳を交えた棋士がここに刻まれます。';
+      rankingListEl.appendChild(emptyEl);
+    } else {
+      rivals.forEach((r, idx) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'ranking-row';
+
+        const resultTag = r.isWin
+          ? '<span class="ranking-tag-win">勝利</span>'
+          : '<span class="ranking-tag-loss">敗北</span>';
+        const bountyTag = r.isBounty ? '<span class="ranking-tag-bounty">賞金首</span>' : '';
+
+        rowEl.innerHTML = `
+          <div class="ranking-left">
+            <span class="rank-pos-num">${idx + 1}</span>
+            <span class="ranking-player-name">${r.name}</span>
+            <span class="ranking-player-title">${r.date || ''}</span>
+          </div>
+          <div class="ranking-right">
+            ${bountyTag}
+            ${resultTag}
+            <span class="ranking-tier-badge">${r.rankTitle || '初段'}</span>
+            <span class="ranking-rate-val">R ${r.rating}</span>
+          </div>
+        `;
+        rankingListEl.appendChild(rowEl);
+      });
+    }
+  }
+}
+
+function createRankingRowElement(row) {
+  const rowEl = document.createElement('div');
+  rowEl.className = `ranking-row ${row.isPlayer ? 'is-player' : ''}`;
+
+  const posBadge = row.medalLabel
+    ? `<span class="rank-pos-num ${row.medal}">${row.medalLabel}</span>`
+    : `<span class="rank-pos-num">${row.pos}</span>`;
+
+  const bountyBadge = row.isBounty ? '<span class="ranking-tag-bounty">賞金首</span>' : '';
+
+  rowEl.innerHTML = `
+    <div class="ranking-left">
+      ${posBadge}
+      <span class="ranking-player-name">${row.name}</span>
+      <span class="ranking-player-title">${row.title || ''}</span>
+    </div>
+    <div class="ranking-right">
+      ${bountyBadge}
+      <span class="ranking-tier-badge">${row.rank}</span>
+      <span class="ranking-rate-val">R ${row.rating}</span>
+    </div>
+  `;
+  return rowEl;
 }
 
 // 画面切替制御
@@ -2137,6 +2307,23 @@ function endGame(winner, reasonText) {
     }
   } else {
     if (rankBox) rankBox.classList.add('hidden');
+  }
+
+  // 対戦ライバル履歴の記録（格付戦またはオンライン対局）
+  if (state.mode === 'rank' || state.mode === 'online') {
+    const opp = (state.mode === 'rank' ? state.rankOpponent : state.onlineOpponent) || {
+      name: '全国の棋士',
+      rankTitle: '初段',
+      rating: 1200
+    };
+    const isPlayerWinner = (winner === state.playerSide);
+    recordRivalPlayer(
+      opp.name || '対戦相手',
+      opp.rating || 1200,
+      opp.rankTitle || opp.rank || '初段',
+      isPlayerWinner,
+      { isBounty: !!(opp.isBounty) }
+    );
   }
 
   modal.classList.remove('hidden');
@@ -3815,6 +4002,30 @@ elBtnEvoConfirm.addEventListener('click', confirmEvolutionTurn);
 if (elBtnEvoResetTop) elBtnEvoResetTop.addEventListener('click', resetEvolutionPending);
 if (elBtnEvoConfirmTop) elBtnEvoConfirmTop.addEventListener('click', confirmEvolutionTurn);
 
+// ランキングタブ切り替え
+const tabTopBtn = document.getElementById('tab-ranking-top');
+const tabNearBtn = document.getElementById('tab-ranking-near');
+const tabRivalsBtn = document.getElementById('tab-ranking-rivals');
+
+if (tabTopBtn) {
+  tabTopBtn.addEventListener('click', () => {
+    currentRankingTab = 'top';
+    renderSeasonAndRanking();
+  });
+}
+if (tabNearBtn) {
+  tabNearBtn.addEventListener('click', () => {
+    currentRankingTab = 'near';
+    renderSeasonAndRanking();
+  });
+}
+if (tabRivalsBtn) {
+  tabRivalsBtn.addEventListener('click', () => {
+    currentRankingTab = 'rivals';
+    renderSeasonAndRanking();
+  });
+}
+
 // エントランス・モードカードクリック
 const btnModeRank = document.getElementById('btn-mode-rank');
 if (btnModeRank) {
@@ -4402,6 +4613,10 @@ window.MuhouEngine = Object.freeze({
   getRankInfo,
   validateUserName,
   renderAll,
+  showScreen,
+  renderSeasonAndRanking,
+  recordRivalPlayer,
+  loadRivalPlayers,
   getSoundSystem: () => SoundSystem
 });
 

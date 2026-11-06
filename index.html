@@ -140,13 +140,17 @@
       <div class="season-ranking-card" id="season-ranking-card">
         <div class="ranking-header">
           <div class="ranking-title-wrap">
-            
             <span class="ranking-title">週間シーズンランキング</span>
           </div>
           <span id="player-rank-pos-text" class="player-rank-pos">現在 28位</span>
         </div>
-        <div id="ranking-list" class="ranking-list">
-          <!-- JSで動的描画（Top3 + 自分の周囲） -->
+        <div class="ranking-tabs" role="tablist" aria-label="ランキング種別">
+          <button id="tab-ranking-top" class="ranking-tab-btn active" type="button" role="tab" aria-selected="true">全国TOP</button>
+          <button id="tab-ranking-near" class="ranking-tab-btn" type="button" role="tab" aria-selected="false">あなたの周辺</button>
+          <button id="tab-ranking-rivals" class="ranking-tab-btn" type="button" role="tab" aria-selected="false">対戦ライバル</button>
+        </div>
+        <div id="ranking-list" class="ranking-list" role="tabpanel">
+          <!-- JSで動的描画（全国TOP / あなたの周辺 / 対戦ライバル） -->
         </div>
       </div>
 

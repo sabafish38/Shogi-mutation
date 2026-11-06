@@ -2192,13 +2192,64 @@ body {
   color: #38bdf8;
   background: rgba(56, 189, 248, 0.12);
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: 4px;
+}
+
+/* ランキング切り替えタブ */
+.ranking-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+}
+
+.ranking-tab-btn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.ranking-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
+.ranking-tab-btn.active {
+  color: #fde68a;
+  background: rgba(201, 160, 82, 0.18);
+  border-color: rgba(201, 160, 82, 0.5);
+  font-weight: 800;
+}
+
+.ranking-tab-btn:active {
+  transform: translateY(1px);
 }
 
 .ranking-list {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  max-height: 290px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.ranking-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ranking-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
 }
 
 .ranking-row {
@@ -2207,7 +2258,7 @@ body {
   justify-content: space-between;
   padding: 7px 10px;
   background: rgba(22, 26, 36, 0.9);
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 0.78rem;
   border: 1px solid rgba(198, 160, 82, 0.15);
   font-family: var(--font-serif);
@@ -2226,14 +2277,17 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  flex: 1;
 }
 
 .rank-pos-num {
   font-size: 0.78rem;
   font-weight: 900;
-  min-width: 20px;
+  min-width: 24px;
   text-align: center;
   color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .rank-pos-num.gold {
@@ -2250,30 +2304,94 @@ body {
 
 .ranking-player-name {
   color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ranking-player-title {
   font-size: 0.62rem;
   color: #94a3b8;
   margin-left: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ranking-right {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .ranking-tier-badge {
   font-size: 0.65rem;
   font-weight: 800;
   color: #fde68a;
+  background: rgba(253, 230, 138, 0.08);
+  border: 1px solid rgba(253, 230, 138, 0.2);
+  padding: 1px 6px;
+  border-radius: 3px;
 }
 
 .ranking-rate-val {
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   color: #38bdf8;
+  min-width: 48px;
+  text-align: right;
+}
+
+.ranking-tag-bounty {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.ranking-tag-win {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.ranking-tag-loss {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #cbd5e1;
+  background: rgba(100, 116, 139, 0.2);
+  border: 1px solid rgba(100, 116, 139, 0.35);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.ranking-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  letter-spacing: 4px;
+}
+
+.ranking-empty {
+  padding: 18px 12px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 
 /* ==========================================
