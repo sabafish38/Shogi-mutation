@@ -1,7 +1,6 @@
 // ==========================================
 // 無法将棋 MUTATION - 完全ゼロコンフィグ オンライン対戦エンジン
-// (WebRTC / PeerJS + Firebase 自動ハイブリッド)
-// ユーザー側のAPIキー取得・プロジェクト作成一切不要で今すぐ世界中と対戦可能！
+// (WebRTC / PeerJS P2P対局システム)
 // ==========================================
 
 let activePeer = null;
@@ -12,6 +11,21 @@ let isHost = false;
 let onlineSearchTimer = null;
 let onlineSearchSeconds = 0;
 let myPlayerUid = null;
+let hasSessionStarted = false;
+
+// Google パブリック STUN サーバー設定（異なる回線・Wi-Fi間の接続成功率を飛躍的に向上）
+const PEER_CONFIG = {
+  debug: 1,
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' }
+    ]
+  }
+};
 
 // プレイヤー識別IDの生成・取得
 function getMyPlayerUid() {
@@ -35,12 +49,11 @@ function getOrCreatePeer(customId = null) {
 
     if (activePeer && !activePeer.destroyed) {
       activePeer.destroy();
+      activePeer = null;
     }
 
     const peerId = customId || ('muhou_' + getMyPlayerUid() + '_' + Math.floor(Math.random() * 1000));
-    const peer = new Peer(peerId, {
-      debug: 1
-    });
+    const peer = new Peer(peerId, PEER_CONFIG);
 
     peer.on('open', (id) => {
       activePeer = peer;
@@ -49,7 +62,6 @@ function getOrCreatePeer(customId = null) {
 
     peer.on('error', (err) => {
       console.warn('Peer error:', err);
-      // ID衝突などの場合はフォールバック
       if (err.type === 'unavailable-id') {
         resolve(null);
       } else {
@@ -63,6 +75,7 @@ function getOrCreatePeer(customId = null) {
 // 1. 全国ランダムマッチ（クイックマッチ）
 // ------------------------------------------
 async function startQuickMatchmaking() {
+  hasSessionStarted = false;
   showMatchmakingOverlay('全国の対戦相手を探しています...');
 
   onlineSearchSeconds = 0;
@@ -73,28 +86,25 @@ async function startQuickMatchmaking() {
     if (timerEl) timerEl.textContent = `${onlineSearchSeconds}秒`;
   }, 1000);
 
-  // マッチング待機ロビー（0〜7の8つの待機スロットを走査）
   const slotCount = 8;
   const startSlot = Math.floor(Math.random() * slotCount);
   let matched = false;
 
   const peer = await getOrCreatePeer();
   if (!peer) {
-    hideMatchmakingOverlay();
+    hideAllOnlineModals();
     alert('通信の初期化に失敗しました。ページを再読み込みしてお試しください。');
     return;
   }
 
-  // 既存の待機者がいるスロットへの接続を試みる
   for (let i = 0; i < slotCount; i++) {
     const slotIdx = (startSlot + i) % slotCount;
     const targetHostId = `muhou_quick_slot_${slotIdx}`;
 
-    // 接続テスト
     try {
       const conn = peer.connect(targetHostId, { reliable: true });
       const connected = await new Promise((resolve) => {
-        const timeout = setTimeout(() => resolve(false), 750);
+        const timeout = setTimeout(() => resolve(false), 900);
         conn.on('open', () => {
           clearTimeout(timeout);
           resolve(true);
@@ -106,19 +116,10 @@ async function startQuickMatchmaking() {
       });
 
       if (connected) {
-        // マッチング成立！自分はゲスト（後手）として合流
         matched = true;
         isHost = false;
         onlinePlayerSide = 'gote';
-        activePeerConn = conn;
-        setupConnectionEvents(conn, '全国の猛者');
-        conn.send({
-          type: 'hello_guest',
-          name: userProfile.name || '全国の挑戦者',
-          rank: getRankInfo(userProfile.rating).title,
-          rating: userProfile.rating,
-          title: userProfile.equippedTitle
-        });
+        setupConnectionEvents(conn, '全国の好敵手', 'guest');
         break;
       }
     } catch (e) {
@@ -126,27 +127,15 @@ async function startQuickMatchmaking() {
     }
   }
 
-  // 誰も待機していなかった場合、自分が空いているスロットのホストになって待機
   if (!matched) {
     for (let slot = 0; slot < slotCount; slot++) {
       const hostSlotId = `muhou_quick_slot_${slot}`;
       const hostPeer = await getOrCreatePeer(hostSlotId);
       if (hostPeer) {
-        // ホストとして待機成功！
         isHost = true;
         onlinePlayerSide = 'sente';
         hostPeer.on('connection', (conn) => {
-          activePeerConn = conn;
-          setupConnectionEvents(conn, '全国の猛者');
-          conn.on('open', () => {
-            conn.send({
-              type: 'hello_host',
-              name: userProfile.name || '全国の対局者',
-              rank: getRankInfo(userProfile.rating).title,
-              rating: userProfile.rating,
-              title: userProfile.equippedTitle
-            });
-          });
+          setupConnectionEvents(conn, '全国の好敵手', 'host');
         });
         break;
       }
@@ -163,14 +152,14 @@ function cancelMatchmaking() {
     activePeer.destroy();
     activePeer = null;
   }
-  hideMatchmakingOverlay();
+  hideAllOnlineModals();
 }
 
 // ------------------------------------------
 // 2. 合言葉・フレンドルーム対戦
 // ------------------------------------------
 async function createFriendRoom() {
-  // 4桁の合言葉
+  hasSessionStarted = false;
   const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
   currentOnlineRoomCode = roomCode;
   const peerId = `muhou_friend_${roomCode}`;
@@ -179,76 +168,65 @@ async function createFriendRoom() {
 
   const peer = await getOrCreatePeer(peerId);
   if (!peer) {
-    // 稀にIDが衝突した場合は再生成
     createFriendRoom();
     return;
   }
 
   isHost = true;
-  onlinePlayerSide = 'sente'; // ホスト先手
+  onlinePlayerSide = 'sente'; // 部屋主は先手
 
   peer.on('connection', (conn) => {
-    activePeerConn = conn;
-    setupConnectionEvents(conn, '招待された友達');
-    conn.on('open', () => {
-      conn.send({
-        type: 'hello_host',
-        name: userProfile.name || '部屋主',
-        rank: getRankInfo(userProfile.rating).title,
-        rating: userProfile.rating,
-        title: userProfile.equippedTitle
-      });
-    });
+    setupConnectionEvents(conn, '招待された好敵手', 'host');
   });
 }
 
 async function joinFriendRoom(inputCode) {
-  const cleanCode = (inputCode || '').toString().trim();
+  hasSessionStarted = false;
+  // 全角数字を半角数字へ正規化し、空白を除去
+  const cleanCode = (inputCode || '').toString().trim().normalize('NFKC').replace(/[^0-9]/g, '');
   if (!cleanCode || cleanCode.length !== 4) {
-    alert('合言葉（4桁の半角数字）を入力してください');
+    alert('合言葉（4桁の数字）を入力してください');
     return;
   }
 
   const peer = await getOrCreatePeer();
+  if (!peer) {
+    alert('通信の初期化に失敗しました。');
+    return;
+  }
+
   const targetPeerId = `muhou_friend_${cleanCode}`;
   const conn = peer.connect(targetPeerId, { reliable: true });
 
   showMatchmakingOverlay(`合言葉「${cleanCode}」の部屋へ接続中...`);
 
   const timer = setTimeout(() => {
-    hideMatchmakingOverlay();
-    alert(`合言葉「${cleanCode}」の部屋が見つかりませんでした。\n合言葉が合っているか確認してください。`);
-    conn.close();
-  }, 6000);
+    hideAllOnlineModals();
+    alert(`合言葉「${cleanCode}」の対局室が見つかりませんでした。
+合言葉が合っているか確認してください。`);
+    try { conn.close(); } catch (e) {}
+  }, 12000);
 
   conn.on('open', () => {
     clearTimeout(timer);
     isHost = false;
-    onlinePlayerSide = 'gote'; // ゲスト後手
-    activePeerConn = conn;
-    setupConnectionEvents(conn, '友達 (部屋主)');
-    conn.send({
-      type: 'hello_guest',
-      name: userProfile.name || '挑戦者',
-      rank: getRankInfo(userProfile.rating).title,
-      rating: userProfile.rating,
-      title: userProfile.equippedTitle
-    });
+    onlinePlayerSide = 'gote'; // 参加者は後手
+    setupConnectionEvents(conn, '部屋主', 'guest');
   });
 
   conn.on('error', (err) => {
     clearTimeout(timer);
-    hideMatchmakingOverlay();
-    alert('部屋への接続でエラーが発生しました。合言葉を再確認してください。');
+    hideAllOnlineModals();
+    console.warn('Join room error:', err);
+    alert('対局室への接続でエラーが発生しました。合言葉を再確認してください。');
   });
 }
 
 // ------------------------------------------
-// 3. 通信確立後のイベントバインド
+// 3. 通信確立後の堅牢な双方向ハンドシェイク
 // ------------------------------------------
-function setupConnectionEvents(conn, defaultOpponentName) {
-  hideMatchmakingOverlay();
-  hideFriendModal();
+function setupConnectionEvents(conn, defaultOpponentName, role) {
+  activePeerConn = conn;
 
   let opponentProfile = {
     name: defaultOpponentName,
@@ -257,12 +235,32 @@ function setupConnectionEvents(conn, defaultOpponentName) {
     title: '全国の猛者'
   };
 
+  // プロフィール送信ヘルパー
+  const sendMyHello = () => {
+    if (!conn || !conn.open) return;
+    conn.send({
+      type: role === 'host' ? 'hello_host' : 'hello_guest',
+      name: userProfile.name || (role === 'host' ? '部屋主' : '挑戦者'),
+      rank: getRankInfo(userProfile.rating).title,
+      rating: userProfile.rating,
+      title: userProfile.equippedTitle
+    });
+  };
+
+  // 接続がすでにopenしている場合と、openイベント待ちの両方に対応
+  if (conn.open) {
+    sendMyHello();
+  } else {
+    conn.on('open', () => {
+      sendMyHello();
+    });
+  }
+
   conn.on('data', (data) => {
     if (!data) return;
 
-    if (data.type === 'hello_host' || data.type === 'hello_guest') {
-      // 相手のプロフィール情報を受信 (NGワードチェック)
-      let oppName = (data.name || defaultOpponentName || '通信対戦相手').slice(0, 10);
+    if (data.type === 'hello_host' || data.type === 'hello_guest' || data.type === 'hello_ack') {
+      let oppName = (data.name || defaultOpponentName || '対局者').slice(0, 10);
       if (typeof validateUserName === 'function') {
         const v = validateUserName(oppName);
         if (!v.valid) oppName = '対局者';
@@ -273,12 +271,29 @@ function setupConnectionEvents(conn, defaultOpponentName) {
         rating: typeof data.rating === 'number' ? data.rating : 1200,
         title: data.title || '全国の猛者'
       };
-      startOnlineGameSession(onlinePlayerSide, opponentProfile);
+
+      // helloを受信したらACKを返送（相手も確実に接続完了できるようにする）
+      if (data.type !== 'hello_ack') {
+        try {
+          conn.send({
+            type: 'hello_ack',
+            name: userProfile.name || (role === 'host' ? '部屋主' : '挑戦者'),
+            rank: getRankInfo(userProfile.rating).title,
+            rating: userProfile.rating,
+            title: userProfile.equippedTitle
+          });
+        } catch (e) {}
+      }
+
+      // 両者確実に揃った瞬間にゲームセッション開始（多重発火防止）
+      if (!hasSessionStarted) {
+        hasSessionStarted = true;
+        hideAllOnlineModals();
+        startOnlineGameSession(onlinePlayerSide, opponentProfile);
+      }
     } else if (data.type === 'move') {
-      // 相手の移動アクションを受信
       executeMove(data.fromR, data.fromC, data.toR, data.toC, false);
     } else if (data.type === 'evolution') {
-      // 相手の進化アクションを受信
       if (data.pendingEvo && data.pendingEvo.length > 0) {
         applyRemoteEvolution(data.pendingEvo, onlinePlayerSide === 'sente' ? 'gote' : 'sente');
       }
@@ -289,15 +304,20 @@ function setupConnectionEvents(conn, defaultOpponentName) {
     }
   });
 
-  // 切断検知（相手がブラウザを閉じた／回線切断）
   conn.on('close', () => {
     if (state.phase === 'play') {
       endGame(onlinePlayerSide, '相手プレイヤーの通信が切断されました（不戦勝）');
     }
   });
 
-  // 接続直後に対局セッションを開始
-  startOnlineGameSession(onlinePlayerSide, opponentProfile);
+  // 安全ネット：万が一相手のhelloパケットが遅延しても3秒後に自動開始
+  setTimeout(() => {
+    if (!hasSessionStarted && conn && conn.open) {
+      hasSessionStarted = true;
+      hideAllOnlineModals();
+      startOnlineGameSession(onlinePlayerSide, opponentProfile);
+    }
+  }, 3000);
 }
 
 // ------------------------------------------
@@ -365,13 +385,26 @@ function startOnlineGameSession(mySide, oppPlayer) {
     rating: 1200
   };
 
+  hideAllOnlineModals();
   showScreen('game');
   restartNewGame();
 }
 
 // ------------------------------------------
-// UI制御
+// UI制御：オンライン関連モーダルの全非表示
 // ------------------------------------------
+function hideAllOnlineModals() {
+  const ids = [
+    'modal-online-select',
+    'matchmaking-overlay',
+    'modal-friend-waiting'
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+}
+
 function showMatchmakingOverlay(msg) {
   let overlay = document.getElementById('matchmaking-overlay');
   if (!overlay) return;
@@ -381,8 +414,7 @@ function showMatchmakingOverlay(msg) {
 }
 
 function hideMatchmakingOverlay() {
-  let overlay = document.getElementById('matchmaking-overlay');
-  if (overlay) overlay.classList.add('hidden');
+  hideAllOnlineModals();
 }
 
 function showFriendRoomWaitingModal(roomCode) {
@@ -394,13 +426,8 @@ function showFriendRoomWaitingModal(roomCode) {
 }
 
 function hideFriendModal() {
-  const modalWaiting = document.getElementById('modal-friend-waiting');
-  if (modalWaiting) modalWaiting.classList.add('hidden');
-  const modalSelect = document.getElementById('modal-online-select');
-  if (modalSelect) modalSelect.classList.add('hidden');
+  hideAllOnlineModals();
 }
-
-
 
 // URLパラメータに ?room=1234 があれば自動で入室
 window.addEventListener('DOMContentLoaded', () => {
