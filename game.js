@@ -2739,72 +2739,80 @@ function generateRankCertificateCanvas() {
   const w = canvas.width;
   const h = canvas.height;
 
-  // 1. 背景グラデーション
+  // 1. 背景：World of Demons (百鬼魔道) 和紙・濃墨・金泥グラデーション
   const bgGrad = ctx.createLinearGradient(0, 0, w, h);
-  bgGrad.addColorStop(0, '#070b14');
-  bgGrad.addColorStop(0.5, '#0d1527');
-  bgGrad.addColorStop(1, '#050811');
+  bgGrad.addColorStop(0, '#0a0c10');
+  bgGrad.addColorStop(0.5, '#131722');
+  bgGrad.addColorStop(1, '#08090d');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, w, h);
 
-  // 微細グリッド背景
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+  // 金箔散らし（上品な金泥の星屑）
+  ctx.fillStyle = 'rgba(212, 175, 55, 0.15)';
+  for (let i = 0; i < 40; i++) {
+    const gx = ((i * 137) % (w - 40)) + 20;
+    const gy = ((i * 241) % (h - 40)) + 20;
+    const gr = ((i % 3) + 1);
+    ctx.beginPath();
+    ctx.arc(gx, gy, gr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 2. 金箔と漆の二重和枠
+  ctx.strokeStyle = 'rgba(198, 160, 82, 0.65)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(14, 14, w - 28, h - 28);
+  ctx.strokeStyle = 'rgba(198, 160, 82, 0.3)';
   ctx.lineWidth = 1;
-  for (let x = 0; x < w; x += 28) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, h);
-    ctx.stroke();
-  }
-  for (let y = 0; y < h; y += 28) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(w, y);
-    ctx.stroke();
-  }
+  ctx.strokeRect(18, 18, w - 36, h - 36);
 
-  // 2. ゴールド＆サイバー枠線
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
-  ctx.lineWidth = 2.5;
-  ctx.strokeRect(16, 16, w - 32, h - 32);
-
-  // コーナーアクセント（四隅のL字）
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 4;
-  const cLen = 22;
+  // 四隅の和風飾り金具
+  ctx.strokeStyle = '#d4af37';
+  ctx.lineWidth = 3;
+  const cLen = 20;
   // 左上
-  ctx.beginPath(); ctx.moveTo(16, 16 + cLen); ctx.lineTo(16, 16); ctx.lineTo(16 + cLen, 16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(14, 14 + cLen); ctx.lineTo(14, 14); ctx.lineTo(14 + cLen, 14); ctx.stroke();
   // 右上
-  ctx.beginPath(); ctx.moveTo(w - 16 - cLen, 16); ctx.lineTo(w - 16, 16); ctx.lineTo(w - 16, 16 + cLen); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w - 14 - cLen, 14); ctx.lineTo(w - 14, 14); ctx.lineTo(w - 14, 14 + cLen); ctx.stroke();
   // 左下
-  ctx.beginPath(); ctx.moveTo(16, h - 16 - cLen); ctx.lineTo(16, h - 16); ctx.lineTo(16 + cLen, h - 16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(14, h - 14 - cLen); ctx.lineTo(14, h - 14); ctx.lineTo(14 + cLen, h - 14); ctx.stroke();
   // 右下
-  ctx.beginPath(); ctx.moveTo(w - 16 - cLen, h - 16); ctx.lineTo(w - 16, h - 16); ctx.lineTo(w - 16, h - 16 - cLen); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w - 14 - cLen, h - 14); ctx.lineTo(w - 14, h - 14); ctx.lineTo(w - 14, h - 14 - cLen); ctx.stroke();
 
-  // 3. タイトルヘッダー
-  ctx.fillStyle = '#f59e0b';
-  ctx.font = '900 13px -apple-system, sans-serif';
-  ctx.fillText('SHOGI: MUTATION  —  OFFICIAL RANK CERTIFICATE', 36, 48);
+  // 3. タイトルヘッダー（百鬼魔道・墨絵絵巻）
+  ctx.fillStyle = '#d4af37';
+  ctx.font = 'bold 12px "Noto Serif JP", serif';
+  ctx.fillText('SHOGI: MUTATION  —  百鬼変異 公式戦績免状', 36, 46);
 
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '900 22px -apple-system, sans-serif';
-  ctx.fillText('無法将棋 公式戦績認定証', 36, 78);
+  ctx.fillStyle = '#f5f0e6';
+  ctx.font = '900 24px "Yuji Boku", "Noto Serif JP", serif';
+  ctx.fillText('無法将棋 公式戦績免状', 36, 78);
 
-  ctx.fillStyle = '#93c5fd';
-  ctx.font = 'bold 15px -apple-system, sans-serif';
-  ctx.fillText(`🪪 棋士名: ${userProfile.name || '名無し棋士'} 殿`, 36, 100);
+  // 朱漆の落款印（Hanko Stamp）
+  ctx.strokeStyle = '#c93a2b';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(280, 56, 32, 32);
+  ctx.fillStyle = 'rgba(201, 58, 43, 0.15)';
+  ctx.fillRect(280, 56, 32, 32);
+  ctx.fillStyle = '#c93a2b';
+  ctx.font = '900 11px "Yuji Boku", "Noto Serif JP", serif';
+  ctx.fillText('公認', 285, 76);
+
+  ctx.fillStyle = '#fde68a';
+  ctx.font = 'bold 15px "Noto Serif JP", serif';
+  ctx.fillText(`🪪 棋士名: ${userProfile.name || '名無し棋士'} 殿`, 36, 108);
 
   // プレイヤー称号
-  ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
-  ctx.strokeStyle = '#fbbf24';
+  ctx.fillStyle = 'rgba(212, 175, 55, 0.15)';
+  ctx.strokeStyle = '#d4af37';
   ctx.lineWidth = 1;
   const titleText = `🎖️ ${userProfile.equippedTitle}`;
-  ctx.font = 'bold 13px -apple-system, sans-serif';
+  ctx.font = 'bold 12px "Noto Serif JP", serif';
   const titleWidth = ctx.measureText(titleText).width + 18;
-  ctx.fillRect(36, 96, titleWidth, 24);
-  ctx.strokeRect(36, 96, titleWidth, 24);
-  ctx.fillStyle = '#fde68a';
-  ctx.fillText(titleText, 45, 113);
+  ctx.fillRect(36, 118, titleWidth, 24);
+  ctx.strokeRect(36, 118, titleWidth, 24);
+  ctx.fillStyle = '#fef08a';
+  ctx.fillText(titleText, 45, 134);
 
   // 4. レーティング＆段位（大文字）
   const rankInfo = getRankInfo(userProfile.rating);
@@ -2854,14 +2862,14 @@ function generateRankCertificateCanvas() {
   }
 
   const rightBoxX = 490;
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+  ctx.fillStyle = 'rgba(18, 22, 32, 0.95)';
+  ctx.strokeStyle = 'rgba(198, 160, 82, 0.45)';
   ctx.fillRect(rightBoxX, 48, 314, 362);
   ctx.strokeRect(rightBoxX, 48, 314, 362);
 
-  ctx.fillStyle = '#38bdf8';
-  ctx.font = '900 13px -apple-system, sans-serif';
-  ctx.fillText('FEATURED MUTATION UNIT', rightBoxX + 16, 74);
+  ctx.fillStyle = '#e5be59';
+  ctx.font = 'bold 12px "Noto Serif JP", serif';
+  ctx.fillText('FEATURED MUTATION UNIT — 秘伝陣形図', rightBoxX + 16, 74);
 
   const pieceName = repPiece ? `${repPiece.name} (${getPieceTotalPt(repPiece)}pt)` : '無法の歩兵 (8pt)';
   ctx.fillStyle = '#ffffff';
