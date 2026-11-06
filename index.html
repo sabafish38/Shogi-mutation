@@ -94,26 +94,28 @@
       <!-- ゲームモード選択リスト -->
       <!-- ゲームモード選択（左揃え・非対称Bento構造・1pxボーダー） -->
       <div class="entrance-modes">
-        <!-- 主軸：ランクマッチ -->
+        <!-- 主軸：ランクマッチ（オンライン・人間同士） -->
         <button id="btn-mode-rank" class="mode-card mode-rank" type="button">
           <div class="mode-info">
             <div class="mode-heading">
               <span class="mode-name">真剣勝負（格付戦）</span>
               <span class="mode-tag tag-rank">公式レート戦</span>
-              <span class="mode-tag tag-bounty-chance">賞金首出現中</span>
+              <span class="mode-tag tag-online">オンライン対人戦</span>
+              <span class="mode-tag tag-bounty-chance">賞金首出現</span>
             </div>
-            <p class="mode-desc">全国の棋士と段位・レーティングを競う真剣対局。実力同格の相手とマッチングします。</p>
+            <p class="mode-desc">全国のプレイヤーとリアルタイムで段位・レーティングを競う真剣対局。連勝者等の強敵は「賞金首」として出現！</p>
           </div>
         </button>
 
-        <!-- 通信対局 -->
+        <!-- 通信対局（カジュアル対戦・レート無変動） -->
         <button id="btn-mode-online" class="mode-card mode-online" type="button">
           <div class="mode-info">
             <div class="mode-heading">
               <span class="mode-name">通信対局（遠隔戦）</span>
               <span class="mode-tag tag-online">P2P通信</span>
+              <span class="mode-tag tag-casual">レート無変動</span>
             </div>
-            <p class="mode-desc">合言葉による友人間の一騎打ち、または全国即時マッチングによる遠隔対局。</p>
+            <p class="mode-desc">合言葉による友人間の一騎打ち、または全国フリー対局。勝敗によるレート変動はありません。</p>
           </div>
         </button>
 

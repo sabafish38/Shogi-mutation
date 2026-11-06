@@ -784,7 +784,7 @@ function computeStateChecksum(data) {
 }
 
 function saveGameToStorage() {
-  if (state.mode === 'online') return;
+  if (state.mode === 'online' || state.mode === 'rank') return;
   try {
     const data = {
       board: state.board,
@@ -946,9 +946,12 @@ function updatePlayerNames() {
     senteNameEl.textContent = 'プレイヤー1 (先手)';
     goteNameEl.textContent = 'プレイヤー2 (後手)';
   } else if (state.mode === 'rank') {
-    const oppLabel = state.rankOpponent ? `${state.rankOpponent.name} (${state.rankOpponent.rankTitle})` : 'ライバルAI';
-    const playerRank = getRankInfo(userProfile.rating).title;
-    const playerLabel = `あなた (${playerRank})`;
+    const opp = state.rankOpponent || state.onlineOpponent || { name: '全国の棋士', rank: '初段', rating: 1200 };
+    const pRank = getRankInfo(userProfile.rating).title;
+    const playerLabel = `あなた (${pRank} R${userProfile.rating})`;
+    const bountyTag = opp.isBounty ? ' [賞金首 TARGET]' : '';
+    const oppTitle = opp.rankTitle || opp.rank || '初段';
+    const oppLabel = `${opp.name} (${oppTitle} R${opp.rating || 1200})${bountyTag}`;
     if (state.playerSide === 'sente') {
       senteNameEl.textContent = playerLabel;
       goteNameEl.textContent = oppLabel;
@@ -1286,7 +1289,7 @@ function onCellClick(r, c) {
   const clickedPiece = state.board[r][c];
 
   // オンライン対局で相手の手番中の場合、駒の移動はブロック（インスペクトのみ）
-  if (state.mode === 'online' && state.turn !== state.playerSide) {
+  if ((state.mode === 'online' || state.mode === 'rank') && state.turn !== state.playerSide) {
     if (clickedPiece) {
       state.inspectedPiece = clickedPiece;
       renderAll();
@@ -1437,7 +1440,7 @@ function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
     );
 
     // オンライン対戦で相手が撃破した場合：相手の進化確定パケット待ちフェーズへ
-    if (state.mode === 'online' && !syncOnline) {
+    if ((state.mode === 'online' || state.mode === 'rank') && !syncOnline) {
       state.bank[state.turn] += gainedPt;
       state.phase = 'remote_evo';
       state.inspectedPiece = movingPiece;
@@ -2063,17 +2066,16 @@ function endGame(winner, reasonText) {
   const rankUpBanner = document.getElementById('rank-up-banner');
   const rankBountyEl = document.getElementById('rank-bounty-bonus-desc');
 
-  const isRanked = (state.mode === 'rank' || state.mode === 'online');
+  const isRanked = (state.mode === 'rank');
   if (isRanked) {
     const isWin = (winner === state.playerSide);
     const oldRating = userProfile.rating;
     const oldRank = getRankInfo(oldRating).title;
-    const isBounty = (state.mode === 'rank' && state.rankOpponent && state.rankOpponent.isBounty);
-    const isOnline = (state.mode === 'online');
+    const isBounty = !!(state.rankOpponent && state.rankOpponent.isBounty);
 
     const resultBadgeEl = document.getElementById('rank-result-badge');
     if (resultBadgeEl) {
-      resultBadgeEl.textContent = isOnline ? '通信対戦結果' : '真剣勝負結果';
+      resultBadgeEl.textContent = '真剣勝負（格付戦）結果';
     }
 
     let delta = 0;
@@ -2088,7 +2090,11 @@ function endGame(winner, reasonText) {
       if (isBounty) {
         userProfile.bountiesClaimed = (userProfile.bountiesClaimed || 0) + 1;
         baseDelta += 20;
-        if (rankBountyEl) rankBountyEl.classList.remove('hidden');
+        if (rankBountyEl) {
+          const reason = (state.rankOpponent && state.rankOpponent.bountyReason) ? ` (${state.rankOpponent.bountyReason})` : '';
+          rankBountyEl.textContent = `賞金首討伐ボーナス獲得！ (+20 R${reason})`;
+          rankBountyEl.classList.remove('hidden');
+        }
       } else {
         if (rankBountyEl) rankBountyEl.classList.add('hidden');
       }
@@ -2159,7 +2165,7 @@ function findPieceById(board, id) {
 }
 
 function isCPUTurn() {
-  if (state.mode === 'pvp' || state.mode === 'online') return false;
+  if (state.mode === 'pvp' || state.mode === 'online' || state.mode === 'rank') return false;
   return state.turn !== state.playerSide;
 }
 
@@ -2924,9 +2930,13 @@ function renderStatsAndStatus() {
     } else {
       elStatusBanner.classList.remove('evo-mode');
       elTurnIndicator.textContent = `${turnLabel}の番です${movesText}`;
-      if (state.mode === 'online') {
+      if (state.mode === 'online' || state.mode === 'rank') {
         if (state.turn === state.playerSide) {
-          elSubStatus.textContent = 'あなたの番です！動かす駒を選択してください';
+          if (state.mode === 'rank' && state.rankOpponent && state.rankOpponent.isBounty) {
+            elSubStatus.textContent = `【賞金首戦: ${state.rankOpponent.bountyReason || '強敵'}】撃破でレート大量ボーナス獲得！`;
+          } else {
+            elSubStatus.textContent = 'あなたの番です！動かす駒を選択してください';
+          }
         } else {
           elSubStatus.textContent = '相手プレイヤーが考え中... (着手を待っています)';
         }
@@ -3785,7 +3795,13 @@ if (elBtnEvoConfirmTop) elBtnEvoConfirmTop.addEventListener('click', confirmEvol
 
 // エントランス・モードカードクリック
 const btnModeRank = document.getElementById('btn-mode-rank');
-if (btnModeRank) btnModeRank.addEventListener('click', prepareRankMatchModal);
+if (btnModeRank) {
+  btnModeRank.addEventListener('click', () => {
+    if (window.MuhouOnline) {
+      window.MuhouOnline.startRankMatchmaking();
+    }
+  });
+}
 
 const btnModeCom = document.getElementById('btn-mode-com');
 if (btnModeCom) btnModeCom.addEventListener('click', openComSelectModal);
@@ -4277,15 +4293,64 @@ function applyRemoteEvolution(pendingList, owner) {
   renderAll();
 }
 
-function startOnlineGameSession(mySide, oppPlayer) {
-  state.mode = 'online';
+// 人間対局時の賞金首判定（連勝中・格上高段位・高勝率・歴戦の討伐者）
+function evaluateHumanBounty(opp) {
+  if (!opp) return { isBounty: false, reason: '' };
+
+  const streak = Number.isInteger(opp.streak) ? opp.streak : 0;
+  const rating = typeof opp.rating === 'number' ? opp.rating : 1200;
+  const wins = Number.isInteger(opp.wins) ? opp.wins : 0;
+  const losses = Number.isInteger(opp.losses) ? opp.losses : 0;
+  const total = wins + losses;
+  const winRate = total > 0 ? (wins / total) : 0;
+  const bounties = Number.isInteger(opp.bountiesClaimed) ? opp.bountiesClaimed : 0;
+
+  // 条件1: 連勝中の強敵 (2連勝以上)
+  if (streak >= 2) {
+    return { isBounty: true, reason: `${streak}連勝中` };
+  }
+  // 条件2: 格上・高段位の猛者 (自分より50pt以上高い、またはR1400以上)
+  if (rating >= userProfile.rating + 50) {
+    return { isBounty: true, reason: `格上実力者 (R${rating})` };
+  }
+  if (rating >= 1400) {
+    return { isBounty: true, reason: `高段位棋士 (R${rating})` };
+  }
+  // 条件3: 5勝以上かつ勝率60%以上の猛者
+  if (wins >= 5 && winRate >= 0.6) {
+    return { isBounty: true, reason: `高勝率猛者 (勝率${Math.round(winRate * 100)}%)` };
+  }
+  // 条件4: 歴戦の賞金狩り (2回以上討伐実績)
+  if (bounties >= 2) {
+    return { isBounty: true, reason: `歴戦の賞金狩り (${bounties}回討伐)` };
+  }
+
+  return { isBounty: false, reason: '' };
+}
+
+function startOnlineGameSession(mySide, oppPlayer, mode = 'online') {
+  state.mode = mode;
   state.playerSide = mySide;
   state.onlineOpponent = oppPlayer || {
     name: '通信相手',
     title: '全国の猛者',
     rank: '初段',
-    rating: 1200
+    rating: 1200,
+    streak: 0,
+    maxStreak: 0,
+    wins: 0,
+    losses: 0,
+    bountiesClaimed: 0
   };
+
+  if (mode === 'rank') {
+    const bountyResult = evaluateHumanBounty(state.onlineOpponent);
+    state.onlineOpponent.isBounty = bountyResult.isBounty;
+    state.onlineOpponent.bountyReason = bountyResult.reason;
+    state.rankOpponent = state.onlineOpponent;
+  } else {
+    state.rankOpponent = null;
+  }
 
   showScreen('game');
   restartNewGame();

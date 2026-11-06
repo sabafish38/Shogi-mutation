@@ -10,6 +10,7 @@
   let activePeerConn = null;
   let onlinePlayerSide = null; // 'sente' | 'gote'
   let currentOnlineRoomCode = null;
+  let currentSessionMode = 'online';
   let isHost = false;
   let onlineSearchTimer = null;
   let onlineSearchSeconds = 0;
@@ -94,11 +95,12 @@
   }
 
   // ------------------------------------------
-  // 1. 全国ランダムマッチ（クイックマッチ）
+  // 1. 全国マッチング（格付戦 / カジュアル戦）
   // ------------------------------------------
-  async function startQuickMatchmaking() {
+  async function executeMatchmaking({ mode, slotPrefix, overlayTitle, defaultOppName }) {
     hasSessionStarted = false;
-    showMatchmakingOverlay('全国の対戦相手を探しています...');
+    currentSessionMode = mode;
+    showMatchmakingOverlay(overlayTitle);
 
     onlineSearchSeconds = 0;
     if (onlineSearchTimer) clearInterval(onlineSearchTimer);
@@ -108,7 +110,6 @@
       if (timerEl) timerEl.textContent = `${onlineSearchSeconds}秒`;
     }, 1000);
 
-    // 一点合流型カスケードスロット探索 (スロット0を第一集結ロビーとして最速マッチング)
     const slotCount = 4;
     let matched = false;
 
@@ -121,7 +122,7 @@
 
     // 1. スロット0〜3の既存待機者を高速プローブ (各550ms)
     for (let slot = 0; slot < slotCount; slot++) {
-      const targetHostId = `muhou_quick_slot_${slot}`;
+      const targetHostId = `${slotPrefix}${slot}`;
       try {
         const conn = peer.connect(targetHostId, { reliable: true });
         const connected = await new Promise((resolve) => {
@@ -140,7 +141,7 @@
           matched = true;
           isHost = false;
           onlinePlayerSide = 'gote';
-          setupConnectionEvents(conn, '全国の好敵手', 'guest');
+          setupConnectionEvents(conn, defaultOppName, 'guest');
           break;
         }
       } catch (e) {}
@@ -149,18 +150,40 @@
     // 2. 待機者がいなければ、最上位の空きスロットでホスト待機
     if (!matched) {
       for (let slot = 0; slot < slotCount; slot++) {
-        const hostSlotId = `muhou_quick_slot_${slot}`;
+        const hostSlotId = `${slotPrefix}${slot}`;
         const hostPeer = await getOrCreatePeer(hostSlotId);
         if (hostPeer) {
           isHost = true;
           onlinePlayerSide = 'sente';
           hostPeer.on('connection', (conn) => {
-            setupConnectionEvents(conn, '全国の好敵手', 'host');
+            if (hasSessionStarted) {
+              try { conn.close(); } catch (e) {}
+              return;
+            }
+            setupConnectionEvents(conn, defaultOppName, 'host');
           });
           break;
         }
       }
     }
+  }
+
+  async function startRankMatchmaking() {
+    await executeMatchmaking({
+      mode: 'rank',
+      slotPrefix: 'muhou_rank_slot_',
+      overlayTitle: '真剣勝負（格付戦）：全国の棋士を探索中...',
+      defaultOppName: '全国の棋士'
+    });
+  }
+
+  async function startQuickMatchmaking() {
+    await executeMatchmaking({
+      mode: 'online',
+      slotPrefix: 'muhou_quick_slot_',
+      overlayTitle: '通信対局（カジュアル戦）：全国の好敵手を探索中...',
+      defaultOppName: '全国の好敵手'
+    });
   }
 
   function cancelMatchmaking() {
@@ -180,6 +203,7 @@
   // ------------------------------------------
   async function createFriendRoom() {
     hasSessionStarted = false;
+    currentSessionMode = 'online';
     const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
     currentOnlineRoomCode = roomCode;
     const peerId = `muhou_friend_${roomCode}`;
@@ -202,6 +226,7 @@
 
   async function joinFriendRoom(inputCode) {
     hasSessionStarted = false;
+    currentSessionMode = 'online';
     // 全角数字を半角数字へ正規化し、空白を除去
     const cleanCode = (inputCode || '').toString().trim().normalize('NFKC').replace(/[^0-9]/g, '');
     if (!cleanCode || cleanCode.length !== 4) {
@@ -281,7 +306,13 @@
         name: prof.name || (role === 'host' ? '部屋主' : '挑戦者'),
         rank: rankInfo.title,
         rating: rating,
-        title: prof.equippedTitle || '全国の猛者'
+        streak: prof.streak || 0,
+        maxStreak: prof.maxStreak || 0,
+        wins: prof.wins || 0,
+        losses: prof.losses || 0,
+        bountiesClaimed: prof.bountiesClaimed || 0,
+        title: prof.equippedTitle || '全国の猛者',
+        mode: currentSessionMode
       });
     };
 
@@ -303,10 +334,18 @@
           const v = engine.validateUserName(oppName);
           if (!v.valid) oppName = '対局者';
         }
+        if (data.mode) {
+          currentSessionMode = data.mode;
+        }
         opponentProfile = {
           name: oppName,
           rank: data.rank || '初段',
           rating: typeof data.rating === 'number' ? data.rating : 1200,
+          streak: typeof data.streak === 'number' ? data.streak : 0,
+          maxStreak: typeof data.maxStreak === 'number' ? data.maxStreak : 0,
+          wins: typeof data.wins === 'number' ? data.wins : 0,
+          losses: typeof data.losses === 'number' ? data.losses : 0,
+          bountiesClaimed: typeof data.bountiesClaimed === 'number' ? data.bountiesClaimed : 0,
           title: data.title || '全国の猛者'
         };
 
@@ -320,7 +359,13 @@
               name: prof.name || (role === 'host' ? '部屋主' : '挑戦者'),
               rank: rankInfo.title,
               rating: rating,
-              title: prof.equippedTitle || '全国の猛者'
+              streak: prof.streak || 0,
+              maxStreak: prof.maxStreak || 0,
+              wins: prof.wins || 0,
+              losses: prof.losses || 0,
+              bountiesClaimed: prof.bountiesClaimed || 0,
+              title: prof.equippedTitle || '全国の猛者',
+              mode: currentSessionMode
             });
           } catch (e) {}
         }
@@ -329,7 +374,7 @@
           hasSessionStarted = true;
           hideAllOnlineModals();
           if (engine && typeof engine.startOnlineGameSession === 'function') {
-            engine.startOnlineGameSession(onlinePlayerSide, opponentProfile);
+            engine.startOnlineGameSession(onlinePlayerSide, opponentProfile, currentSessionMode);
           }
         }
       } else if (data.type === 'move') {
@@ -502,6 +547,7 @@
   // ==========================================
   window.MuhouOnline = Object.freeze({
     startQuickMatchmaking,
+    startRankMatchmaking,
     cancelMatchmaking,
     createFriendRoom,
     joinFriendRoom,
