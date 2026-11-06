@@ -1,4 +1,4 @@
-const CACHE_NAME = 'muhou-shogi-v16';
+const CACHE_NAME = 'muhou-shogi-v17';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

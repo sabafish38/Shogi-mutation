@@ -2276,22 +2276,21 @@ function cpuExecuteInstantEvolution(killerPiece, points) {
 // ==========================================
 
 
-// プレイヤーの手番視点に合わせて盤面とラベルを完全同期
+// 盤面とラベルの同期（オンライン対戦・単人対局での不意なUI・盤面反転を完全防止）
 function updateBoardPerspective() {
-  const isGotePlayer = (state.playerSide === 'gote');
   const boardEl = document.getElementById('shogi-board');
   const mainLayout = document.querySelector('.main-layout');
   const colLabels = document.querySelector('.col-labels');
 
+  // オンライン対戦を含め、UIおよび盤面の反転を常時無効化（常に正対表示）
   if (boardEl) {
-    boardEl.classList.toggle('flip-board', isGotePlayer);
+    boardEl.classList.remove('flip-board');
   }
   if (mainLayout) {
-    mainLayout.classList.toggle('flip-players', isGotePlayer);
+    mainLayout.classList.remove('flip-players');
   }
   if (colLabels) {
-    const numbers = isGotePlayer ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1];
-    colLabels.innerHTML = numbers.map(n => `<span>${n}</span>`).join('');
+    colLabels.innerHTML = [9, 8, 7, 6, 5, 4, 3, 2, 1].map(n => `<span>${n}</span>`).join('');
   }
 }
 
