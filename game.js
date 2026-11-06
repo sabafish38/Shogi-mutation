@@ -3030,7 +3030,7 @@ function renderEvolutionBox() {
     elEvoBoxTop.classList.toggle('has-points', isGoteTurn && goteBank > 0);
     elEvoBoxTop.classList.toggle('is-allocating', isGoteTurn && spendingTop > 0);
 
-    if (elBtnEvoConfirmTop && elBtnEvoResetTop && elEvoMsgTop) {
+    if (elBtnEvoConfirmTop && elBtnEvoResetTop) {
       if (isGoteTurn && state.phase === 'instant_evo') {
         if (elEvoMsgTop) elEvoMsgTop.textContent = '撃破した霊力を即時配分中！確定するとそのまま相手番へ進みます';
         elBtnEvoConfirmTop.disabled = false;
@@ -3069,8 +3069,8 @@ function renderInspector() {
     elInspKanji.textContent = '？';
     elInspKanji.classList.remove('gote');
     elInspName.textContent = '駒を選択してください';
-    elInspPoints.textContent = '持ちポイント: - pt';
-    elInspTier.textContent = '状態: -';
+    if (elInspPoints) elInspPoints.textContent = '持ちポイント: - pt';
+    if (elInspTier) elInspTier.textContent = '状態: -';
     elInspOwnerBadge.classList.add('hidden');
     if (elDirHint) {
       elDirHint.textContent = '▲ 進行方向 ▲';
@@ -3084,8 +3084,8 @@ function renderInspector() {
       elInspKanjiTop.textContent = '？';
       elInspKanjiTop.classList.add('gote');
       elInspNameTop.textContent = '駒を選択してください';
-      elInspPointsTop.textContent = '持ちポイント: - pt';
-      elInspTierTop.textContent = '状態: -';
+      if (elInspPointsTop) elInspPointsTop.textContent = '持ちポイント: - pt';
+      if (elInspTierTop) elInspTierTop.textContent = '状態: -';
       elInspOwnerBadgeTop.classList.add('hidden');
       if (elDirHintTop) elDirHintTop.textContent = '▲ 進行方向（盤面向き）▲';
       if (elDirHintBottomTop) elDirHintBottomTop.classList.add('hidden');
