@@ -6,6 +6,247 @@
  * ・手番では「駒を動かす」か「所持ポイントを使って駒を進化させる」のどちらかを選択
  */
 
+
+// ==========================================
+// Web Audio API プロシージャル効果音エンジン
+// ==========================================
+const SoundSystem = (() => {
+  let audioCtx = null;
+  let isSoundEnabled = true;
+
+  try {
+    const saved = localStorage.getItem('muhou_shogi_sound_enabled');
+    if (saved !== null) {
+      isSoundEnabled = (saved === 'true');
+    }
+  } catch (e) {}
+
+  function getAudioContext() {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function playTone(freq, type, duration, gainStart, gainEnd = 0.001) {
+    if (!isSoundEnabled) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(gainStart, now);
+      gain.gain.exponentialRampToValueAtTime(gainEnd, now + duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration);
+    } catch (e) {}
+  }
+
+  return {
+    isEnabled() { return isSoundEnabled; },
+    toggle() {
+      isSoundEnabled = !isSoundEnabled;
+      try {
+        localStorage.setItem('muhou_shogi_sound_enabled', isSoundEnabled ? 'true' : 'false');
+      } catch (e) {}
+      return isSoundEnabled;
+    },
+    // 駒の着手音（心地よい「パチッ」という木片打音）
+    playMove() {
+      if (!isSoundEnabled) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.06);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.06);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(850, now);
+        osc2.frequency.exponentialRampToValueAtTime(300, now + 0.03);
+        gain2.gain.setValueAtTime(0.25, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now);
+        osc2.stop(now + 0.03);
+      } catch (e) {}
+    },
+    // 駒の捕獲・撃破音（重みのある衝撃音）
+    playCapture() {
+      if (!isSoundEnabled) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.12);
+        gain.gain.setValueAtTime(0.45, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(1200, now);
+        osc2.frequency.exponentialRampToValueAtTime(350, now + 0.05);
+        gain2.gain.setValueAtTime(0.18, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now);
+        osc2.stop(now + 0.05);
+      } catch (e) {}
+    },
+    // 進化割り振り・確定音（クリスタル調の上昇チャイム）
+    playEvolve() {
+      if (!isSoundEnabled) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        const freqs = [523.25, 659.25, 783.99, 1046.5];
+        freqs.forEach((f, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const t = now + idx * 0.045;
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, t);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.14);
+        });
+      } catch (e) {}
+    },
+    // 進化キャンセル音
+    playCancel() {
+      playTone(260, 'sine', 0.06, 0.15, 0.001);
+    },
+    // 王手アラート音（緊張感のある警告チャイム）
+    playCheck() {
+      if (!isSoundEnabled) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        [740, 880].forEach(f => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(f, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        });
+      } catch (e) {}
+    },
+    // 天王山占拠・サドンデス音（重低音）
+    playTennozan() {
+      if (!isSoundEnabled) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.4);
+        gain.gain.setValueAtTime(0.45, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      } catch (e) {}
+    },
+    // 勝利ファンファーレ
+    playVictory() {
+      if (!isSoundEnabled) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((f, idx) => {
+          const t = now + idx * 0.08;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, t);
+          gain.gain.setValueAtTime(0.25, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.4);
+        });
+      } catch (e) {}
+    },
+    // 敗北チャイム
+    playDefeat() {
+      if (!isSoundEnabled) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        const notes = [392.00, 311.13, 261.63];
+        notes.forEach((f, idx) => {
+          const t = now + idx * 0.12;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, t);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.35);
+        });
+      } catch (e) {}
+    }
+  };
+})();
+
 const PIECE_DEFS = {
   fu: {
     kanji: '歩',
@@ -18,7 +259,7 @@ const PIECE_DEFS = {
   kyo: {
     kanji: '香',
     name: '香車',
-    subTag: '↑∞',
+    subTag: '前∞',
     basePt: 1,
     steps: [],
     rays: [[0, -1]]
@@ -163,6 +404,15 @@ function showCheckBanner(targetOwner) {
     elCheckBannerTarget.textContent = `${targetLabel} (CHECK!)`;
   }
 
+  SoundSystem.playCheck();
+  const boardEl = document.getElementById('board-container');
+  if (boardEl) {
+    boardEl.classList.remove('screen-shake');
+    void boardEl.offsetWidth;
+    boardEl.classList.add('screen-shake');
+    setTimeout(() => boardEl.classList.remove('screen-shake'), 400);
+  }
+
   // アニメーションを確実に再トリガーするため再描画
   elCheckBanner.classList.add('hidden');
   void elCheckBanner.offsetWidth; // リフロー発生
@@ -179,6 +429,7 @@ function showCheckBanner(targetOwner) {
 // サドンデスバナー演出を表示
 function showSuddenDeathBanner() {
   if (!elSuddenDeathBanner) return;
+  SoundSystem.playTennozan();
   elSuddenDeathBanner.classList.remove('hidden');
   void elSuddenDeathBanner.offsetWidth;
   if (suddenDeathBannerTimer) {
@@ -471,7 +722,8 @@ function saveGameToStorage() {
       mode: state.mode,
       playerSide: state.playerSide,
       rankOpponent: state.rankOpponent || null,
-      recentLogs: state.recentLogs || []
+      recentLogs: state.recentLogs || [],
+      inGameScreen: !!(document.getElementById('view-game') && !document.getElementById('view-game').classList.contains('hidden') && state.phase === 'play')
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (err) {
@@ -506,6 +758,7 @@ function loadGameFromStorage() {
     state.validMoves = [];
     state.inspectedPiece = null;
     state.recentLogs = data.recentLogs || [];
+    state.wasInGameScreen = !!data.inGameScreen;
 
     const elGameMode = document.getElementById('game-mode');
     if (elGameMode && state.mode !== 'rank') elGameMode.value = state.mode;
@@ -944,7 +1197,7 @@ function undoMove() {
   if (gameoverModal) gameoverModal.classList.add('hidden');
   hideEnemyEvolutionNotification();
 
-  addLog('↩ ひとつ前の自分の番に戻しました。');
+  addLog('待った: ひとつ前の自分の手番に戻しました。');
   renderAll();
 }
 
@@ -1046,6 +1299,16 @@ function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
 
   const movingPiece = state.board[fromR][fromC];
   const targetPiece = state.board[toR][toC];
+
+  // 着手・捕獲プロシージャル効果音
+  if (targetPiece) {
+    SoundSystem.playCapture();
+  } else {
+    SoundSystem.playMove();
+  }
+  if (toR === 4 && toC === 4) {
+    SoundSystem.playTennozan();
+  }
 
   // オンライン対局時の指し手送信
   if (syncOnline && state.mode === 'online' && state.turn === state.playerSide && typeof sendOnlineMoveAction === 'function') {
@@ -1214,9 +1477,9 @@ function getDirectionDescription(piece, dx, dy, isRay) {
     if (boardDx === 0 && boardDy < 0) return isGote ? ' 奥直進無限（後退ビーム！∞）' : ' 奥直進無限（前進ビーム・香車化！∞）';
     if (boardDx < 0 && boardDy === 0) return ' 左横直進無限（左ビーム！∞）';
     if (boardDx > 0 && boardDy === 0) return ' 右横直進無限（右ビーム！∞）';
-    if (boardDx < 0 && boardDy > 0) return '↙ 手前左斜め直進無限（斜めビーム！∞）';
+    if (boardDx < 0 && boardDy > 0) return '手前左斜め直進無限（斜めビーム！∞）';
     if (boardDx > 0 && boardDy > 0) return ' 手前右斜め直進無限（斜めビーム！∞）';
-    if (boardDx < 0 && boardDy < 0) return '↖ 奥左斜め直進無限（斜めビーム！∞）';
+    if (boardDx < 0 && boardDy < 0) return '奥左斜め直進無限（斜めビーム！∞）';
     if (boardDx > 0 && boardDy < 0) return ' 奥右斜め直進無限（斜めビーム！∞）';
     return '∞ 直進無限（走り覚醒！）';
   }
@@ -1226,11 +1489,11 @@ function getDirectionDescription(piece, dx, dy, isRay) {
   if (ring === 1) {
     if (boardDx === 0 && boardDy > 0) return isGote ? ' 手前1マス（前進）' : ' 手前1マス（引く手・後退）';
     if (boardDx === 0 && boardDy < 0) return isGote ? ' 奥1マス（引く手・後退）' : ' 奥1マス（前進）';
-    if (boardDx < 0 && boardDy > 0) return '↙ 手前左斜め1マス';
+    if (boardDx < 0 && boardDy > 0) return '手前左斜め1マス';
     if (boardDx > 0 && boardDy > 0) return ' 手前右斜め1マス';
     if (boardDx < 0 && boardDy === 0) return ' 左横1マス';
     if (boardDx > 0 && boardDy === 0) return ' 右横1マス';
-    if (boardDx < 0 && boardDy < 0) return '↖ 奥左斜め1マス';
+    if (boardDx < 0 && boardDy < 0) return '奥左斜め1マス';
     if (boardDx > 0 && boardDy < 0) return ' 奥右斜め1マス';
   } else if (ring === 2) {
     // 2マス直進
@@ -1238,18 +1501,18 @@ function getDirectionDescription(piece, dx, dy, isRay) {
     if (boardDx === 0 && boardDy === -2) return isGote ? ' 奥2マス直進（後退）' : ' 奥2マス直進（2歩跳び）';
     if (boardDx === -2 && boardDy === 0) return ' 左2マス直進';
     if (boardDx === 2 && boardDy === 0) return ' 右2マス直進';
-    if (boardDx === -2 && boardDy === 2) return '↙ 手前左斜め2マス跳び';
+    if (boardDx === -2 && boardDy === 2) return '手前左斜め2マス跳び';
     if (boardDx === 2 && boardDy === 2) return ' 手前右斜め2マス跳び';
-    if (boardDx === -2 && boardDy === -2) return '↖ 奥左斜め2マス跳び';
+    if (boardDx === -2 && boardDy === -2) return '奥左斜め2マス跳び';
     if (boardDx === 2 && boardDy === -2) return ' 奥右斜め2マス跳び';
 
     // 桂馬ジャンプ (8方向)
-    if (boardDy === 2 && boardDx === -1) return '↙ 手前左の桂馬ジャンプ';
+    if (boardDy === 2 && boardDx === -1) return '手前左の桂馬ジャンプ';
     if (boardDy === 2 && boardDx === 1) return ' 手前右の桂馬ジャンプ';
-    if (boardDy === -2 && boardDx === -1) return '↖ 奥左の桂馬ジャンプ';
+    if (boardDy === -2 && boardDx === -1) return '奥左の桂馬ジャンプ';
     if (boardDy === -2 && boardDx === 1) return ' 奥右の桂馬ジャンプ';
-    if (boardDx === -2 && boardDy === 1) return '↙ 左横手前の桂馬ジャンプ';
-    if (boardDx === -2 && boardDy === -1) return '↖ 左横奥の桂馬ジャンプ';
+    if (boardDx === -2 && boardDy === 1) return '左横手前の桂馬ジャンプ';
+    if (boardDx === -2 && boardDy === -1) return '左横奥の桂馬ジャンプ';
     if (boardDx === 2 && boardDy === 1) return ' 右横手前の桂馬ジャンプ';
     if (boardDx === 2 && boardDy === -1) return ' 右横奥の桂馬ジャンプ';
   }
@@ -1385,6 +1648,23 @@ function showEnemyEvolutionNotification(reports) {
     visualBox.appendChild(metaEl);
 
     card.appendChild(visualBox);
+
+    // 1タップで盤面フォーカス・インスペクト（UI/UXガイドライン Rule 4.1準拠）
+    card.title = 'タップしてこの駒を盤面フォーカス・インスペクト';
+    const repPieceId = rep.pieceId;
+    card.addEventListener('click', () => {
+      if (repPieceId) {
+        const found = findPieceById(state.board, repPieceId);
+        if (found) {
+          state.inspectedPiece = found.piece;
+          state.selectedCell = { r: found.r, c: found.c, isEnemy: true };
+          state.validMoves = getValidMovesForPiece(state.board, found.r, found.c);
+          renderAll();
+        }
+      }
+      hideEnemyEvolutionNotification();
+    });
+
     elBody.appendChild(card);
   }
 
@@ -1456,7 +1736,7 @@ function confirmEvolutionTurn() {
       const posStr = formatPos(found.r, found.c);
       const newTotal = getPieceTotalPt(found.piece, false);
       const rayText = rays > 0 ? ` (走り+${rays})` : '';
-      details.push(`${posStr}【${found.piece.name}】を+${count}pt強化${rayText}(→${newTotal}pt)`);
+      details.push(`${posStr}【${found.piece.name}】を+${count}pt強化${rayText}(計${newTotal}pt)`);
     }
 
     addLog(
@@ -1633,6 +1913,16 @@ function endGame(winner, reasonText) {
   state.winner = winner;
   renderAll();
 
+  // 勝敗サウンド再生
+  const isHumanWinner = (state.mode === 'pvp')
+    ? (winner === state.turn)
+    : (winner === state.playerSide);
+  if (isHumanWinner) {
+    SoundSystem.playVictory();
+  } else {
+    SoundSystem.playDefeat();
+  }
+
   const modal = document.getElementById('gameover-modal');
   const title = document.getElementById('gameover-title');
   const desc = document.getElementById('gameover-desc');
@@ -1705,7 +1995,7 @@ function endGame(winner, reasonText) {
       rankCurrEl.textContent = `新レート: ${newRating} (${newRank})`;
 
       if (isWin && oldRank !== newRank) {
-        rankUpBanner.textContent = `昇級・昇段！ ${oldRank} → ${newRank}`;
+        rankUpBanner.textContent = `昇級・昇段！ ${oldRank} から ${newRank}`;
         rankUpBanner.classList.remove('hidden');
       } else {
         rankUpBanner.classList.add('hidden');
@@ -3297,6 +3587,41 @@ function downloadCertImage() {
 document.getElementById('btn-restart').addEventListener('click', restartNewGame);
 document.getElementById('btn-undo').addEventListener('click', undoMove);
 
+// 効果音ボタンの初期化 & リスナー登録
+const btnSoundToggle = document.getElementById('btn-sound-toggle');
+const soundToggleIcon = document.getElementById('sound-toggle-icon');
+
+function updateSoundButtonUI() {
+  if (!btnSoundToggle || !soundToggleIcon) return;
+  const enabled = SoundSystem.isEnabled();
+  soundToggleIcon.textContent = enabled ? '音 ON' : '音 OFF';
+  btnSoundToggle.classList.toggle('is-active', enabled);
+  btnSoundToggle.title = enabled ? '効果音: ON（タップでミュート）' : '効果音: OFF（タップで有効化）';
+}
+
+if (btnSoundToggle) {
+  updateSoundButtonUI();
+  btnSoundToggle.addEventListener('click', () => {
+    SoundSystem.toggle();
+    updateSoundButtonUI();
+  });
+}
+
+// 盤面背景・コンテナタップによるスマート選択解除（UI/UXガイドライン Rule 1.2準拠）
+const elBoardContainer = document.getElementById('board-container');
+if (elBoardContainer) {
+  elBoardContainer.addEventListener('click', (e) => {
+    if (e.target.id === 'board-container' || e.target.id === 'board') {
+      if (state.selectedCell) {
+        state.selectedCell = null;
+        state.validMoves = [];
+        renderAll();
+      }
+    }
+  });
+}
+
+
 const elGameMode = document.getElementById('game-mode');
 if (elGameMode) elGameMode.addEventListener('change', restartNewGame);
 
@@ -3546,8 +3871,12 @@ const hasSavedGame = loadGameFromStorage();
 if (!hasSavedGame) {
   initGame();
 }
-// 初回画面はエントランスを表示（保存データがある場合は再開ボタンが目立つ）
-showScreen('entrance');
+// プレイ途中のリロード時は何事もなかったかのように直前の対局画面を即時復元
+if (hasSavedGame && state.wasInGameScreen && state.phase === 'play' && state.movesCount > 0) {
+  showScreen('game');
+} else {
+  showScreen('entrance');
+}
 
 // ==========================================
 // オンライン対戦（Firebase）UIリスナー

@@ -35,7 +35,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700;900&family=Yuji+Boku&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
   <div class="app-container">
@@ -168,7 +168,7 @@
     </section>
 
     <!-- 対局画面ラップ -->
-    <div id="view-game" class="view-game hidden">
+    <div id="view-game" class="view-game no-scrollbar hidden">
       <!-- スマホ最適化 1行コンパクトヘッダー -->
       <header class="app-header">
         <div class="logo-area">
@@ -176,7 +176,8 @@
           <h1>無法将棋 <span class="subtitle">MUTATION</span></h1>
         </div>
         <div class="header-controls">
-          <button id="btn-undo" class="btn btn-header" title="1手戻す">↩ 待った</button>
+          <button id="btn-undo" class="btn btn-header" title="1手戻す">待った</button>
+          <button id="btn-sound-toggle" class="btn btn-header btn-sound is-active" title="効果音の切り替え" type="button"><span id="sound-toggle-icon">音 ON</span></button>
           <button id="btn-restart" class="btn btn-header btn-primary" title="新規対局">新規対局</button>
           <button id="btn-settings" class="btn btn-header btn-secondary" title="設定">設定</button>
           <button id="btn-rules" class="btn btn-header btn-outline" title="ルール">ルール</button>
@@ -184,7 +185,7 @@
       </header>
 
     <!-- メイン対局画面 -->
-    <main class="main-layout">
+    <main class="main-layout no-scrollbar">
       <!-- 相手（後手/上側）プレイヤーバー -->
       <div id="card-gote" class="player-bar gote-bar">
         <div class="player-meta">

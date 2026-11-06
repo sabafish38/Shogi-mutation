@@ -2766,3 +2766,112 @@ body {
   background: #ef4444;
   border: 1px solid #dc2626;
 }
+
+/* ==========================================================================
+   UI/UX・ユーザー快適性 自律点検ルール準拠 ブラッシュアップスタイル
+   ========================================================================== */
+
+/* 1. 不要なスクロールバーの排除 */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* 2. タッチ事故防止・テキスト選択禁止・操作感の統一 */
+.btn,
+button,
+.board-cell,
+.piece,
+.matrix-cell,
+.mini-matrix-cell,
+.tab-btn,
+.mode-card,
+.player-bar,
+.dir-dots,
+.enemy-evo-piece-card {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 3. ボタンおよびタップ可能オブジェクトの物理的押し心地 */
+.btn:active,
+button:active,
+.mode-card:active,
+.board-cell.valid-move:active,
+.board-cell.valid-capture:active,
+.matrix-cell.can-unlock:active,
+.enemy-evo-piece-card:active {
+  transform: translateY(2px) scale(0.985);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 4. オフライン対面PvP：上側ドックの文字・中心セルの完全正対化（二重反転バグ解消） */
+.evolution-inspector-dock.dock-top-pvp .mini-kanji {
+  transform: rotate(180deg); /* 先手駒は相手なので上側視点からは反転 */
+}
+.evolution-inspector-dock.dock-top-pvp .mini-kanji.gote {
+  transform: none; /* 後手駒は自身の駒なので正対 */
+}
+.evolution-inspector-dock.dock-top-pvp .matrix-cell.center-self {
+  transform: rotate(180deg); /* 先手駒は相手なので上側視点からは反転 */
+}
+.evolution-inspector-dock.dock-top-pvp .matrix-cell.center-self.gote {
+  transform: none; /* 後手駒は自身の駒なので正対 */
+}
+
+/* 5. 画面揺れ・全画面演出（王手・サドンデス・決着時） */
+.screen-shake {
+  animation: boardShake 0.35s cubic-bezier(.36, .07, .19, .97) both;
+}
+@keyframes boardShake {
+  10%, 90% { transform: translate3d(-3px, 0, 0); }
+  20%, 80% { transform: translate3d(4px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(3px, 0, 0); }
+}
+
+/* 6. 標的駒の「撃破」視覚タグ & 相手通知カードのインタラクション */
+.board-cell.valid-capture::after {
+  content: '撃破';
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  font-size: 0.55rem;
+  font-weight: 900;
+  color: #fca5a5;
+  background: rgba(153, 27, 27, 0.85);
+  padding: 0 2px;
+  border-radius: 2px;
+  line-height: 1.1;
+  pointer-events: none;
+  border: 1px solid rgba(248, 113, 113, 0.5);
+}
+
+.enemy-evo-piece-card {
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.enemy-evo-piece-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* 7. 効果音切り替えボタン */
+.btn-sound {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.03);
+}
+.btn-sound.is-active {
+  color: var(--evo-gold);
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.08);
+}
+
