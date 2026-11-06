@@ -1409,6 +1409,7 @@ function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
   state.lastMove = { fromR, fromC, toR, toC };
   state.selectedCell = null;
   state.validMoves = [];
+  state.guardSquares = [];
   state.inspectedPiece = movingPiece;
 
   // 天王山（５五）へ入った場合は直近制圧プレイヤーを記録
@@ -1943,6 +1944,9 @@ function getTotalArmyPoints(owner) {
 
 // ターン終了・交代
 function endTurn() {
+  state.selectedCell = null;
+  state.validMoves = [];
+  state.guardSquares = [];
   state.movesCount++;
   state.turn = state.turn === 'sente' ? 'gote' : 'sente';
   const sideSymbol = state.turn === 'sente' ? '先手' : '後手';
@@ -2760,25 +2764,28 @@ function renderBoard() {
         }
       }
 
-      // 移動可能マスのハイライト
-      const validMove = state.validMoves.find(m => m.r === r && m.c === c);
-      if (validMove) {
-        if (state.selectedCell && state.selectedCell.isEnemy) {
-          // 相手駒の利き：赤色で表示（味方駒がターゲットになっている場合はさらに強調）
-          cell.classList.add(validMove.isCapture ? 'enemy-target-capture' : 'enemy-valid-move');
-        } else {
-          // 自軍駒の移動先：緑色（敵駒がいる場合は赤枠）
-          cell.classList.add(validMove.isCapture ? 'valid-capture' : 'valid-move');
+      // 駒が選択されている場合のみ、移動可能マスや利き・援護マスをハイライト表示
+      if (state.selectedCell) {
+        // 移動可能マスのハイライト
+        const validMove = state.validMoves && state.validMoves.find(m => m.r === r && m.c === c);
+        if (validMove) {
+          if (state.selectedCell.isEnemy) {
+            // 相手駒の利き：赤色で表示（味方駒がターゲットになっている場合はさらに強調）
+            cell.classList.add(validMove.isCapture ? 'enemy-target-capture' : 'enemy-valid-move');
+          } else {
+            // 自軍駒の移動先：緑色（敵駒がいる場合は赤枠）
+            cell.classList.add(validMove.isCapture ? 'valid-capture' : 'valid-move');
+          }
         }
-      }
 
-      // 攻撃範囲内にある自軍駒（移動不可だが利き・援護があるマス）のハイライト
-      const isGuard = state.guardSquares && state.guardSquares.some(g => g.r === r && g.c === c);
-      if (isGuard) {
-        if (state.selectedCell && state.selectedCell.isEnemy) {
-          cell.classList.add('enemy-guard-move');
-        } else {
-          cell.classList.add('ally-guard-move');
+        // 攻撃範囲内にある自軍・相手軍の駒（移動不可だが利き・援護があるマス）のハイライト
+        const isGuard = state.guardSquares && state.guardSquares.some(g => g.r === r && g.c === c);
+        if (isGuard) {
+          if (state.selectedCell.isEnemy) {
+            cell.classList.add('enemy-guard-move');
+          } else {
+            cell.classList.add('ally-guard-move');
+          }
         }
       }
 
