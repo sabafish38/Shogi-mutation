@@ -35,7 +35,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700;900&family=Yuji+Boku&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
   <div class="app-container">
@@ -205,6 +205,52 @@
             <span id="gote-piece-count" class="ind-value">20</span><small>枚</small>
           </div>
           <span id="gote-max-piece" class="hidden"></span>
+        </div>
+      </div>
+
+      <!-- オフライン2人対戦（対面）専用：後手用 180°反転進化・インスペクタードック -->
+      <div id="evolution-box-top" class="evolution-inspector-dock dock-top-pvp hidden">
+        <div class="dock-header">
+          <div class="piece-mini-info">
+            <div id="insp-kanji-top" class="mini-kanji gote">？</div>
+            <div class="mini-details">
+              <div class="mini-title-row">
+                <span id="insp-name-top" class="mini-name">駒を選択</span>
+                <span id="inspector-owner-badge-top" class="owner-mini-badge gote-badge">後手</span>
+              </div>
+              <div class="mini-sub-row">
+                <span id="insp-points-top" class="mini-pt">持ち: - pt</span>
+                <span id="insp-tier-top" class="mini-tier"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dock-evo-actions">
+            <div class="dock-points-badge">
+              <span>残 <strong id="evo-remaining-pt-top">0</strong>pt</span>
+              <span class="alloc-badge">割当 <strong id="evo-spending-pt-top">0</strong>pt</span>
+            </div>
+            <div class="dock-buttons">
+              <button id="btn-evo-reset-top" class="btn btn-secondary btn-dock" disabled>取消</button>
+              <button id="btn-evo-confirm-top" class="btn btn-accent btn-dock" disabled>進化確定</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="evo-capture-msg-top" class="dock-caption">駒をタップして移動、または下のマトリックスで進化</div>
+
+        <!-- 5x5 移動・進化マトリックス (後手視点) -->
+        <div class="dock-matrix-area">
+          <div id="matrix-direction-hint-top" class="matrix-direction-hint">▲ 進行方向（盤面向き）▲</div>
+          <div id="move-matrix-top" class="move-matrix"></div>
+          <div id="matrix-direction-hint-bottom-top" class="matrix-direction-hint gote-hint hidden">▼ 進行方向 ▼</div>
+          <div class="matrix-quick-legend">
+            <span>●初期</span>
+            <span>進化済</span>
+            <span><strong style="color:var(--evo-gold)">＋</strong>解放(1pt)</span>
+            <span><strong style="color:var(--ray-cyan)">直進</strong>直進無限(1pt)</span>
+            <span><strong style="color:var(--ray-cyan)">∞</strong>走り</span>
+          </div>
         </div>
       </div>
 
@@ -739,8 +785,8 @@
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
 
   <!-- ゲームスクリプト群 -->
-  <script src="online.js?v=13"></script>
-  <script src="game.js?v=13"></script>
+  <script src="online.js?v=14"></script>
+  <script src="game.js?v=14"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

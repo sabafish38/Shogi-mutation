@@ -134,6 +134,20 @@ const elInspName = document.getElementById('insp-name');
 const elInspPoints = document.getElementById('insp-points');
 const elInspTier = document.getElementById('insp-tier');
 const elInspOwnerBadge = document.getElementById('inspector-owner-badge');
+
+// オフライン2人対戦（対面）専用：後手用トップドック
+const elEvoBoxTop = document.getElementById('evolution-box-top');
+const elEvoRemainingTop = document.getElementById('evo-remaining-pt-top');
+const elEvoSpendingTop = document.getElementById('evo-spending-pt-top');
+const elEvoMsgTop = document.getElementById('evo-capture-msg-top');
+const elBtnEvoResetTop = document.getElementById('btn-evo-reset-top');
+const elBtnEvoConfirmTop = document.getElementById('btn-evo-confirm-top');
+const elMoveMatrixTop = document.getElementById('move-matrix-top');
+const elInspKanjiTop = document.getElementById('insp-kanji-top');
+const elInspNameTop = document.getElementById('insp-name-top');
+const elInspPointsTop = document.getElementById('insp-points-top');
+const elInspTierTop = document.getElementById('insp-tier-top');
+const elInspOwnerBadgeTop = document.getElementById('inspector-owner-badge-top');
 const elCheckBanner = document.getElementById('check-banner');
 const elCheckBannerTarget = document.getElementById('check-banner-target');
 const elSuddenDeathBanner = document.getElementById('sudden-death-banner');
@@ -1232,7 +1246,7 @@ function showEnemyEvolutionNotification(reports) {
   const elBody = document.getElementById('enemy-evo-body');
   const elTitle = document.getElementById('enemy-evo-title-text');
   const btnInspect = document.getElementById('btn-inspect-enemy-evo');
-  if (!elToast || !elBody) return;
+  if (!elToast || !elBody || !reports || reports.length === 0) return;
 
   if (enemyEvoNotificationTimer) {
     clearTimeout(enemyEvoNotificationTimer);
@@ -1242,7 +1256,7 @@ function showEnemyEvolutionNotification(reports) {
   const first = reports[0];
   const sideSymbol = first && first.owner === 'sente' ? '先手' : '相手';
   if (elTitle) {
-    elTitle.textContent = `${sideSymbol}が駒を進化させました！`;
+    elTitle.textContent = `${sideSymbol}が駒を変異・進化させました`;
   }
 
   elBody.innerHTML = '';
@@ -1250,26 +1264,114 @@ function showEnemyEvolutionNotification(reports) {
     const card = document.createElement('div');
     card.className = 'enemy-evo-piece-card';
 
-    const pSide = rep.owner === 'sente' ? '先手' : '後手';
-    const changesHtml = rep.changes
-      .map(ch => `<li class="enemy-evo-change-item ${ch.isRay ? 'is-ray' : ''}">${ch.desc}</li>`)
-      .join('');
+    // 駒情報の取得
+    let piece = rep.piece;
+    if (!piece && rep.pieceId) {
+      const found = findPieceById(state.board, rep.pieceId);
+      if (found) piece = found.piece;
+    }
 
-    card.innerHTML = `
-      <div class="enemy-evo-piece-name">
-        <span>${pSide}【${rep.name}】（現在 ${rep.totalPt}pt / +${rep.count}pt強化）</span>
-        <span class="enemy-evo-piece-pos">${rep.posStr}</span>
+    const pSide = rep.owner === 'sente' ? '先手' : '後手';
+    const isOwnerGote = rep.owner === 'gote';
+
+    // 1. ヘッダー行
+    const cardHeader = document.createElement('div');
+    cardHeader.className = 'enemy-evo-piece-header';
+    cardHeader.innerHTML = `
+      <div class="enemy-evo-meta-title">
+        <span class="owner-mini-badge ${isOwnerGote ? 'gote-badge' : 'sente-badge'}">${pSide}</span>
+        <strong>【${rep.name}】</strong>
+        <span class="enemy-evo-pos-tag">${rep.posStr || ''}</span>
       </div>
-      <ul class="enemy-evo-changes-list">
-        ${changesHtml}
-      </ul>
+      <div class="enemy-evo-delta-tag">+${rep.count}pt (計${rep.totalPt}pt)</div>
     `;
+    card.appendChild(cardHeader);
+
+    // 2. ビジュアル5x5マトリックス図（文章ではなく画像的なグリッドで表示）
+    const visualBox = document.createElement('div');
+    visualBox.className = 'enemy-evo-visual-box';
+
+    const gridEl = document.createElement('div');
+    gridEl.className = 'enemy-evo-mini-grid';
+
+    // 盤面上の実際の攻撃方向と同期（後手駒は手前▼、先手駒は奥▲）
+    const shouldFlip = isOwnerGote;
+
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const cell = document.createElement('div');
+        cell.className = 'mini-matrix-cell';
+
+        if (dx === 0 && dy === 0) {
+          // 中央（駒本体）
+          cell.classList.add('is-center');
+          if (isOwnerGote) cell.classList.add('gote-kanji');
+          cell.textContent = piece ? getPieceDisplayLabel(piece, true) : (rep.name ? rep.name[0] : '駒');
+        } else {
+          const checkDx = shouldFlip ? -dx : dx;
+          const checkDy = shouldFlip ? -dy : dy;
+
+          const dirX = Math.sign(checkDx);
+          const dirY = Math.sign(checkDy);
+          const isStraight = (dirX === 0 || dirY === 0 || Math.abs(dirX) === Math.abs(dirY));
+          const is2ndStep = isStraight && (checkDx === dirX * 2 && checkDy === dirY * 2);
+
+          // 【赤】新しく追加された範囲の判定
+          const isNewMove = rep.changes && rep.changes.some(ch => {
+            if (ch.isRay) {
+              return isStraight && (Math.sign(ch.dx) === dirX && Math.sign(ch.dy) === dirY);
+            }
+            return ch.dx === checkDx && ch.dy === checkDy;
+          });
+
+          // 【緑】既存の動ける範囲の判定
+          let isExistingMove = false;
+          if (!isNewMove && piece) {
+            const hasStep = hasStepAt(piece, checkDx, checkDy, false);
+            const hasRay = hasRayInDir(piece, checkDx, checkDy, false);
+            if (hasStep || hasRay) {
+              isExistingMove = true;
+            }
+          }
+
+          if (isNewMove) {
+            cell.classList.add('is-new-range');
+            const isRayChange = rep.changes.some(ch => ch.isRay && isStraight && Math.sign(ch.dx) === dirX && Math.sign(ch.dy) === dirY);
+            cell.textContent = isRayChange ? '∞' : '新';
+            cell.title = '新しく追加された移動範囲';
+          } else if (isExistingMove) {
+            cell.classList.add('is-existing-range');
+            const isRay = piece && hasRayInDir(piece, checkDx, checkDy, false);
+            cell.textContent = isRay ? '∞' : '●';
+            cell.title = '既存の移動範囲';
+          } else {
+            cell.classList.add('is-empty');
+          }
+        }
+        gridEl.appendChild(cell);
+      }
+    }
+    visualBox.appendChild(gridEl);
+
+    // 3. 凡例と進行方向
+    const metaEl = document.createElement('div');
+    metaEl.className = 'enemy-evo-meta-desc';
+    const dirText = shouldFlip ? '▼ 手前（自陣向き）' : '▲ 奥（敵陣向き）';
+    metaEl.innerHTML = `
+      <div class="enemy-evo-dir-chip">${dirText}</div>
+      <div class="enemy-evo-legend-pills">
+        <div class="legend-pill-item"><span class="chip-color green-chip"></span><span>緑: 既存の移動域</span></div>
+        <div class="legend-pill-item"><span class="chip-color red-chip"></span><span>赤: 今回の進化マス</span></div>
+      </div>
+    `;
+    visualBox.appendChild(metaEl);
+
+    card.appendChild(visualBox);
     elBody.appendChild(card);
   }
 
   if (btnInspect && first) {
     btnInspect.onclick = () => {
-      // 盤上でその敵駒を選択し、移動範囲と反転マトリックスを表示
       const found = findPieceById(state.board, first.pieceId);
       if (found) {
         state.inspectedPiece = found.piece;
@@ -1283,7 +1385,6 @@ function showEnemyEvolutionNotification(reports) {
 
   elToast.classList.remove('hidden');
 
-  // 12秒後に自動消去
   enemyEvoNotificationTimer = setTimeout(() => {
     hideEnemyEvolutionNotification();
   }, 12000);
@@ -1386,6 +1487,8 @@ function confirmEvolutionTurn() {
           totalPt: getPieceTotalPt(found.piece, false),
           changes: state.pendingEvo.filter(p => p.pieceId === found.piece.id).map(alloc => ({
             isRay: alloc.type === 'ray',
+            dx: alloc.dx,
+            dy: alloc.dy,
             desc: getDirectionDescription(found.piece, alloc.dx, alloc.dy, alloc.type === 'ray')
           }))
         });
@@ -2387,6 +2490,18 @@ function renderStatsAndStatus() {
 }
 
 function renderEvolutionBox() {
+  const isPvp = (state.mode === 'pvp');
+  const mainLayout = document.querySelector('.main-layout');
+  if (mainLayout) {
+    mainLayout.classList.toggle('pvp-mode', isPvp);
+  }
+  if (elCardGote) {
+    elCardGote.classList.toggle('pvp-facing', isPvp);
+  }
+  if (elEvoBoxTop) {
+    elEvoBoxTop.classList.toggle('hidden', !isPvp);
+  }
+
   const remaining = getRemainingBankPt();
   const spending = state.pendingEvo.length;
   const totalBank = state.bank[state.turn];
@@ -2394,11 +2509,19 @@ function renderEvolutionBox() {
   elEvoRemaining.textContent = remaining;
   elEvoSpending.textContent = spending;
 
-  elEvoBox.classList.toggle('has-points', totalBank > 0 && !isCPUTurn());
-  elEvoBox.classList.toggle('is-allocating', spending > 0 && !isCPUTurn());
+  // 下側ドック（先手側）の制御
+  const isSenteTurn = state.turn === 'sente';
+  elEvoBox.classList.toggle('is-turn-active', !isPvp || isSenteTurn);
+  elEvoBox.classList.toggle('is-turn-inactive', isPvp && !isSenteTurn);
+  elEvoBox.classList.toggle('has-points', (isSenteTurn || !isPvp) && totalBank > 0 && !isCPUTurn());
+  elEvoBox.classList.toggle('is-allocating', (isSenteTurn || !isPvp) && spending > 0 && !isCPUTurn());
 
-  if (state.phase === 'instant_evo') {
-    elEvoMsg.textContent = `撃破したポイントを即時配分中！確定するとそのまま相手番へ進みます（手番消費なし）`;
+  if (isPvp && !isSenteTurn && state.phase !== 'instant_evo') {
+    elEvoMsg.textContent = '後手の手番中です。盤面を見守りながら次手を構想できます';
+    elBtnEvoConfirm.disabled = true;
+    elBtnEvoReset.disabled = true;
+  } else if (state.phase === 'instant_evo') {
+    elEvoMsg.textContent = `撃破した霊力を即時配分中！確定するとそのまま相手番へ進みます（手番消費なし）`;
     elBtnEvoConfirm.disabled = isCPUTurn() || state.phase === 'gameover';
     elBtnEvoReset.disabled = spending === 0 || isCPUTurn() || state.phase === 'gameover';
   } else if (spending > 0) {
@@ -2414,13 +2537,56 @@ function renderEvolutionBox() {
     elBtnEvoConfirm.disabled = true;
     elBtnEvoReset.disabled = true;
   }
+
+  // 上側ドック（オフライン2人対戦・後手側）の制御
+  if (isPvp && elEvoBoxTop) {
+    const isGoteTurn = state.turn === 'gote';
+    const goteBank = state.bank.gote;
+    const remainingTop = isGoteTurn ? remaining : goteBank;
+    const spendingTop = isGoteTurn ? spending : 0;
+
+    if (elEvoRemainingTop) elEvoRemainingTop.textContent = remainingTop;
+    if (elEvoSpendingTop) elEvoSpendingTop.textContent = spendingTop;
+
+    elEvoBoxTop.classList.toggle('is-turn-active', isGoteTurn);
+    elEvoBoxTop.classList.toggle('is-turn-inactive', !isGoteTurn);
+    elEvoBoxTop.classList.toggle('has-points', isGoteTurn && goteBank > 0);
+    elEvoBoxTop.classList.toggle('is-allocating', isGoteTurn && spendingTop > 0);
+
+    if (elBtnEvoConfirmTop && elBtnEvoResetTop && elEvoMsgTop) {
+      if (isGoteTurn && state.phase === 'instant_evo') {
+        elEvoMsgTop.textContent = '撃破した霊力を即時配分中！確定するとそのまま相手番へ進みます';
+        elBtnEvoConfirmTop.disabled = false;
+        elBtnEvoResetTop.disabled = spendingTop === 0;
+      } else if (isGoteTurn && spendingTop > 0) {
+        elEvoMsgTop.textContent = `${spendingTop}pt 割当中（確定すると1手消費してターン終了）`;
+        elBtnEvoConfirmTop.disabled = false;
+        elBtnEvoResetTop.disabled = false;
+      } else if (isGoteTurn && goteBank > 0) {
+        elEvoMsgTop.textContent = `所持 ${goteBank}pt 使用可能！自軍駒を選び「＋」で進化できます`;
+        elBtnEvoConfirmTop.disabled = true;
+        elBtnEvoResetTop.disabled = true;
+      } else if (isGoteTurn) {
+        elEvoMsgTop.textContent = '敵駒を撃破すると即時進化が発動し、ポイントが貯まります';
+        elBtnEvoConfirmTop.disabled = true;
+        elBtnEvoResetTop.disabled = true;
+      } else {
+        elEvoMsgTop.textContent = '先手の手番中です。思考しながら次手を検討できます';
+        elBtnEvoConfirmTop.disabled = true;
+        elBtnEvoResetTop.disabled = true;
+      }
+    }
+  }
 }
 
 function renderInspector() {
   const piece = state.inspectedPiece;
   elMoveMatrix.innerHTML = '';
+  if (elMoveMatrixTop) elMoveMatrixTop.innerHTML = '';
+
   const elDirHint = document.getElementById('matrix-direction-hint');
   const elDirHintBottom = document.getElementById('matrix-direction-hint-bottom');
+  const isPvp = (state.mode === 'pvp');
 
   if (!piece) {
     elInspKanji.textContent = '？';
@@ -2435,6 +2601,17 @@ function renderInspector() {
     }
     if (elDirHintBottom) {
       elDirHintBottom.classList.add('hidden');
+    }
+
+    if (isPvp && elInspKanjiTop) {
+      elInspKanjiTop.textContent = '？';
+      elInspKanjiTop.classList.add('gote');
+      elInspNameTop.textContent = '駒を選択してください';
+      elInspPointsTop.textContent = '持ちポイント: - pt';
+      elInspTierTop.textContent = '状態: -';
+      elInspOwnerBadgeTop.classList.add('hidden');
+      if (elDirHintTop) elDirHintTop.textContent = '▲ 進行方向（盤面向き）▲';
+      if (elDirHintBottomTop) elDirHintBottomTop.classList.add('hidden');
     }
     return;
   }
@@ -2465,6 +2642,33 @@ function renderInspector() {
   elInspOwnerBadge.classList.remove('hidden', 'sente-badge', 'gote-badge');
   elInspOwnerBadge.classList.add(piece.owner === 'sente' ? 'sente-badge' : 'gote-badge');
   elInspOwnerBadge.textContent = piece.owner === 'sente' ? '先手' : '後手';
+
+  if (isPvp && elInspKanjiTop) {
+    elInspKanjiTop.textContent = getPieceDisplayLabel(piece, true);
+    elInspKanjiTop.classList.toggle('gote', isGote);
+    elInspNameTop.textContent = `元駒: ${piece.name}（初期 ${piece.basePt}pt）`;
+    elInspPointsTop.textContent = `現在の持ちポイント: ${totalPt} pt ${addedPt > 0 ? `(進化 +${addedPt}pt)` : ''}`;
+    if (piece.type === 'ou') {
+      elInspTierTop.textContent = '王将（全周囲8方向固定・変異不可）';
+    } else if (piece.owner === 'sente') {
+      elInspTierTop.textContent = '相手駒（盤面の向きに合わせて反転表示中）';
+    } else {
+      elInspTierTop.textContent = '5×5全24マス（周囲2マス・桂馬跳び等）を1ptで解放可能';
+    }
+    elInspOwnerBadgeTop.classList.remove('hidden', 'sente-badge', 'gote-badge');
+    elInspOwnerBadgeTop.classList.add(piece.owner === 'sente' ? 'sente-badge' : 'gote-badge');
+    elInspOwnerBadgeTop.textContent = piece.owner === 'sente' ? '先手' : '後手';
+
+    if (elDirHintTop) {
+      if (piece.owner === 'sente') {
+        elDirHintTop.textContent = '▼ 進行方向（手前・自陣向き）▼';
+        elDirHintTop.classList.add('gote-dir');
+      } else {
+        elDirHintTop.textContent = '▲ 進行方向（盤面向き）▲';
+        elDirHintTop.classList.remove('gote-dir');
+      }
+    }
+  }
 
   // 進行方向ヒントの向きを更新（敵駒なら手前向き▼、自軍駒なら奥向き▲）
   if (elDirHint) {
@@ -2560,6 +2764,65 @@ function renderInspector() {
       }
 
       elMoveMatrix.appendChild(mCell);
+
+      // 上側（後手視点）ドック用マトリックスセルの生成
+      if (isPvp && elMoveMatrixTop) {
+        const mCellTop = document.createElement('div');
+        mCellTop.className = 'matrix-cell';
+        if (ring === 1) mCellTop.classList.add('inner-ring');
+
+        if (dx === 0 && dy === 0) {
+          mCellTop.classList.add('center-self');
+          if (isGote) mCellTop.classList.add('gote');
+          mCellTop.textContent = getPieceDisplayLabel(piece, true);
+        } else {
+          // 後手プレイヤーから見て：先手駒なら反転、後手自身の駒なら正対
+          const shouldFlipTop = (piece.owner === 'sente');
+          const checkDxTop = shouldFlipTop ? -dx : dx;
+          const checkDyTop = shouldFlipTop ? -dy : dy;
+
+          const dirXTop = Math.sign(checkDxTop);
+          const dirYTop = Math.sign(checkDyTop);
+          const isStraightTop = (dirXTop === 0 || dirYTop === 0 || Math.abs(dirXTop) === Math.abs(dirYTop));
+          const is2ndStepTop = isStraightTop && (checkDxTop === dirXTop * 2 && checkDyTop === dirYTop * 2);
+
+          const stepTypeTop = hasStepAt(piece, checkDxTop, checkDyTop, true);
+          const isRayTop = hasRayInDir(piece, checkDxTop, checkDyTop, true);
+          const isPendingRayTop = state.pendingEvo.some(p => p.pieceId === piece.id && p.type === 'ray' &&
+            p.dx === dirXTop && p.dy === dirYTop);
+          const unlockableTop = isEditable && remainingPt > 0 && canUnlockCoord(piece, checkDxTop, checkDyTop, true);
+          const rayUpgradableTop = isEditable && remainingPt > 0 && is2ndStepTop && canUpgradeToRay(piece, dirXTop, dirYTop, true);
+
+          if (isPendingRayTop && is2ndStepTop) {
+            mCellTop.classList.add('pending-unlock');
+            mCellTop.innerHTML = '<span>∞覚醒</span><small style="font-size:0.55rem">取消可</small>';
+          } else if (isPendingRayTop && ring === 1) {
+            mCellTop.classList.add('pending-unlock');
+            mCellTop.innerHTML = '<span>∞</span>';
+          } else if (stepTypeTop === 'pending') {
+            mCellTop.classList.add('pending-unlock');
+            mCellTop.innerHTML = '<span>+1</span><small style="font-size:0.55rem">取消可</small>';
+          } else if (isRayTop) {
+            mCellTop.classList.add('has-ray');
+            mCellTop.textContent = '∞';
+          } else if (rayUpgradableTop) {
+            mCellTop.classList.add('can-unlock', 'can-ray-upgrade');
+            mCellTop.innerHTML = '<span>覚醒</span>';
+          } else if (stepTypeTop === 'evolved') {
+            mCellTop.classList.add('has-evolved');
+            mCellTop.textContent = '済';
+          } else if (stepTypeTop === 'initial') {
+            mCellTop.classList.add('has-step');
+            mCellTop.textContent = '●';
+          } else if (unlockableTop) {
+            mCellTop.classList.add('can-unlock');
+            mCellTop.textContent = '＋';
+          }
+
+          mCellTop.addEventListener('click', () => onMatrixCellClick(checkDxTop, checkDyTop));
+        }
+        elMoveMatrixTop.appendChild(mCellTop);
+      }
     }
   }
 }
@@ -3020,6 +3283,8 @@ if (elPlayerSide) elPlayerSide.addEventListener('change', restartNewGame);
 
 elBtnEvoReset.addEventListener('click', resetEvolutionPending);
 elBtnEvoConfirm.addEventListener('click', confirmEvolutionTurn);
+if (elBtnEvoResetTop) elBtnEvoResetTop.addEventListener('click', resetEvolutionPending);
+if (elBtnEvoConfirmTop) elBtnEvoConfirmTop.addEventListener('click', confirmEvolutionTurn);
 
 // エントランス・モードカードクリック
 const btnModeRank = document.getElementById('btn-mode-rank');
