@@ -1,6 +1,8 @@
 (function() {
   'use strict';
 
+const BOARD_SIZE = 9;
+
 /**
  * 無法将棋 - SHOGI: MUTATION
  * メインゲームロジック & CPU思考エンジン
@@ -1392,7 +1394,7 @@ function saveHistory() {
 
 // ひとつ前の自分の番に戻す
 function undoMove() {
-  if (state.mode === 'online') {
+  if (state.mode === 'online' || state.mode === 'rank') {
     addLog('オンライン対局中は「待った」はできません。');
     return;
   }
@@ -1568,8 +1570,9 @@ function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
     SoundSystem.playTennozan();
   }
 
-  // オンライン対局時の指し手送信
-  if (syncOnline && state.mode === 'online' && state.turn === state.playerSide && window.MuhouOnline && typeof window.MuhouOnline.sendOnlineMoveAction === 'function') {
+  // オンライン対局時の指し手送信（通常通信対局および格付戦の両方で確実に同期）
+  const isOnlineGame = (state.mode === 'online' || state.mode === 'rank');
+  if (syncOnline && isOnlineGame && state.turn === state.playerSide && window.MuhouOnline && typeof window.MuhouOnline.sendOnlineMoveAction === 'function') {
     window.MuhouOnline.sendOnlineMoveAction(fromR, fromC, toR, toC, targetPiece);
   }
 
@@ -2071,7 +2074,8 @@ function confirmEvolutionTurn() {
   }
 
   // オンライン対局時の進化確定データ送信 (0pt割り振りの場合も含め必ず送信して相手クライアントのフェーズを完了)
-  if (state.mode === 'online' && state.turn === state.playerSide && window.MuhouOnline && typeof window.MuhouOnline.sendOnlineEvolutionAction === 'function') {
+  const isOnlineGame = (state.mode === 'online' || state.mode === 'rank');
+  if (isOnlineGame && state.turn === state.playerSide && window.MuhouOnline && typeof window.MuhouOnline.sendOnlineEvolutionAction === 'function') {
     const pendingCopy = state.pendingEvo.map(p => ({ ...p }));
     const details = [];
     for (const { found, count, rays } of evolvedSummary.values()) {
@@ -4393,7 +4397,11 @@ function validateRemoteMove(fromR, fromC, toR, toC, remoteSide) {
     return { valid: false, reason: '自軍以外の駒を移動させることはできません' };
   }
   const validMoves = getValidMovesForPiece(state.board, fromR, fromC);
-  const isMoveLegal = validMoves.some(([vr, vc]) => vr === toR && vc === toC);
+  const isMoveLegal = validMoves.some(m => {
+    const mr = Array.isArray(m) ? m[0] : m.r;
+    const mc = Array.isArray(m) ? m[1] : m.c;
+    return mr === toR && mc === toC;
+  });
   if (!isMoveLegal) {
     return { valid: false, reason: 'ルール上移動不可能な位置への着手です' };
   }
@@ -4617,6 +4625,8 @@ window.MuhouEngine = Object.freeze({
   renderSeasonAndRanking,
   recordRivalPlayer,
   loadRivalPlayers,
+  getState: () => state,
+  executeMove,
   getSoundSystem: () => SoundSystem
 });
 

@@ -387,20 +387,24 @@
           return;
         }
 
-        const result = engine.executeRemoteMove(data.fromR, data.fromC, data.toR, data.toC, remoteSide);
-        if (!result.valid) {
-          console.error('TAMPER_DETECTED in remote move:', result.reason);
-          try {
-            conn.send({
-              type: 'tamper_detected',
-              reason: result.reason,
-              senderSide: onlinePlayerSide
-            });
-          } catch (e) {}
-          setTimeout(() => {
-            try { conn.close(); } catch (e) {}
-          }, 300);
-          engine.endGame(onlinePlayerSide, `相手の不正な着手（${result.reason}）を検知したため、反則勝ちとなります。`);
+        try {
+          const result = engine.executeRemoteMove(data.fromR, data.fromC, data.toR, data.toC, remoteSide);
+          if (result && !result.valid) {
+            console.error('TAMPER_DETECTED in remote move:', result.reason);
+            try {
+              conn.send({
+                type: 'tamper_detected',
+                reason: result.reason,
+                senderSide: onlinePlayerSide
+              });
+            } catch (e) {}
+            setTimeout(() => {
+              try { conn.close(); } catch (e) {}
+            }, 300);
+            engine.endGame(onlinePlayerSide, `相手の不正な着手（${result.reason}）を検知したため、反則勝ちとなります。`);
+          }
+        } catch (err) {
+          console.error('Error executing remote move:', err);
         }
       } else if (data.type === 'evolution') {
         // ==========================================
@@ -412,20 +416,24 @@
           return;
         }
 
-        const result = engine.executeRemoteEvolution(data.pendingEvo, data.spendingPt, data.evoLogs, remoteSide);
-        if (!result.valid) {
-          console.error('TAMPER_DETECTED in remote evolution:', result.reason);
-          try {
-            conn.send({
-              type: 'tamper_detected',
-              reason: result.reason,
-              senderSide: onlinePlayerSide
-            });
-          } catch (e) {}
-          setTimeout(() => {
-            try { conn.close(); } catch (e) {}
-          }, 300);
-          engine.endGame(onlinePlayerSide, `相手の不正な進化指定（${result.reason}）を検知したため、反則勝ちとなります。`);
+        try {
+          const result = engine.executeRemoteEvolution(data.pendingEvo, data.spendingPt, data.evoLogs, remoteSide);
+          if (result && !result.valid) {
+            console.error('TAMPER_DETECTED in remote evolution:', result.reason);
+            try {
+              conn.send({
+                type: 'tamper_detected',
+                reason: result.reason,
+                senderSide: onlinePlayerSide
+              });
+            } catch (e) {}
+            setTimeout(() => {
+              try { conn.close(); } catch (e) {}
+            }, 300);
+            engine.endGame(onlinePlayerSide, `相手の不正な進化指定（${result.reason}）を検知したため、反則勝ちとなります。`);
+          }
+        } catch (err) {
+          console.error('Error executing remote evolution:', err);
         }
       } else if (data.type === 'tamper_detected') {
         console.warn('Tamper notification received from peer:', data.reason);
