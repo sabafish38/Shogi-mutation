@@ -981,6 +981,13 @@ function getPieceDisplayLabel(piece, includePending = false) {
   return piece.type === 'ou' ? `王${pt}` : `${pt}`;
 }
 
+// 6と9の判別用下線フォーマッタ（反転時・多視点での誤認完全防止）
+function formatPointWithUnderline(val) {
+  if (val === null || val === undefined) return '';
+  const str = String(val);
+  return str.replace(/([69])/g, '<span class="digit-underline">$1</span>');
+}
+
 // 相対座標(dx, dy)にその駒がステップ移動を持っているか判定
 function hasStepAt(piece, dx, dy, includePending = false) {
   if (piece.initialSteps.some(([sx, sy]) => sx === dx && sy === dy)) return 'initial';
@@ -1564,7 +1571,7 @@ function showEnemyEvolutionNotification(reports) {
         <strong>【${rep.name}】</strong>
         <span class="enemy-evo-pos-tag">${rep.posStr || ''}</span>
       </div>
-      <div class="enemy-evo-delta-tag">+${rep.count}pt (計${rep.totalPt}pt)</div>
+      <div class="enemy-evo-delta-tag">+${rep.count}pt (計${formatPointWithUnderline(rep.totalPt)}pt)</div>
     `;
     card.appendChild(cardHeader);
 
@@ -1575,8 +1582,8 @@ function showEnemyEvolutionNotification(reports) {
     const gridEl = document.createElement('div');
     gridEl.className = 'enemy-evo-mini-grid';
 
-    // 盤面上の実際の攻撃方向と同期（後手駒は手前▼、先手駒は奥▲）
-    const shouldFlip = isOwnerGote;
+    // 盤面上の実際の攻撃方向と同期（相手駒の進行方向を手前▼・自陣向きに完全同期）
+    const shouldFlip = true;
 
     for (let dy = -2; dy <= 2; dy++) {
       for (let dx = -2; dx <= 2; dx++) {
@@ -1584,10 +1591,10 @@ function showEnemyEvolutionNotification(reports) {
         cell.className = 'mini-matrix-cell';
 
         if (dx === 0 && dy === 0) {
-          // 中央（駒本体）
+          // 中央（駒本体：相手の駒として必ず180度反転＆将棋駒形状表示）
           cell.classList.add('is-center');
-          if (isOwnerGote) cell.classList.add('gote-kanji');
-          cell.textContent = piece ? getPieceDisplayLabel(piece, true) : (rep.name ? rep.name[0] : '駒');
+          const rawLabel = piece ? getPieceDisplayLabel(piece, true) : (rep.name ? rep.name[0] : '駒');
+          cell.innerHTML = formatPointWithUnderline(rawLabel);
         } else {
           const checkDx = shouldFlip ? -dx : dx;
           const checkDy = shouldFlip ? -dy : dy;
@@ -2694,10 +2701,10 @@ function renderBoard() {
           pieceEl.appendChild(crownEl);
         }
 
-        // 中央の持ちポイント数字
+        // 中央の持ちポイント数字（6と9の判別用下線付き）
         const ptNumEl = document.createElement('span');
         ptNumEl.className = 'piece-pt-num';
-        ptNumEl.textContent = totalPt;
+        ptNumEl.innerHTML = formatPointWithUnderline(totalPt);
         pieceEl.appendChild(ptNumEl);
 
         // 走り駒や桂馬の識別サブタグ
@@ -2939,7 +2946,7 @@ function renderInspector() {
     : (piece.owner !== state.playerSide);
   const shouldFlipMatrix = isOpponent;
 
-  elInspKanji.textContent = getPieceDisplayLabel(piece, true);
+  elInspKanji.innerHTML = formatPointWithUnderline(getPieceDisplayLabel(piece, true));
   elInspKanji.classList.toggle('gote', isGote);
   elInspName.textContent = `元駒: ${piece.name}（初期 ${piece.basePt}pt）`;
   elInspPoints.textContent = `現在の持ちポイント: ${totalPt} pt ${addedPt > 0 ? `(進化 +${addedPt}pt)` : ''}`;
@@ -2956,7 +2963,7 @@ function renderInspector() {
   elInspOwnerBadge.textContent = piece.owner === 'sente' ? '先手' : '後手';
 
   if (isPvp && elInspKanjiTop) {
-    elInspKanjiTop.textContent = getPieceDisplayLabel(piece, true);
+    elInspKanjiTop.innerHTML = formatPointWithUnderline(getPieceDisplayLabel(piece, true));
     elInspKanjiTop.classList.toggle('gote', isGote);
     elInspNameTop.textContent = `元駒: ${piece.name}（初期 ${piece.basePt}pt）`;
     elInspPointsTop.textContent = `現在の持ちポイント: ${totalPt} pt ${addedPt > 0 ? `(進化 +${addedPt}pt)` : ''}`;
@@ -3022,7 +3029,7 @@ function renderInspector() {
         if (isGote) {
           mCell.classList.add('gote');
         }
-        mCell.textContent = getPieceDisplayLabel(piece, true);
+        mCell.innerHTML = formatPointWithUnderline(getPieceDisplayLabel(piece, true));
       } else {
         // 相手駒の場合は盤面の実際の攻撃向きに合わせて上下・左右を反転表示
         const checkDx = shouldFlipMatrix ? -dx : dx;
@@ -3086,7 +3093,7 @@ function renderInspector() {
         if (dx === 0 && dy === 0) {
           mCellTop.classList.add('center-self');
           if (isGote) mCellTop.classList.add('gote');
-          mCellTop.textContent = getPieceDisplayLabel(piece, true);
+          mCellTop.innerHTML = formatPointWithUnderline(getPieceDisplayLabel(piece, true));
         } else {
           // 後手プレイヤーから見て：先手駒なら反転、後手自身の駒なら正対
           const shouldFlipTop = (piece.owner === 'sente');

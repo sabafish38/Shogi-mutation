@@ -2684,16 +2684,18 @@ body {
 }
 
 .mini-matrix-cell.is-center {
-  background: #18181b;
-  border: 1.5px solid var(--evo-gold);
-  color: #fff;
+  background: linear-gradient(180deg, #fef2f2 0%, #fecaca 35%, #f87171 100%);
+  color: #7f1d1d;
   font-weight: 900;
   font-size: 0.72rem;
-}
-
-.mini-matrix-cell.is-center.gote-kanji {
-  transform: rotate(180deg);
-  border-color: #f87171;
+  font-family: var(--font-brush), var(--font-serif);
+  clip-path: polygon(50% 3%, 93% 19%, 100% 96%, 0% 96%, 7% 19%);
+  transform: rotate(180deg); /* 相手の進化通知のため常に180度反転（敵陣から自陣を向く向き） */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(185, 28, 28, 0.4);
+  border: none;
 }
 
 .mini-matrix-cell.is-new-range {
@@ -2873,5 +2875,23 @@ button:active,
   color: var(--evo-gold);
   border-color: rgba(245, 158, 11, 0.5);
   background: rgba(245, 158, 11, 0.08);
+}
+
+/* 8. 6と9の判別用下線（反転時・多視点での誤読を完全防止） */
+.digit-underline {
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 1px;
+  display: inline-block;
+  line-height: 0.92;
+}
+
+.mini-matrix-cell .digit-underline {
+  border-bottom-width: 1.5px;
+  padding-bottom: 0.5px;
+}
+
+.mini-kanji .digit-underline {
+  border-bottom-width: 2px;
+  padding-bottom: 1px;
 }
 
