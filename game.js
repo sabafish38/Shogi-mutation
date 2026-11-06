@@ -1082,7 +1082,7 @@ function canUpgradeToRay(piece, dx, dy, includePending = true) {
   const dirY = Math.sign(dy);
 
   // 直進8方向以外（桂馬ジャンプ等）は走り化不可
-  const isStraight = (dirX === 0 || dirY === 0 || Math.abs(dirX) === Math.abs(dirY));
+  const isStraight = (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy));
   if (!isStraight) return false;
 
   // すでにその方向に走りを持っているなら不可
@@ -1472,7 +1472,7 @@ function onMatrixCellClick(dx, dy) {
 
   const dirX = Math.sign(dx);
   const dirY = Math.sign(dy);
-  const isStraight = (dirX === 0 || dirY === 0 || Math.abs(dirX) === Math.abs(dirY));
+  const isStraight = (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy));
   const is2ndStep = isStraight && (dx === dirX * 2 && dy === dirY * 2);
 
   // 1. 取り消し処理：すでに仮割り振りがある場合
@@ -1548,58 +1548,56 @@ function resetEvolutionPending() {
 
 // 駒の進化方向（盤面から見た矢印と説明）を取得
 function getDirectionDescription(piece, dx, dy, isRay) {
-  // 盤面上の実際の進行方向（Sente視点）に変換
-  const sign = piece.owner === 'sente' ? 1 : -1;
-  const boardDx = dx * sign;
-  const boardDy = dy * sign;
+  // その駒にとっての相対方向（dy < 0 が前進、dy > 0 が後退）
   const isGote = piece.owner === 'gote';
+  const isStraight = (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy));
 
-  if (isRay) {
-    if (boardDx === 0 && boardDy > 0) return isGote ? ' 手前直進無限（前進ビーム！∞）' : ' 手前直進無限（後退ビーム！∞）';
-    if (boardDx === 0 && boardDy < 0) return isGote ? ' 奥直進無限（後退ビーム！∞）' : ' 奥直進無限（前進ビーム・香車化！∞）';
-    if (boardDx < 0 && boardDy === 0) return ' 左横直進無限（左ビーム！∞）';
-    if (boardDx > 0 && boardDy === 0) return ' 右横直進無限（右ビーム！∞）';
-    if (boardDx < 0 && boardDy > 0) return '手前左斜め直進無限（斜めビーム！∞）';
-    if (boardDx > 0 && boardDy > 0) return ' 手前右斜め直進無限（斜めビーム！∞）';
-    if (boardDx < 0 && boardDy < 0) return '奥左斜め直進無限（斜めビーム！∞）';
-    if (boardDx > 0 && boardDy < 0) return ' 奥右斜め直進無限（斜めビーム！∞）';
-    return '∞ 直進無限（走り覚醒！）';
+  // 直線8方向の走り（大駒化）
+  if (isRay && isStraight) {
+    if (dx === 0 && dy < 0) return isGote ? '前進（突撃ビーム・手前へ）' : '前進（突撃ビーム・敵陣へ）';
+    if (dx === 0 && dy > 0) return isGote ? '後退（引きビーム・敵陣へ）' : '後退（引きビーム・自陣へ）';
+    if (dx < 0 && dy === 0) return '左（横ビーム）';
+    if (dx > 0 && dy === 0) return '右（横ビーム）';
+    if (dx < 0 && dy < 0) return '左斜め前（斜めビーム）';
+    if (dx > 0 && dy < 0) return '右斜め前（斜めビーム）';
+    if (dx < 0 && dy > 0) return '左斜め後ろ（斜めビーム）';
+    if (dx > 0 && dy > 0) return '右斜め後ろ（斜めビーム）';
   }
 
   // ステップ移動 (1マスまたは2マス)
-  const ring = Math.max(Math.abs(boardDx), Math.abs(boardDy));
+  const ring = Math.max(Math.abs(dx), Math.abs(dy));
   if (ring === 1) {
-    if (boardDx === 0 && boardDy > 0) return isGote ? ' 手前1マス（前進）' : ' 手前1マス（引く手・後退）';
-    if (boardDx === 0 && boardDy < 0) return isGote ? ' 奥1マス（引く手・後退）' : ' 奥1マス（前進）';
-    if (boardDx < 0 && boardDy > 0) return '手前左斜め1マス';
-    if (boardDx > 0 && boardDy > 0) return ' 手前右斜め1マス';
-    if (boardDx < 0 && boardDy === 0) return ' 左横1マス';
-    if (boardDx > 0 && boardDy === 0) return ' 右横1マス';
-    if (boardDx < 0 && boardDy < 0) return '奥左斜め1マス';
-    if (boardDx > 0 && boardDy < 0) return ' 奥右斜め1マス';
+    if (dx === 0 && dy < 0) return '前1マス（前進）';
+    if (dx === 0 && dy > 0) return '後1マス（後退）';
+    if (dx < 0 && dy < 0) return '左斜め前1マス';
+    if (dx > 0 && dy < 0) return '右斜め前1マス';
+    if (dx < 0 && dy === 0) return '左1マス';
+    if (dx > 0 && dy === 0) return '右1マス';
+    if (dx < 0 && dy > 0) return '左斜め後ろ1マス';
+    if (dx > 0 && dy > 0) return '右斜め後ろ1マス';
   } else if (ring === 2) {
-    // 2マス直進
-    if (boardDx === 0 && boardDy === 2) return isGote ? ' 手前2マス直進（2歩跳び）' : ' 手前2マス直進（後退）';
-    if (boardDx === 0 && boardDy === -2) return isGote ? ' 奥2マス直進（後退）' : ' 奥2マス直進（2歩跳び）';
-    if (boardDx === -2 && boardDy === 0) return ' 左2マス直進';
-    if (boardDx === 2 && boardDy === 0) return ' 右2マス直進';
-    if (boardDx === -2 && boardDy === 2) return '手前左斜め2マス跳び';
-    if (boardDx === 2 && boardDy === 2) return ' 手前右斜め2マス跳び';
-    if (boardDx === -2 && boardDy === -2) return '奥左斜め2マス跳び';
-    if (boardDx === 2 && boardDy === -2) return ' 奥右斜め2マス跳び';
+    // 2マス移動（直線）
+    if (dx === 0 && dy === -2) return '前2マス（前進2歩）';
+    if (dx === 0 && dy === 2) return '後2マス（後退2歩）';
+    if (dx === -2 && dy === 0) return '左2マス移動';
+    if (dx === 2 && dy === 0) return '右2マス移動';
+    if (dx === -2 && dy === -2) return '左斜め前2マス移動';
+    if (dx === 2 && dy === -2) return '右斜め前2マス移動';
+    if (dx === -2 && dy === 2) return '左斜め後ろ2マス移動';
+    if (dx === 2 && dy === 2) return '右斜め後ろ2マス移動';
 
-    // 桂馬ジャンプ (8方向)
-    if (boardDy === 2 && boardDx === -1) return '手前左の桂馬ジャンプ';
-    if (boardDy === 2 && boardDx === 1) return ' 手前右の桂馬ジャンプ';
-    if (boardDy === -2 && boardDx === -1) return '奥左の桂馬ジャンプ';
-    if (boardDy === -2 && boardDx === 1) return ' 奥右の桂馬ジャンプ';
-    if (boardDx === -2 && boardDy === 1) return '左横手前の桂馬ジャンプ';
-    if (boardDx === -2 && boardDy === -1) return '左横奥の桂馬ジャンプ';
-    if (boardDx === 2 && boardDy === 1) return ' 右横手前の桂馬ジャンプ';
-    if (boardDx === 2 && boardDy === -1) return ' 右横奥の桂馬ジャンプ';
+    // 桂馬ジャンプ等（非直線）
+    if (dx === -1 && dy === -2) return '左桂馬ジャンプ';
+    if (dx === 1 && dy === -2) return '右桂馬ジャンプ';
+    if (dx === -2 && dy === -1) return '左横前桂馬ジャンプ';
+    if (dx === 2 && dy === -1) return '右横前桂馬ジャンプ';
+    if (dx === -2 && dy === 1) return '左横後ろ桂馬ジャンプ';
+    if (dx === 2 && dy === 1) return '右横後ろ桂馬ジャンプ';
+    if (dx === -1 && dy === 2) return '左後ろ桂馬ジャンプ';
+    if (dx === 1 && dy === 2) return '右後ろ桂馬ジャンプ';
   }
 
-  return `マス移動 (${dx}, ${dy})`;
+  return `相対(${dx},${dy})移動`;
 }
 
 let enemyEvoNotificationTimer = null;
@@ -1676,7 +1674,7 @@ function showEnemyEvolutionNotification(reports) {
 
           const dirX = Math.sign(checkDx);
           const dirY = Math.sign(checkDy);
-          const isStraight = (dirX === 0 || dirY === 0 || Math.abs(dirX) === Math.abs(dirY));
+          const isStraight = (checkDx === 0 || checkDy === 0 || Math.abs(checkDx) === Math.abs(checkDy));
           const is2ndStep = isStraight && (checkDx === dirX * 2 && checkDy === dirY * 2);
 
           // 【赤】新しく追加された範囲の判定
@@ -3126,7 +3124,7 @@ function renderInspector() {
 
         const dirX = Math.sign(checkDx);
         const dirY = Math.sign(checkDy);
-        const isStraight = (dirX === 0 || dirY === 0 || Math.abs(dirX) === Math.abs(dirY));
+        const isStraight = (checkDx === 0 || checkDy === 0 || Math.abs(checkDx) === Math.abs(checkDy));
         const is2ndStep = isStraight && (checkDx === dirX * 2 && checkDy === dirY * 2);
 
         const stepType = hasStepAt(piece, checkDx, checkDy, true);
@@ -3191,7 +3189,7 @@ function renderInspector() {
 
           const dirXTop = Math.sign(checkDxTop);
           const dirYTop = Math.sign(checkDyTop);
-          const isStraightTop = (dirXTop === 0 || dirYTop === 0 || Math.abs(dirXTop) === Math.abs(dirYTop));
+          const isStraightTop = (checkDxTop === 0 || checkDyTop === 0 || Math.abs(checkDxTop) === Math.abs(checkDyTop));
           const is2ndStepTop = isStraightTop && (checkDxTop === dirXTop * 2 && checkDyTop === dirYTop * 2);
 
           const stepTypeTop = hasStepAt(piece, checkDxTop, checkDyTop, true);
