@@ -42,32 +42,51 @@ function getMyPlayerUid() {
 // Peerインスタンスの初期化
 function getOrCreatePeer(customId = null) {
   return new Promise((resolve, reject) => {
-    if (activePeer && !activePeer.destroyed && !customId) {
-      resolve(activePeer);
-      return;
-    }
-
-    if (activePeer && !activePeer.destroyed) {
-      activePeer.destroy();
-      activePeer = null;
-    }
-
-    const peerId = customId || ('muhou_' + getMyPlayerUid() + '_' + Math.floor(Math.random() * 1000));
-    const peer = new Peer(peerId, PEER_CONFIG);
-
-    peer.on('open', (id) => {
-      activePeer = peer;
-      resolve(peer);
-    });
-
-    peer.on('error', (err) => {
-      console.warn('Peer error:', err);
-      if (err.type === 'unavailable-id') {
-        resolve(null);
-      } else {
-        reject(err);
+    function create() {
+      if (activePeer && !activePeer.destroyed && !customId) {
+        resolve(activePeer);
+        return;
       }
-    });
+
+      if (activePeer && !activePeer.destroyed) {
+        activePeer.destroy();
+        activePeer = null;
+      }
+
+      const peerId = customId || ('muhou_' + getMyPlayerUid() + '_' + Math.floor(Math.random() * 1000));
+      try {
+        const peer = new Peer(peerId, PEER_CONFIG);
+
+        peer.on('open', (id) => {
+          activePeer = peer;
+          resolve(peer);
+        });
+
+        peer.on('error', (err) => {
+          console.warn('Peer error:', err);
+          resolve(null);
+        });
+      } catch (err) {
+        console.warn('Peer constructor failed:', err);
+        resolve(null);
+      }
+    }
+
+    if (typeof Peer === 'undefined') {
+      let checks = 0;
+      const timer = setInterval(() => {
+        checks++;
+        if (typeof Peer !== 'undefined') {
+          clearInterval(timer);
+          create();
+        } else if (checks > 12) {
+          clearInterval(timer);
+          resolve(null);
+        }
+      }, 250);
+    } else {
+      create();
+    }
   });
 }
 
@@ -86,8 +105,8 @@ async function startQuickMatchmaking() {
     if (timerEl) timerEl.textContent = `${onlineSearchSeconds}秒`;
   }, 1000);
 
-  const slotCount = 8;
-  const startSlot = Math.floor(Math.random() * slotCount);
+  // 一点合流型カスケードスロット探索 (スロット0を第一集結ロビーとして最速マッチング)
+  const slotCount = 4;
   let matched = false;
 
   const peer = await getOrCreatePeer();
@@ -97,14 +116,13 @@ async function startQuickMatchmaking() {
     return;
   }
 
-  for (let i = 0; i < slotCount; i++) {
-    const slotIdx = (startSlot + i) % slotCount;
-    const targetHostId = `muhou_quick_slot_${slotIdx}`;
-
+  // 1. スロット0〜3の既存待機者を高速プローブ (各550ms)
+  for (let slot = 0; slot < slotCount; slot++) {
+    const targetHostId = `muhou_quick_slot_${slot}`;
     try {
       const conn = peer.connect(targetHostId, { reliable: true });
       const connected = await new Promise((resolve) => {
-        const timeout = setTimeout(() => resolve(false), 900);
+        const timeout = setTimeout(() => resolve(false), 550);
         conn.on('open', () => {
           clearTimeout(timeout);
           resolve(true);
@@ -122,11 +140,10 @@ async function startQuickMatchmaking() {
         setupConnectionEvents(conn, '全国の好敵手', 'guest');
         break;
       }
-    } catch (e) {
-      // 次のスロットへ
-    }
+    } catch (e) {}
   }
 
+  // 2. 待機者がいなければ、最上位の空きスロットでホスト待機
   if (!matched) {
     for (let slot = 0; slot < slotCount; slot++) {
       const hostSlotId = `muhou_quick_slot_${slot}`;
@@ -199,6 +216,18 @@ async function joinFriendRoom(inputCode) {
   const conn = peer.connect(targetPeerId, { reliable: true });
 
   showMatchmakingOverlay(`合言葉「${cleanCode}」の部屋へ接続中...`);
+
+  // PeerServerからの即時エラー検知 (部屋が存在しない場合300msで即判定)
+  const onPeerError = (err) => {
+    if (err && (err.type === 'peer-unavailable' || (err.message && err.message.includes(targetPeerId)))) {
+      clearTimeout(timer);
+      hideAllOnlineModals();
+      try { peer.off('error', onPeerError); } catch (e) {}
+      alert(`合言葉「${cleanCode}」の対局室が見つかりませんでした。\n合言葉が合っているか確認してください。`);
+      try { conn.close(); } catch (e) {}
+    }
+  };
+  peer.on('error', onPeerError);
 
   const timer = setTimeout(() => {
     hideAllOnlineModals();
@@ -432,6 +461,10 @@ function showFriendRoomWaitingModal(roomCode) {
 }
 
 function hideFriendModal() {
+  if (activePeer && !activePeer.destroyed) {
+    activePeer.destroy();
+    activePeer = null;
+  }
   hideAllOnlineModals();
 }
 
