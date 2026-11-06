@@ -340,7 +340,8 @@ let state = {
   },
   pendingEvo: [],          // 現ターン中に仮割り振りしている進化 [{ pieceId, dx, dy }]
   selectedCell: null,      // { r, c }
-  validMoves: [],          // [{ r, c, isCapture }]
+  validMoves: [],
+  guardSquares: [],          // [{ r, c, isCapture }]
   inspectedPiece: null,    // 現在右パネルに表示中の駒オブジェクト
   lastMove: null,          // { fromR, fromC, toR, toC }
   history: [],             // 待った用のスナップショット配列
@@ -1071,17 +1072,17 @@ function getRemainingBankPt() {
   return state.bank[state.turn] - state.pendingEvo.length;
 }
 
-// 盤面上の指定駒の合法手を列挙
-function getValidMovesForPiece(board, r, c) {
+// 盤面上の指定駒の攻撃範囲（合法移動手 + 自軍駒があり移動不可だが利いている援護マス）
+function getPieceAttackCoverage(board, r, c) {
   const piece = board[r][c];
-  if (!piece) return [];
-  const moves = [];
+  if (!piece) return { validMoves: [], guardSquares: [] };
+  const validMoves = [];
+  const guardSquares = [];
   const sign = piece.owner === 'sente' ? 1 : -1;
 
   // 1. ステップ移動 (初期 + 進化追加)
   const allSteps = [...piece.initialSteps, ...piece.evolvedSteps];
   for (const [dx, dy] of allSteps) {
-    // 走りに昇格済みの方向なら走りでカバーされるのでスキップ
     if (hasRayInDir(piece, dx, dy, false)) continue;
 
     const nr = r + dy * sign;
@@ -1089,14 +1090,17 @@ function getValidMovesForPiece(board, r, c) {
     if (nr >= 0 && nr < 9 && nc >= 0 && nc < 9) {
       const target = board[nr][nc];
       if (!target) {
-        moves.push({ r: nr, c: nc, isCapture: false });
+        validMoves.push({ r: nr, c: nc, isCapture: false });
       } else if (target.owner !== piece.owner) {
-        moves.push({ r: nr, c: nc, isCapture: true });
+        validMoves.push({ r: nr, c: nc, isCapture: true });
+      } else {
+        // 自軍駒が存在し移動不可だが、攻撃範囲（利き・援護）であるマス
+        guardSquares.push({ r: nr, c: nc });
       }
     }
   }
 
-  // 2. 走り移動 (初期走り + 案A: 進化獲得走り)
+  // 2. 走り移動 (初期走り + 進化獲得走り)
   const allRays = [...piece.initialRays, ...(piece.evolvedRays || [])];
   for (const [rx, ry] of allRays) {
     const dr = ry * sign;
@@ -1106,13 +1110,18 @@ function getValidMovesForPiece(board, r, c) {
     while (nr >= 0 && nr < 9 && nc >= 0 && nc < 9) {
       const target = board[nr][nc];
       if (!target) {
-        if (!moves.some(m => m.r === nr && m.c === nc)) {
-          moves.push({ r: nr, c: nc, isCapture: false });
+        if (!validMoves.some(m => m.r === nr && m.c === nc)) {
+          validMoves.push({ r: nr, c: nc, isCapture: false });
         }
       } else {
         if (target.owner !== piece.owner) {
-          if (!moves.some(m => m.r === nr && m.c === nc)) {
-            moves.push({ r: nr, c: nc, isCapture: true });
+          if (!validMoves.some(m => m.r === nr && m.c === nc)) {
+            validMoves.push({ r: nr, c: nc, isCapture: true });
+          }
+        } else {
+          // 自軍駒が存在し移動不可だが、攻撃範囲（利き・援護）であるマス（ここで直進は遮られる）
+          if (!guardSquares.some(g => g.r === nr && g.c === nc)) {
+            guardSquares.push({ r: nr, c: nc });
           }
         }
         break;
@@ -1122,7 +1131,12 @@ function getValidMovesForPiece(board, r, c) {
     }
   }
 
-  return moves;
+  return { validMoves, guardSquares };
+}
+
+// 盤面上の指定駒の合法手を列挙
+function getValidMovesForPiece(board, r, c) {
+  return getPieceAttackCoverage(board, r, c).validMoves;
 }
 
 // 座標を将棋表記（例: ７六）に変換
@@ -1244,6 +1258,7 @@ function onCellClick(r, c) {
     }
     state.selectedCell = null;
     state.validMoves = [];
+    state.guardSquares = [];
     renderAll();
     return;
   }
@@ -1253,6 +1268,7 @@ function onCellClick(r, c) {
   if (state.pendingEvo.length > 0) {
     state.selectedCell = null;
     state.validMoves = [];
+    state.guardSquares = [];
     renderAll();
     return;
   }
@@ -1263,6 +1279,7 @@ function onCellClick(r, c) {
     if (state.selectedCell.r === r && state.selectedCell.c === c) {
       state.selectedCell = null;
       state.validMoves = [];
+      state.guardSquares = [];
       renderAll();
       return;
     }
@@ -1281,20 +1298,25 @@ function onCellClick(r, c) {
   if (clickedPiece && clickedPiece.owner === state.turn) {
     state.inspectedPiece = clickedPiece;
     state.selectedCell = { r, c, isEnemy: false };
-    state.validMoves = getValidMovesForPiece(state.board, r, c);
+    const coverage = getPieceAttackCoverage(state.board, r, c);
+    state.validMoves = coverage.validMoves;
+    state.guardSquares = coverage.guardSquares;
     renderAll();
   } 
-  // 3. 相手の駒をクリックした場合 -> 相手駒の動けるマス（赤色）をハイライト表示！
+  // 3. 相手の駒をクリックした場合 -> 相手駒の動けるマス（赤色）＆援護マスをハイライト表示！
   else if (clickedPiece && clickedPiece.owner !== state.turn) {
     state.inspectedPiece = clickedPiece;
     state.selectedCell = { r, c, isEnemy: true };
-    state.validMoves = getValidMovesForPiece(state.board, r, c);
+    const coverage = getPieceAttackCoverage(state.board, r, c);
+    state.validMoves = coverage.validMoves;
+    state.guardSquares = coverage.guardSquares;
     renderAll();
   } 
   // 4. 空白マスをクリックした場合 -> 選択解除
   else {
     state.selectedCell = null;
     state.validMoves = [];
+    state.guardSquares = [];
     renderAll();
   }
 }
@@ -1445,6 +1467,7 @@ function onMatrixCellClick(dx, dy) {
     state.pendingEvo.push({ pieceId: piece.id, dx: dirX, dy: dirY, type: 'ray' });
     state.selectedCell = null;
     state.validMoves = [];
+    state.guardSquares = [];
     renderAll();
     return;
   }
@@ -1454,6 +1477,7 @@ function onMatrixCellClick(dx, dy) {
     state.pendingEvo.push({ pieceId: piece.id, dx, dy, type: 'step' });
     state.selectedCell = null;
     state.validMoves = [];
+    state.guardSquares = [];
     renderAll();
   }
 }
@@ -1465,7 +1489,9 @@ function resetEvolutionPending() {
     const found = findPieceById(state.board, state.inspectedPiece.id);
     if (found) {
       state.selectedCell = { r: found.r, c: found.c };
-      state.validMoves = getValidMovesForPiece(state.board, found.r, found.c);
+      const cov = getPieceAttackCoverage(state.board, found.r, found.c);
+          state.validMoves = cov.validMoves;
+          state.guardSquares = cov.guardSquares;
     }
   }
   renderAll();
@@ -1665,7 +1691,9 @@ function showEnemyEvolutionNotification(reports) {
         if (found) {
           state.inspectedPiece = found.piece;
           state.selectedCell = { r: found.r, c: found.c, isEnemy: true };
-          state.validMoves = getValidMovesForPiece(state.board, found.r, found.c);
+          const cov = getPieceAttackCoverage(state.board, found.r, found.c);
+          state.validMoves = cov.validMoves;
+          state.guardSquares = cov.guardSquares;
           renderAll();
         }
       }
@@ -1681,7 +1709,9 @@ function showEnemyEvolutionNotification(reports) {
       if (found) {
         state.inspectedPiece = found.piece;
         state.selectedCell = { r: found.r, c: found.c, isEnemy: true };
-        state.validMoves = getValidMovesForPiece(state.board, found.r, found.c);
+        const cov = getPieceAttackCoverage(state.board, found.r, found.c);
+          state.validMoves = cov.validMoves;
+          state.guardSquares = cov.guardSquares;
         renderAll();
       }
       hideEnemyEvolutionNotification();
@@ -2645,6 +2675,16 @@ function renderBoard() {
         } else {
           // 自軍駒の移動先：緑色（敵駒がいる場合は赤枠）
           cell.classList.add(validMove.isCapture ? 'valid-capture' : 'valid-move');
+        }
+      }
+
+      // 攻撃範囲内にある自軍駒（移動不可だが利き・援護があるマス）のハイライト
+      const isGuard = state.guardSquares && state.guardSquares.some(g => g.r === r && g.c === c);
+      if (isGuard) {
+        if (state.selectedCell && state.selectedCell.isEnemy) {
+          cell.classList.add('enemy-guard-move');
+        } else {
+          cell.classList.add('ally-guard-move');
         }
       }
 
