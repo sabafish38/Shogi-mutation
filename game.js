@@ -2162,7 +2162,7 @@ function findPieceById(board, id) {
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       const p = board[r][c];
-      if (p && p.id === id) return { r, c, piece: p };
+      if (p && (p.id === id || String(p.id) === String(id))) return { r, c, piece: p };
     }
   }
   return null;
@@ -4175,7 +4175,7 @@ function validateRemoteMove(fromR, fromC, toR, toC, remoteSide) {
 }
 
 function validateRemoteEvolution(pendingList, spendingPt, remoteSide) {
-  if (state.phase !== 'play') {
+  if (state.phase !== 'play' && state.phase !== 'remote_evo') {
     return { valid: false, reason: '現在対局中ではありません' };
   }
   if (state.turn !== remoteSide) {
@@ -4203,7 +4203,7 @@ function validateRemoteEvolution(pendingList, spendingPt, remoteSide) {
   const simulatedPieces = new Map();
   for (let i = 0; i < pendingList.length; i++) {
     const item = pendingList[i];
-    if (!item || typeof item.pieceId !== 'string') {
+    if (!item || (typeof item.pieceId !== 'string' && typeof item.pieceId !== 'number')) {
       return { valid: false, reason: '進化データの形式が不正です' };
     }
     let simPiece = simulatedPieces.get(item.pieceId);

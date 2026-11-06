@@ -501,7 +501,7 @@ body {
 }
 .dot-step { background: var(--step-green); }
 .dot-ray { background: var(--ray-cyan); }
-.dot-guard { background: #3b82f6; }
+.dot-guard { background: #10b981; }
 .dot-enemy { background: #ef4444; }
 
 /* ==========================================
