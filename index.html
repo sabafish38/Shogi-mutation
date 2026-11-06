@@ -251,7 +251,7 @@
 
       <!-- 手番＆サドンデス状況バナー -->
       <div id="status-banner" class="status-banner">
-        <div id="turn-indicator" class="turn-text">先手の番です</div>
+        <div id="turn-indicator" class="turn-text">あなたの番です</div>
         <div id="sub-status" class="sub-status-text">動かす駒を選択してください</div>
       </div>
 
@@ -745,6 +745,23 @@
         <div class="check-banner-sub sudden-death-sub">サドンデス突入！ 毎ターン+1pt過熱供給 ＆ 120手到達で総ポイント判定決着！</div>
       </div>
     </div>
+    <!-- 相手駒撃破・即時進化ポップアップ（画面中央演出） -->
+    <div id="instant-evo-modal" class="instant-evo-overlay hidden">
+      <div class="instant-evo-card">
+        <div class="instant-evo-header">
+          <span class="instant-evo-badge">撃破ボーナス</span>
+          <span class="instant-evo-title">即時進化フェーズ</span>
+        </div>
+        <div class="instant-evo-body">
+          <div id="instant-evo-msg" class="instant-evo-main-msg">敵駒を撃破！ ＋1pt 獲得！</div>
+          <div class="instant-evo-sub-msg">手番消費なしで味方駒を即座に変異・進化できます</div>
+        </div>
+        <div class="instant-evo-actions">
+          <button id="btn-close-instant-evo" class="btn btn-accent btn-instant-evo" type="button">進化へ進む</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- P2P WebRTC / PeerJS (設定不要・即日オンライン対戦) -->

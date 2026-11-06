@@ -904,6 +904,7 @@ function initGame() {
   state.isSuddenDeath = false;
   state.pendingOpponentEvoNotification = null;
   hideEnemyEvolutionNotification();
+  closeInstantEvolutionModal();
 
   if (checkBannerTimer) {
     clearTimeout(checkBannerTimer);
@@ -1271,6 +1272,7 @@ function undoMove() {
 
   if (gameoverModal) gameoverModal.classList.add('hidden');
   hideEnemyEvolutionNotification();
+  closeInstantEvolutionModal();
 
   addLog('待った: ひとつ前の自分の手番に戻しました。');
   renderAll();
@@ -1378,6 +1380,7 @@ function onCellClick(r, c) {
 // 【アクションA：駒を動かす】の実行
 function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
   hideEnemyEvolutionNotification();
+  closeInstantEvolutionModal();
   saveHistory();
 
   const movingPiece = state.board[fromR][fromC];
@@ -1451,6 +1454,35 @@ function executeMove(fromR, fromC, toR, toC, syncOnline = true) {
 }
 
 // 撃破時の即時進化フェーズ（手番消費なし・その場で強化して相手番へ）
+let instantEvoModalTimer = null;
+
+function showInstantEvolutionModal(points, enemyName, killerPiece) {
+  const modal = document.getElementById('instant-evo-modal');
+  const msgEl = document.getElementById('instant-evo-msg');
+  if (!modal) return;
+
+  if (msgEl) {
+    const pName = enemyName || '敵駒';
+    msgEl.innerHTML = `敵駒【<strong>${pName}</strong>】を撃破！ <span style="color:#fbbf24;font-weight:900">＋${points}pt</span> 獲得！`;
+  }
+
+  modal.classList.remove('hidden');
+
+  if (instantEvoModalTimer) clearTimeout(instantEvoModalTimer);
+  instantEvoModalTimer = setTimeout(() => {
+    closeInstantEvolutionModal();
+  }, 2200);
+}
+
+function closeInstantEvolutionModal() {
+  const modal = document.getElementById('instant-evo-modal');
+  if (modal) modal.classList.add('hidden');
+  if (instantEvoModalTimer) {
+    clearTimeout(instantEvoModalTimer);
+    instantEvoModalTimer = null;
+  }
+}
+
 function startInstantEvolution(points, enemyName, killerPiece) {
   state.phase = 'instant_evo';
   state.bank[state.turn] += points;
@@ -1465,6 +1497,7 @@ function startInstantEvolution(points, enemyName, killerPiece) {
       cpuExecuteInstantEvolution(killerPiece, points);
     }, 450);
   } else {
+    showInstantEvolutionModal(points, enemyName, killerPiece);
     renderAll();
   }
 }
@@ -1750,6 +1783,7 @@ function showEnemyEvolutionNotification(reports) {
         }
       }
       hideEnemyEvolutionNotification();
+  closeInstantEvolutionModal();
     });
 
     elBody.appendChild(card);
@@ -1767,6 +1801,7 @@ function showEnemyEvolutionNotification(reports) {
         renderAll();
       }
       hideEnemyEvolutionNotification();
+  closeInstantEvolutionModal();
     };
   }
 
@@ -1774,6 +1809,7 @@ function showEnemyEvolutionNotification(reports) {
 
   enemyEvoNotificationTimer = setTimeout(() => {
     hideEnemyEvolutionNotification();
+  closeInstantEvolutionModal();
   }, 12000);
 }
 
@@ -2846,7 +2882,12 @@ function renderStatsAndStatus() {
   elCardSente.classList.toggle('active-turn', state.turn === 'sente');
   elCardGote.classList.toggle('active-turn', state.turn === 'gote');
 
-  const turnLabel = state.turn === 'sente' ? '先手' : '後手';
+  let turnLabel;
+  if (state.mode === 'pvp') {
+    turnLabel = state.turn === 'sente' ? '先手' : '後手';
+  } else {
+    turnLabel = state.turn === state.playerSide ? 'あなた' : '相手';
+  }
   const movesText = state.movesCount > 0 ? ` (${state.movesCount}手目)` : '';
 
   elStatusBanner.classList.toggle('sudden-death-mode', state.isSuddenDeath && state.phase !== 'gameover');
@@ -4253,6 +4294,15 @@ function startOnlineGameSession(mySide, oppPlayer) {
 // ==========================================
 // 【防御レベル2】不変（Frozen）ゲームエンジン公開ブリッジ
 // ==========================================
+  const btnCloseInstantEvo = document.getElementById('btn-close-instant-evo');
+  if (btnCloseInstantEvo) btnCloseInstantEvo.addEventListener('click', closeInstantEvolutionModal);
+  const instantEvoModal = document.getElementById('instant-evo-modal');
+  if (instantEvoModal) instantEvoModal.addEventListener('click', (e) => {
+    if (e.target === instantEvoModal || e.target.closest('#btn-close-instant-evo')) {
+      closeInstantEvolutionModal();
+    }
+  });
+
 window.MuhouEngine = Object.freeze({
   validateRemoteMove,
   validateRemoteEvolution,

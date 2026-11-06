@@ -1203,21 +1203,26 @@ body {
 /* 相手の進化通知タブ (スライドイン) */
 .enemy-evo-toast {
   position: fixed;
-  top: 50px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   width: min(92vw, 420px);
   background: linear-gradient(135deg, rgba(30, 41, 59, 0.97), rgba(15, 23, 42, 0.99));
   border: 1.5px solid #f59e0b;
   border-radius: 4px;
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.7), 0 0 16px rgba(245, 158, 11, 0.35);
-  z-index: 1500;
-  padding: 10px 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.35);
+  z-index: 1650;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  animation: evo-slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 8px;
+  animation: evo-pop-center 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(8px);
+}
+
+@keyframes evo-pop-center {
+  0% { transform: translate(-50%, -50%) scale(0.88); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
 @keyframes evo-slide-down {
@@ -3009,4 +3014,95 @@ button:active,
 }
 .footer-link-btn:hover {
   color: #fbbf24;
+}
+
+/* 相手駒撃破・即時進化ポップアップ（画面中央演出） */
+.instant-evo-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1700;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+.instant-evo-card {
+  width: min(90vw, 380px);
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 1.5px solid #f59e0b;
+  border-radius: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 24px rgba(245, 158, 11, 0.35);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: popCenter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+}
+
+@keyframes popCenter {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.instant-evo-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+  padding-bottom: 8px;
+}
+
+.instant-evo-badge {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fffbeb;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.instant-evo-title {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #fde68a;
+  letter-spacing: 0.03em;
+}
+
+.instant-evo-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.instant-evo-main-msg {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.instant-evo-sub-msg {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.instant-evo-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.btn-instant-evo {
+  padding: 6px 20px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  border-radius: 4px;
+  cursor: pointer;
+  touch-action: manipulation;
 }
