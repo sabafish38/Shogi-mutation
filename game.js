@@ -393,6 +393,8 @@ const elInspNameTop = document.getElementById('insp-name-top');
 const elInspPointsTop = document.getElementById('insp-points-top');
 const elInspTierTop = document.getElementById('insp-tier-top');
 const elInspOwnerBadgeTop = document.getElementById('inspector-owner-badge-top');
+const elDirHintTop = document.getElementById('matrix-direction-hint-top');
+const elDirHintBottomTop = document.getElementById('matrix-direction-hint-bottom-top');
 const elCheckBanner = document.getElementById('check-banner');
 const elCheckBannerTarget = document.getElementById('check-banner-target');
 const elSuddenDeathBanner = document.getElementById('sudden-death-banner');
@@ -877,9 +879,12 @@ const RANK_OPPONENTS = [
 function initGame() {
   const elGameMode = document.getElementById('game-mode');
   const elPlayerSide = document.getElementById('player-side');
-  if (state.mode !== 'rank' && state.mode !== 'online') {
+  if (state.mode !== 'rank' && state.mode !== 'online' && state.mode !== 'pvp') {
     if (elGameMode) state.mode = elGameMode.value;
     if (elPlayerSide) state.playerSide = elPlayerSide.value;
+  }
+  if (state.mode === 'pvp' && elGameMode) {
+    elGameMode.value = 'pvp';
   }
   state.turn = 'sente';
   state.phase = 'play';
@@ -2832,8 +2837,8 @@ function renderStatsAndStatus() {
       : state.bank[owner];
 
     document.getElementById(`${owner}-bank-pt`).textContent = bankVal;
-    document.getElementById(`${owner}-piece-count`).textContent = `${pieces.length} 枚`;
-    document.getElementById(`${owner}-total-pt`).textContent = `${totalPt} pt`;
+    document.getElementById(`${owner}-piece-count`).textContent = pieces.length;
+    document.getElementById(`${owner}-total-pt`).textContent = totalPt;
     document.getElementById(`${owner}-max-piece`).textContent =
       maxPiece ? getPieceDisplayLabel(maxPiece, true) : '-';
   }
@@ -3028,8 +3033,10 @@ function renderInspector() {
 
   const isGote = piece.owner === 'gote';
   // プレイヤー視点における敵駒判定（自軍の駒は先手・後手問わず常に上向き▲、敵駒は下向き▼）
+  // プレイヤー視点による敵駒判定（自軍の駒は先・後問わずに上、敵は下）
+  // PvPの先手ドック（下側）は後手駒（gote）が相手向きとして反転
   const isOpponent = (state.mode === 'pvp')
-    ? (piece.owner !== state.turn)
+    ? (piece.owner === 'gote')
     : (piece.owner !== state.playerSide);
   const shouldFlipMatrix = isOpponent;
 
@@ -3067,11 +3074,19 @@ function renderInspector() {
 
     if (elDirHintTop) {
       if (piece.owner === 'sente') {
-        elDirHintTop.textContent = '▼ 進行方向（手前・自陣向き）▼';
+        elDirHintTop.textContent = '▼ 進行方向（手前・後手側） ▼';
         elDirHintTop.classList.add('gote-dir');
       } else {
-        elDirHintTop.textContent = '▲ 進行方向（盤面向き）▲';
+        elDirHintTop.textContent = '▲ 進行方向（盤面奥） ▲';
         elDirHintTop.classList.remove('gote-dir');
+      }
+    }
+    if (elDirHintBottomTop) {
+      if (piece.owner === 'sente') {
+        elDirHintBottomTop.textContent = '▲ 進行方向 ▲';
+        elDirHintBottomTop.classList.remove('hidden');
+      } else {
+        elDirHintBottomTop.classList.add('hidden');
       }
     }
   }
@@ -3349,6 +3364,8 @@ function startFreeMatch() {
   state.mode = 'pvp';
   state.playerSide = 'sente';
   state.rankOpponent = null;
+  const elGameMode = document.getElementById('game-mode');
+  if (elGameMode) elGameMode.value = 'pvp';
   showScreen('game');
   restartNewGame();
 }
