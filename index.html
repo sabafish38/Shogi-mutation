@@ -219,28 +219,22 @@
                 <span id="insp-name-top" class="mini-name">駒を選択</span>
                 <span id="inspector-owner-badge-top" class="owner-mini-badge gote-badge">後手</span>
               </div>
-              <div class="mini-sub-row">
-                <span id="insp-points-top" class="mini-pt">持ち: - pt</span>
-                <span id="insp-tier-top" class="mini-tier hidden"></span>
-              </div>
             </div>
           </div>
 
           <div class="dock-evo-actions">
             <div class="dock-points-badge">
-              <span>残 <strong id="evo-remaining-pt-top">0</strong>pt</span>
-              <span class="alloc-badge">割当 <strong id="evo-spending-pt-top">0</strong>pt</span>
+              <span id="evo-label-remaining-top">所持</span>
+              <strong id="evo-remaining-pt-top">0</strong><small>pt</small>
+              <span id="evo-spending-badge-top" class="alloc-badge hidden">割当 +<strong id="evo-spending-pt-top">0</strong></span>
             </div>
             <div class="dock-buttons">
-              <button id="btn-evo-reset-top" class="btn btn-secondary btn-dock" disabled>取消</button>
-              <button id="btn-evo-confirm-top" class="btn btn-accent btn-dock" disabled>進化確定</button>
+              <button id="btn-evo-reset-top" class="btn btn-dock" disabled>取消</button>
+              <button id="btn-evo-confirm-top" class="btn btn-dock" disabled>進化確定</button>
             </div>
           </div>
         </div>
 
-        <div id="evo-capture-msg-top" class="dock-caption">駒をタップして移動、または下のマトリックスで進化</div>
-
-        <!-- 5x5 移動・進化マトリックス (後手視点) -->
         <div class="dock-matrix-area">
           <div id="matrix-direction-hint-top" class="matrix-direction-hint">▲ 進行方向（盤面向き）▲</div>
           <div id="move-matrix-top" class="move-matrix"></div>
@@ -328,7 +322,6 @@
 
       <!-- 進化＆インスペクター統合ドック（スマホで常時見やすい省スペース配置） -->
       <div id="evolution-box" class="evolution-inspector-dock">
-        <!-- ドック上部：選択駒ステータス ＆ ポイント割り振りアクション -->
         <div class="dock-header">
           <div class="piece-mini-info">
             <div id="insp-kanji" class="mini-kanji">？</div>
@@ -337,28 +330,22 @@
                 <span id="insp-name" class="mini-name">駒を選択</span>
                 <span id="inspector-owner-badge" class="owner-mini-badge hidden">先手</span>
               </div>
-              <div class="mini-sub-row">
-                <span id="insp-points" class="mini-pt">持ち: - pt</span>
-                <span id="insp-tier" class="mini-tier hidden"></span>
-              </div>
             </div>
           </div>
 
           <div class="dock-evo-actions">
             <div class="dock-points-badge">
-              <span>残 <strong id="evo-remaining-pt">0</strong>pt</span>
-              <span class="alloc-badge">割当 <strong id="evo-spending-pt">0</strong>pt</span>
+              <span id="evo-label-remaining">所持</span>
+              <strong id="evo-remaining-pt">0</strong><small>pt</small>
+              <span id="evo-spending-badge" class="alloc-badge hidden">割当 +<strong id="evo-spending-pt">0</strong></span>
             </div>
             <div class="dock-buttons">
-              <button id="btn-evo-reset" class="btn btn-secondary btn-dock" disabled>取消</button>
-              <button id="btn-evo-confirm" class="btn btn-accent btn-dock" disabled>進化確定</button>
+              <button id="btn-evo-reset" class="btn btn-dock" disabled>取消</button>
+              <button id="btn-evo-confirm" class="btn btn-dock" disabled>進化確定</button>
             </div>
           </div>
         </div>
 
-        <div id="evo-capture-msg" class="dock-caption">駒をタップして移動、または下のマトリックスで進化</div>
-
-        <!-- 5x5 移動・進化マトリックス -->
         <div class="dock-matrix-area">
           <div id="matrix-direction-hint" class="matrix-direction-hint">▲ 進行方向 ▲</div>
           <div id="move-matrix" class="move-matrix"></div>

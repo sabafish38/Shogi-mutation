@@ -2917,8 +2917,12 @@ function renderEvolutionBox() {
   const spending = state.pendingEvo.length;
   const totalBank = state.bank[state.turn];
 
-  elEvoRemaining.textContent = remaining;
-  elEvoSpending.textContent = spending;
+  if (elEvoRemaining) elEvoRemaining.textContent = remaining;
+  if (elEvoSpending) elEvoSpending.textContent = spending;
+  const elEvoLabel = document.getElementById('evo-label-remaining');
+  const elEvoSpendingBadge = document.getElementById('evo-spending-badge');
+  if (elEvoLabel) elEvoLabel.textContent = spending > 0 ? '残' : '所持';
+  if (elEvoSpendingBadge) elEvoSpendingBadge.classList.toggle('hidden', spending === 0);
 
   // 下側ドック（先手側）の制御
   const isSenteTurn = state.turn === 'sente';
@@ -2928,23 +2932,23 @@ function renderEvolutionBox() {
   elEvoBox.classList.toggle('is-allocating', (isSenteTurn || !isPvp) && spending > 0 && !isCPUTurn());
 
   if (isPvp && !isSenteTurn && state.phase !== 'instant_evo') {
-    elEvoMsg.textContent = '後手の手番中です。盤面を見守りながら次手を構想できます';
+    if (elEvoMsg) elEvoMsg.textContent = '後手の手番中です。盤面を見守りながら次手を構想できます';
     elBtnEvoConfirm.disabled = true;
     elBtnEvoReset.disabled = true;
   } else if (state.phase === 'instant_evo') {
-    elEvoMsg.textContent = `撃破した霊力を即時配分中！確定するとそのまま相手番へ進みます（手番消費なし）`;
+    if (elEvoMsg) elEvoMsg.textContent = `撃破した霊力を即時配分中！確定するとそのまま相手番へ進みます（手番消費なし）`;
     elBtnEvoConfirm.disabled = isCPUTurn() || state.phase === 'gameover';
     elBtnEvoReset.disabled = spending === 0 || isCPUTurn() || state.phase === 'gameover';
   } else if (spending > 0) {
-    elEvoMsg.textContent = `${spending}pt 割り振り中（確定すると1手消費してターン終了）`;
+    if (elEvoMsg) elEvoMsg.textContent = `${spending}pt 割り振り中（確定すると1手消費してターン終了）`;
     elBtnEvoConfirm.disabled = spending === 0 || isCPUTurn() || state.phase === 'gameover';
     elBtnEvoReset.disabled = spending === 0 || isCPUTurn() || state.phase === 'gameover';
   } else if (totalBank > 0) {
-    elEvoMsg.textContent = `所持 ${totalBank}pt 使用可能！味方駒を選び下の「＋」で手番を使って進化できます`;
+    if (elEvoMsg) elEvoMsg.textContent = `所持 ${totalBank}pt 使用可能！味方駒を選び下の「＋」で手番を使って進化できます`;
     elBtnEvoConfirm.disabled = true;
     elBtnEvoReset.disabled = true;
   } else {
-    elEvoMsg.textContent = '敵駒を撃破すると即時進化が発動し、ポイントが貯まります';
+    if (elEvoMsg) elEvoMsg.textContent = '敵駒を撃破すると即時進化が発動し、ポイントが貯まります';
     elBtnEvoConfirm.disabled = true;
     elBtnEvoReset.disabled = true;
   }
@@ -2958,6 +2962,10 @@ function renderEvolutionBox() {
 
     if (elEvoRemainingTop) elEvoRemainingTop.textContent = remainingTop;
     if (elEvoSpendingTop) elEvoSpendingTop.textContent = spendingTop;
+    const elEvoLabelTop = document.getElementById('evo-label-remaining-top');
+    const elEvoSpendingBadgeTop = document.getElementById('evo-spending-badge-top');
+    if (elEvoLabelTop) elEvoLabelTop.textContent = spendingTop > 0 ? '残' : '所持';
+    if (elEvoSpendingBadgeTop) elEvoSpendingBadgeTop.classList.toggle('hidden', spendingTop === 0);
 
     elEvoBoxTop.classList.toggle('is-turn-active', isGoteTurn);
     elEvoBoxTop.classList.toggle('is-turn-inactive', !isGoteTurn);
@@ -2966,23 +2974,23 @@ function renderEvolutionBox() {
 
     if (elBtnEvoConfirmTop && elBtnEvoResetTop && elEvoMsgTop) {
       if (isGoteTurn && state.phase === 'instant_evo') {
-        elEvoMsgTop.textContent = '撃破した霊力を即時配分中！確定するとそのまま相手番へ進みます';
+        if (elEvoMsgTop) elEvoMsgTop.textContent = '撃破した霊力を即時配分中！確定するとそのまま相手番へ進みます';
         elBtnEvoConfirmTop.disabled = false;
         elBtnEvoResetTop.disabled = spendingTop === 0;
       } else if (isGoteTurn && spendingTop > 0) {
-        elEvoMsgTop.textContent = `${spendingTop}pt 割当中（確定すると1手消費してターン終了）`;
+        if (elEvoMsgTop) elEvoMsgTop.textContent = `${spendingTop}pt 割当中（確定すると1手消費してターン終了）`;
         elBtnEvoConfirmTop.disabled = false;
         elBtnEvoResetTop.disabled = false;
       } else if (isGoteTurn && goteBank > 0) {
-        elEvoMsgTop.textContent = `所持 ${goteBank}pt 使用可能！自軍駒を選び「＋」で進化できます`;
+        if (elEvoMsgTop) elEvoMsgTop.textContent = `所持 ${goteBank}pt 使用可能！自軍駒を選び「＋」で進化できます`;
         elBtnEvoConfirmTop.disabled = true;
         elBtnEvoResetTop.disabled = true;
       } else if (isGoteTurn) {
-        elEvoMsgTop.textContent = '敵駒を撃破すると即時進化が発動し、ポイントが貯まります';
+        if (elEvoMsgTop) elEvoMsgTop.textContent = '敵駒を撃破すると即時進化が発動し、ポイントが貯まります';
         elBtnEvoConfirmTop.disabled = true;
         elBtnEvoResetTop.disabled = true;
       } else {
-        elEvoMsgTop.textContent = '先手の手番中です。思考しながら次手を検討できます';
+        if (elEvoMsgTop) elEvoMsgTop.textContent = '先手の手番中です。思考しながら次手を検討できます';
         elBtnEvoConfirmTop.disabled = true;
         elBtnEvoResetTop.disabled = true;
       }
@@ -3042,8 +3050,9 @@ function renderInspector() {
 
   elInspKanji.innerHTML = formatPointWithUnderline(getPieceDisplayLabel(piece, true));
   elInspKanji.classList.toggle('gote', isGote);
-  elInspName.textContent = `元駒: ${piece.name}（初期 ${piece.basePt}pt）`;
-  elInspPoints.textContent = `現在の持ちポイント: ${totalPt} pt ${addedPt > 0 ? `(進化 +${addedPt}pt)` : ''}`;
+  elInspName.textContent = addedPt > 0 ? `${piece.name} (+${addedPt}pt)` : piece.name;
+  if (elInspPoints) elInspPoints.textContent = '';
+
   if (elInspTier) elInspTier.textContent = '';
 
   elInspOwnerBadge.classList.remove('hidden', 'sente-badge', 'gote-badge');
@@ -3053,8 +3062,9 @@ function renderInspector() {
   if (isPvp && elInspKanjiTop) {
     elInspKanjiTop.innerHTML = formatPointWithUnderline(getPieceDisplayLabel(piece, true));
     elInspKanjiTop.classList.toggle('gote', isGote);
-    elInspNameTop.textContent = `元駒: ${piece.name}（初期 ${piece.basePt}pt）`;
-    elInspPointsTop.textContent = `現在の持ちポイント: ${totalPt} pt ${addedPt > 0 ? `(進化 +${addedPt}pt)` : ''}`;
+    elInspNameTop.textContent = addedPt > 0 ? `${piece.name} (+${addedPt}pt)` : piece.name;
+    if (elInspPointsTop) elInspPointsTop.textContent = '';
+
     if (elInspTierTop) elInspTierTop.textContent = '';
     elInspOwnerBadgeTop.classList.remove('hidden', 'sente-badge', 'gote-badge');
     elInspOwnerBadgeTop.classList.add(piece.owner === 'sente' ? 'sente-badge' : 'gote-badge');
