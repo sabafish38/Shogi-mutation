@@ -879,12 +879,11 @@ const RANK_OPPONENTS = [
 function initGame() {
   const elGameMode = document.getElementById('game-mode');
   const elPlayerSide = document.getElementById('player-side');
-  if (state.mode !== 'rank' && state.mode !== 'online' && state.mode !== 'pvp') {
-    if (elGameMode) state.mode = elGameMode.value;
-    if (elPlayerSide) state.playerSide = elPlayerSide.value;
+  if (state.mode && elGameMode) {
+    elGameMode.value = state.mode;
   }
-  if (state.mode === 'pvp' && elGameMode) {
-    elGameMode.value = 'pvp';
+  if (state.playerSide && elPlayerSide) {
+    elPlayerSide.value = state.playerSide;
   }
   state.turn = 'sente';
   state.phase = 'play';
@@ -3414,6 +3413,10 @@ function startComMatch() {
   state.mode = selectedComDiff;
   state.playerSide = selectedComSide;
   state.rankOpponent = null;
+  const elGameMode = document.getElementById('game-mode');
+  if (elGameMode) elGameMode.value = selectedComDiff;
+  const elPlayerSide = document.getElementById('player-side');
+  if (elPlayerSide) elPlayerSide.value = selectedComSide;
   showScreen('game');
   restartNewGame();
 }
@@ -3792,10 +3795,20 @@ if (elBoardContainer) {
 
 
 const elGameMode = document.getElementById('game-mode');
-if (elGameMode) elGameMode.addEventListener('change', restartNewGame);
+if (elGameMode) {
+  elGameMode.addEventListener('change', () => {
+    state.mode = elGameMode.value;
+    restartNewGame();
+  });
+}
 
 const elPlayerSide = document.getElementById('player-side');
-if (elPlayerSide) elPlayerSide.addEventListener('change', restartNewGame);
+if (elPlayerSide) {
+  elPlayerSide.addEventListener('change', () => {
+    state.playerSide = elPlayerSide.value;
+    restartNewGame();
+  });
+}
 
 elBtnEvoReset.addEventListener('click', resetEvolutionPending);
 elBtnEvoConfirm.addEventListener('click', confirmEvolutionTurn);
