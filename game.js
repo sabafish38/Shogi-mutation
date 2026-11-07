@@ -3449,8 +3449,8 @@ function renderStatsAndStatus() {
     elSubStatus.textContent = '「新規対局」で最初から遊べます';
   } else if (state.phase === 'remote_evo') {
     elStatusBanner.classList.add('evo-mode');
-    elTurnIndicator.textContent = `相手が霊力を配分中...${movesText}`;
-    elSubStatus.textContent = '相手プレイヤーが獲得した霊力で駒を変異・進化させています（待機中）';
+    elTurnIndicator.textContent = `相手が棋力を配分中...${movesText}`;
+    elSubStatus.textContent = '相手プレイヤーが獲得した棋力で駒を変異・進化させています（待機中）';
   } else if (state.phase === 'instant_evo') {
     elStatusBanner.classList.add('evo-mode');
     elTurnIndicator.textContent = `撃破ボーナス！ ${turnLabel}の即時進化${movesText}`;
@@ -3532,7 +3532,7 @@ function renderEvolutionBox() {
     elBtnEvoConfirm.disabled = true;
     elBtnEvoReset.disabled = true;
   } else if (state.phase === 'instant_evo') {
-    if (elEvoMsg) elEvoMsg.textContent = `撃破した霊力を即時配分中！確定するとそのまま相手番へ進みます（手番消費なし）`;
+    if (elEvoMsg) elEvoMsg.textContent = `撃破した棋力を即時配分中！確定するとそのまま相手番へ進みます（手番消費なし）`;
     elBtnEvoConfirm.disabled = isCPUTurn() || state.phase === 'gameover';
     elBtnEvoReset.disabled = spending === 0 || isCPUTurn() || state.phase === 'gameover';
   } else if (spending > 0) {
@@ -3570,7 +3570,7 @@ function renderEvolutionBox() {
 
     if (elBtnEvoConfirmTop && elBtnEvoResetTop) {
       if (isGoteTurn && state.phase === 'instant_evo') {
-        if (elEvoMsgTop) elEvoMsgTop.textContent = '撃破した霊力を即時配分中！確定するとそのまま相手番へ進みます';
+        if (elEvoMsgTop) elEvoMsgTop.textContent = '撃破した棋力を即時配分中！確定するとそのまま相手番へ進みます';
         elBtnEvoConfirmTop.disabled = false;
         elBtnEvoResetTop.disabled = spendingTop === 0;
       } else if (isGoteTurn && spendingTop > 0) {
