@@ -679,7 +679,7 @@ body {
   border-radius: 4px;
   background: linear-gradient(180deg, #fffbeb, #f5d08a);
   color: #1c1309;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   font-weight: 900;
   display: flex;
   align-items: center;
@@ -1244,18 +1244,18 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(92vw, 420px);
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.97), rgba(15, 23, 42, 0.99));
-  border: 1.5px solid #f59e0b;
-  border-radius: 4px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.35);
+  width: min(94vw, 480px);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.99));
+  border: 2px solid #f59e0b;
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 28px rgba(245, 158, 11, 0.4);
   z-index: 1650;
-  padding: 12px 14px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   animation: evo-pop-center 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 @keyframes evo-pop-center {
@@ -1281,7 +1281,7 @@ body {
   align-items: center;
   gap: 6px;
   font-weight: 800;
-  font-size: 0.82rem;
+  font-size: 0.96rem;
   color: #fef08a;
 }
 
@@ -1309,15 +1309,17 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 150px;
+  max-height: 260px;
   overflow-y: auto;
+  gap: 10px;
 }
 
 .enemy-evo-piece-card {
   background: rgba(245, 158, 11, 0.08);
   border-left: 3px solid #f59e0b;
   border-radius: 4px;
-  padding: 5px 8px;
+  padding: 8px 12px;
+  gap: 8px;
 }
 
 .enemy-evo-piece-name {
@@ -1368,8 +1370,8 @@ body {
   color: #fff;
   border: 1px solid #f59e0b;
   border-radius: 5px;
-  padding: 5px 12px;
-  font-size: 0.74rem;
+  padding: 8px 16px;
+  font-size: 0.86rem;
   font-weight: 800;
   cursor: pointer;
   display: flex;
@@ -2966,19 +2968,19 @@ body {
 
 .enemy-evo-mini-grid {
   display: grid;
-  grid-template-columns: repeat(5, 22px);
-  grid-template-rows: repeat(5, 22px);
-  gap: 2px;
+  grid-template-columns: repeat(5, 30px);
+  grid-template-rows: repeat(5, 30px);
+  gap: 3px;
 }
 
 .mini-matrix-cell {
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65rem;
-  border-radius: 2px;
+  font-size: 0.8rem;
+  border-radius: 3px;
   user-select: none;
 }
 
@@ -2986,7 +2988,7 @@ body {
   background: linear-gradient(180deg, #fef2f2 0%, #fecaca 35%, #f87171 100%);
   color: #7f1d1d;
   font-weight: 900;
-  font-size: 0.72rem;
+  font-size: 0.95rem;
   font-family: var(--font-gothic); letter-spacing: -0.02em;
   clip-path: polygon(50% 3%, 93% 19%, 100% 96%, 0% 96%, 7% 19%);
   transform: rotate(180deg); /* 相手の進化通知のため常に180度反転（敵陣から自陣を向く向き） */
@@ -3026,12 +3028,12 @@ body {
 .enemy-evo-meta-desc {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 0.72rem;
+  gap: 8px;
+  font-size: 0.85rem;
 }
 
 .enemy-evo-dir-chip {
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-muted);
   border-left: 2px solid var(--accent-red);
@@ -3236,15 +3238,15 @@ button:active,
 }
 
 .instant-evo-card {
-  width: min(90vw, 380px);
+  width: min(92vw, 450px);
   background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 1.5px solid #f59e0b;
-  border-radius: 4px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 24px rgba(245, 158, 11, 0.35);
-  padding: 16px 18px;
+  border: 2px solid #f59e0b;
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 30px rgba(245, 158, 11, 0.4);
+  padding: 22px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   animation: popCenter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: center;
 }
@@ -3266,15 +3268,15 @@ button:active,
 .instant-evo-badge {
   background: linear-gradient(135deg, #d97706, #b45309);
   color: #fffbeb;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  padding: 2px 7px;
+  padding: 3px 9px;
   border-radius: 3px;
   letter-spacing: 0.04em;
 }
 
 .instant-evo-title {
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   font-weight: 900;
   color: #fde68a;
   letter-spacing: 0.03em;
@@ -3287,15 +3289,15 @@ button:active,
 }
 
 .instant-evo-main-msg {
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #f1f5f9;
 }
 
 .instant-evo-sub-msg {
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   color: #94a3b8;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .instant-evo-actions {
@@ -3401,4 +3403,29 @@ button:active,
 
 .ad-modal-footer {
   width: 100%;
+}
+
+
+/* 再戦ステータス & 同意プロンプト */
+.online-rematch-status {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 4px;
+  color: #fef08a;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px 12px;
+  text-align: center;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  animation: fadeIn 0.2s ease;
+}
+
+.btn-primary.rematch-agreed-prompt {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-color: #fbbf24;
+  color: #0f172a;
+  font-weight: 900;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+  animation: pulse-glow 1.5s infinite alternate;
 }

@@ -348,6 +348,9 @@ const KANJI_NUMS = ['一', '二', '三', '四', '五', '六', '七', '八', '九
 const FULL_NUMS = ['９', '８', '７', '６', '５', '４', '３', '２', '１'];
 
 // ゲーム状態
+
+let myRematchRequested = false;
+let peerRematchRequested = false;
 let state = {
   board: [],               // 9x9: null or piece object
   turn: 'sente',           // 'sente' | 'gote'
@@ -2362,6 +2365,20 @@ function endGame(winner, reasonText) {
       isPlayerWinner,
       { isBounty: !!(opp.isBounty) }
     );
+  }
+
+  myRematchRequested = false;
+  peerRematchRequested = false;
+  const btnRestart = document.getElementById('btn-gameover-restart');
+  if (btnRestart) {
+    btnRestart.disabled = false;
+    btnRestart.textContent = 'もう一度対局';
+    btnRestart.classList.remove('rematch-agreed-prompt');
+  }
+  const rematchStatus = document.getElementById('online-rematch-status');
+  if (rematchStatus) {
+    rematchStatus.textContent = '';
+    rematchStatus.classList.add('hidden');
   }
 
   modal.classList.remove('hidden');
@@ -4673,6 +4690,36 @@ const AdSystem = (() => {
 const btnBackEntrance = document.getElementById('btn-back-entrance');
 if (btnBackEntrance) {
   btnBackEntrance.addEventListener('click', () => {
+    if (state.mode === 'online' || state.mode === 'rank') {
+      if (state.phase !== 'gameover') {
+        const ok = confirm('対局を中断してタイトルへ戻りますか？\n（あなたの不戦敗となります）');
+        if (!ok) return;
+
+        // 通信相手へ離脱通知（不戦勝）を送信し接続を切断
+        if (window.MuhouOnline && typeof window.MuhouOnline.leaveCurrentSession === 'function') {
+          window.MuhouOnline.leaveCurrentSession('leave');
+        }
+
+        // 自身も不戦敗として終局処理を実行して戦績・レート更新
+        const oppSide = (state.playerSide === 'sente' ? 'gote' : 'sente');
+        endGame(oppSide, '対局画面を離脱したため、不戦敗となりました。');
+        const modal = document.getElementById('gameover-modal');
+        if (modal) modal.classList.add('hidden');
+        clearGameStorage();
+        showScreen('entrance');
+        return;
+      } else {
+        // 試合終了後の離脱（部屋をクローズ）
+        if (window.MuhouOnline && typeof window.MuhouOnline.leaveCurrentSession === 'function') {
+          window.MuhouOnline.leaveCurrentSession('postgame');
+        }
+        AdSystem.triggerMatchEndAd(() => {
+          showScreen('entrance');
+        });
+        return;
+      }
+    }
+
     saveGameToStorage();
     if (state.phase === 'gameover') {
       AdSystem.triggerMatchEndAd(() => {
@@ -4688,6 +4735,11 @@ const btnGameoverEntrance = document.getElementById('btn-gameover-entrance');
 if (btnGameoverEntrance) {
   btnGameoverEntrance.addEventListener('click', () => {
     document.getElementById('gameover-modal').classList.add('hidden');
+    if (state.mode === 'online' || state.mode === 'rank') {
+      if (window.MuhouOnline && typeof window.MuhouOnline.leaveCurrentSession === 'function') {
+        window.MuhouOnline.leaveCurrentSession('postgame');
+      }
+    }
     AdSystem.triggerMatchEndAd(() => {
       showScreen('entrance');
     });
@@ -4719,9 +4771,125 @@ if (logModal) {
 
 const gameoverModal = document.getElementById('gameover-modal');
 document.getElementById('btn-gameover-close').addEventListener('click', () => gameoverModal.classList.add('hidden'));
-document.getElementById('btn-gameover-restart').addEventListener('click', () => {
-  gameoverModal.classList.add('hidden');
-  restartNewGame();
+
+function handleRemoteRematchIntent() {
+  peerRematchRequested = true;
+  const statusEl = document.getElementById('online-rematch-status');
+  const btnRestart = document.getElementById('btn-gameover-restart');
+
+  if (myRematchRequested) {
+    // 自分もすでに押していた場合 -> 両者合意！対局開始
+    if (window.MuhouOnline && typeof window.MuhouOnline.sendOnlineRematchStart === 'function') {
+      window.MuhouOnline.sendOnlineRematchStart();
+    }
+    executeOnlineRematch();
+  } else {
+    // 相手が再戦を希望してきた場合
+    if (statusEl) {
+      statusEl.textContent = '相手が再戦を希望しています。「もう一度対局」を押すと対局が始まります。';
+      statusEl.classList.remove('hidden');
+    }
+    if (btnRestart) {
+      btnRestart.textContent = '再戦に同意して対局開始';
+      btnRestart.classList.add('rematch-agreed-prompt');
+    }
+  }
+}
+
+function handleRemoteRematchStart() {
+  executeOnlineRematch();
+}
+
+function handleRemotePlayerLeftPostgame() {
+  peerRematchRequested = false;
+  const statusEl = document.getElementById('online-rematch-status');
+  const btnRestart = document.getElementById('btn-gameover-restart');
+  if (statusEl) {
+    statusEl.textContent = '相手が対戦画面を離脱しました（再戦終了）';
+    statusEl.classList.remove('hidden');
+  }
+  if (btnRestart) {
+    btnRestart.disabled = true;
+    btnRestart.textContent = '再戦終了';
+    btnRestart.classList.remove('rematch-agreed-prompt');
+  }
+}
+
+let isRematchExecuting = false;
+
+function executeOnlineRematch() {
+  if (isRematchExecuting) return;
+  isRematchExecuting = true;
+  setTimeout(() => { isRematchExecuting = false; }, 1000);
+
+  const modal = document.getElementById('gameover-modal');
+  if (modal) modal.classList.add('hidden');
+
+  myRematchRequested = false;
+  peerRematchRequested = false;
+
+  // 手番の先後交代
+  const newSide = (state.playerSide === 'sente' ? 'gote' : 'sente');
+  state.playerSide = newSide;
+  if (window.MuhouOnline && typeof window.MuhouOnline.setOnlinePlayerSide === 'function') {
+    window.MuhouOnline.setOnlinePlayerSide(newSide);
+  }
+
+  // ゲームの再初期化
+  clearGameStorage();
+  initGame();
+  renderAll();
+  addLog(`再戦が始まりました（あなたは${newSide === 'sente' ? '先手' : '後手'}です）`, 'log-system');
+}
+
+const btnGameoverRestart = document.getElementById('btn-gameover-restart');
+if (btnGameoverRestart) {
+  btnGameoverRestart.addEventListener('click', () => {
+    if (state.mode === 'online' || state.mode === 'rank') {
+      if (myRematchRequested || isRematchExecuting) return;
+      myRematchRequested = true;
+
+      const statusEl = document.getElementById('online-rematch-status');
+      if (peerRematchRequested) {
+        // お互いが押した！対局開始（相手にも開始を通知）
+        if (window.MuhouOnline && typeof window.MuhouOnline.sendOnlineRematchStart === 'function') {
+          window.MuhouOnline.sendOnlineRematchStart();
+        }
+        executeOnlineRematch();
+      } else {
+        // 相手の同意待ち（相手へ希望通知）
+        if (window.MuhouOnline && typeof window.MuhouOnline.sendOnlineRematchIntent === 'function') {
+          window.MuhouOnline.sendOnlineRematchIntent();
+        }
+        btnGameoverRestart.disabled = true;
+        btnGameoverRestart.textContent = '再戦希望送信中...（相手の同意待ち）';
+        btnGameoverRestart.classList.remove('rematch-agreed-prompt');
+        if (statusEl) {
+          statusEl.textContent = '相手の再戦同意を待っています...';
+          statusEl.classList.remove('hidden');
+        }
+      }
+    } else {
+      gameoverModal.classList.add('hidden');
+      restartNewGame();
+    }
+  });
+}
+
+// ページ離脱・タブクローズ時の安全切断フック
+window.addEventListener('beforeunload', () => {
+  if (state.mode === 'online' || state.mode === 'rank') {
+    if (window.MuhouOnline && typeof window.MuhouOnline.leaveCurrentSession === 'function') {
+      window.MuhouOnline.leaveCurrentSession(state.phase === 'gameover' ? 'postgame' : 'leave');
+    }
+  }
+});
+window.addEventListener('pagehide', () => {
+  if (state.mode === 'online' || state.mode === 'rank') {
+    if (window.MuhouOnline && typeof window.MuhouOnline.leaveCurrentSession === 'function') {
+      window.MuhouOnline.leaveCurrentSession(state.phase === 'gameover' ? 'postgame' : 'leave');
+    }
+  }
 });
 
 const btnShare = document.getElementById('btn-gameover-share');
@@ -5083,6 +5251,9 @@ window.MuhouEngine = Object.freeze({
   validateRemoteEvolution,
   executeRemoteMove,
   executeRemoteEvolution,
+  handleRemoteRematchIntent,
+  handleRemoteRematchStart,
+  handleRemotePlayerLeftPostgame,
   startOnlineGameSession,
   endGame,
   isGameOver: () => state.phase === 'gameover',

@@ -1,0 +1,220 @@
+{
+  "total_matches": 1000,
+  "sente_wins": 472,
+  "gote_wins": 528,
+  "draws": 0,
+  "avg_moves": 106.95,
+  "min_moves": 19,
+  "max_moves": 120,
+  "sudden_deaths": 857,
+  "point_judgments": 649,
+  "reasons": {
+    "王将討ち取り": 351,
+    "120手サドンデス判定勝利": 640,
+    "120手同点判定勝利": 9
+  },
+  "first_moves": {
+    "6,3->5,3": {
+      "wins": 11,
+      "losses": 24,
+      "total": 35,
+      "name": "歩兵(66)"
+    },
+    "8,0->7,0": {
+      "wins": 19,
+      "losses": 15,
+      "total": 34,
+      "name": "香車(98)"
+    },
+    "6,1->5,1": {
+      "wins": 19,
+      "losses": 19,
+      "total": 38,
+      "name": "歩兵(86)"
+    },
+    "8,5->7,5": {
+      "wins": 13,
+      "losses": 23,
+      "total": 36,
+      "name": "金将(48)"
+    },
+    "8,2->7,3": {
+      "wins": 11,
+      "losses": 16,
+      "total": 27,
+      "name": "銀将(78)"
+    },
+    "8,3->7,4": {
+      "wins": 21,
+      "losses": 20,
+      "total": 41,
+      "name": "金将(68)"
+    },
+    "8,6->7,5": {
+      "wins": 21,
+      "losses": 16,
+      "total": 37,
+      "name": "銀将(38)"
+    },
+    "7,7->7,5": {
+      "wins": 13,
+      "losses": 22,
+      "total": 35,
+      "name": "飛車(28)"
+    },
+    "8,6->7,6": {
+      "wins": 19,
+      "losses": 24,
+      "total": 43,
+      "name": "銀将(38)"
+    },
+    "6,2->5,2": {
+      "wins": 21,
+      "losses": 16,
+      "total": 37,
+      "name": "歩兵(76)"
+    },
+    "6,7->5,7": {
+      "wins": 10,
+      "losses": 13,
+      "total": 23,
+      "name": "歩兵(26)"
+    },
+    "8,8->7,8": {
+      "wins": 22,
+      "losses": 12,
+      "total": 34,
+      "name": "香車(18)"
+    },
+    "8,4->7,4": {
+      "wins": 20,
+      "losses": 15,
+      "total": 35,
+      "name": "王将(58)"
+    },
+    "7,7->7,3": {
+      "wins": 16,
+      "losses": 13,
+      "total": 29,
+      "name": "飛車(28)"
+    },
+    "7,7->7,8": {
+      "wins": 17,
+      "losses": 13,
+      "total": 30,
+      "name": "飛車(28)"
+    },
+    "8,5->7,6": {
+      "wins": 19,
+      "losses": 13,
+      "total": 32,
+      "name": "金将(48)"
+    },
+    "7,7->7,2": {
+      "wins": 15,
+      "losses": 20,
+      "total": 35,
+      "name": "飛車(28)"
+    },
+    "8,4->7,3": {
+      "wins": 13,
+      "losses": 12,
+      "total": 25,
+      "name": "王将(58)"
+    },
+    "8,3->7,2": {
+      "wins": 18,
+      "losses": 21,
+      "total": 39,
+      "name": "金将(68)"
+    },
+    "7,7->7,4": {
+      "wins": 8,
+      "losses": 18,
+      "total": 26,
+      "name": "飛車(28)"
+    },
+    "6,8->5,8": {
+      "wins": 14,
+      "losses": 13,
+      "total": 27,
+      "name": "歩兵(16)"
+    },
+    "6,0->5,0": {
+      "wins": 20,
+      "losses": 10,
+      "total": 30,
+      "name": "歩兵(96)"
+    },
+    "8,5->7,4": {
+      "wins": 12,
+      "losses": 22,
+      "total": 34,
+      "name": "金将(48)"
+    },
+    "8,3->7,3": {
+      "wins": 19,
+      "losses": 14,
+      "total": 33,
+      "name": "金将(68)"
+    },
+    "6,6->5,6": {
+      "wins": 16,
+      "losses": 22,
+      "total": 38,
+      "name": "歩兵(36)"
+    },
+    "8,2->7,2": {
+      "wins": 11,
+      "losses": 19,
+      "total": 30,
+      "name": "銀将(78)"
+    },
+    "8,4->7,5": {
+      "wins": 10,
+      "losses": 22,
+      "total": 32,
+      "name": "王将(58)"
+    },
+    "6,5->5,5": {
+      "wins": 16,
+      "losses": 14,
+      "total": 30,
+      "name": "歩兵(46)"
+    },
+    "6,4->5,4": {
+      "wins": 11,
+      "losses": 26,
+      "total": 37,
+      "name": "歩兵(56)"
+    },
+    "7,7->7,6": {
+      "wins": 17,
+      "losses": 21,
+      "total": 38,
+      "name": "飛車(28)"
+    }
+  },
+  "tennozan_first": {
+    "won": 458,
+    "none": 51,
+    "lost": 491
+  },
+  "dragon_win_stats": {
+    "sente_made_win": 456,
+    "sente_made_loss": 517,
+    "gote_made_win": 513,
+    "gote_made_loss": 463
+  },
+  "horse_win_stats": {
+    "sente_made_win": 457,
+    "sente_made_loss": 506,
+    "gote_made_win": 510,
+    "gote_made_loss": 455
+  },
+  "ray_upgrades_total": {
+    "sente": 0,
+    "gote": 0
+  },
+  "total_time_seconds": 33.36940670013428
+}

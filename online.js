@@ -529,13 +529,40 @@
         if (engine && !engine.isGameOver()) {
           engine.endGame(onlinePlayerSide, `通信相手からデータ不整合通知（${data.reason || '改変の疑い'}）を受信したため、対局を終了しました。`);
         }
+      } else if (data.type === 'player_left') {
+        console.log('Opponent left match screen:', data);
+        if (engine && !engine.isGameOver()) {
+          engine.endGame(onlinePlayerSide, '相手が対戦画面を離脱しました（不戦勝）');
+        } else if (engine && engine.isGameOver()) {
+          if (typeof engine.handleRemotePlayerLeftPostgame === 'function') {
+            engine.handleRemotePlayerLeftPostgame();
+          }
+        }
+      } else if (data.type === 'player_left_postgame') {
+        if (engine && engine.isGameOver()) {
+          if (typeof engine.handleRemotePlayerLeftPostgame === 'function') {
+            engine.handleRemotePlayerLeftPostgame();
+          }
+        }
+      } else if (data.type === 'rematch_intent') {
+        if (engine && typeof engine.handleRemoteRematchIntent === 'function') {
+          engine.handleRemoteRematchIntent();
+        }
+      } else if (data.type === 'rematch_start') {
+        if (engine && typeof engine.handleRemoteRematchStart === 'function') {
+          engine.handleRemoteRematchStart();
+        }
       }
     });
 
     conn.on('close', () => {
       const engine = getEngine();
       if (engine && !engine.isGameOver()) {
-        engine.endGame(onlinePlayerSide, '相手プレイヤーの通信が切断されました（不戦勝）');
+        engine.endGame(onlinePlayerSide, '相手プレイヤーが対戦画面を離脱しました（不戦勝）');
+      } else if (engine && engine.isGameOver()) {
+        if (typeof engine.handleRemotePlayerLeftPostgame === 'function') {
+          engine.handleRemotePlayerLeftPostgame();
+        }
       }
     });
 
@@ -661,6 +688,63 @@
   // ==========================================
   // 【防御レベル2】不変（Frozen）オンラインブリッジの公開
   // ==========================================
+  
+  function sendOnlineRematchIntent() {
+    if (!activePeerConn || !activePeerConn.open) return;
+    try {
+      activePeerConn.send({
+        type: 'rematch_intent',
+        senderSide: onlinePlayerSide
+      });
+    } catch (e) {
+      console.warn('sendOnlineRematchIntent error:', e);
+    }
+  }
+
+  function sendOnlineRematchStart() {
+    if (!activePeerConn || !activePeerConn.open) return;
+    try {
+      activePeerConn.send({
+        type: 'rematch_start',
+        senderSide: onlinePlayerSide
+      });
+    } catch (e) {
+      console.warn('sendOnlineRematchStart error:', e);
+    }
+  }
+
+  function setOnlinePlayerSide(newSide) {
+    onlinePlayerSide = newSide;
+  }
+
+  function leaveCurrentSession(reason = 'leave') {
+    if (activePeerConn && activePeerConn.open) {
+      try {
+        activePeerConn.send({
+          type: reason === 'postgame' ? 'player_left_postgame' : 'player_left',
+          senderSide: onlinePlayerSide,
+          isSurrender: reason !== 'postgame'
+        });
+      } catch (e) {}
+      setTimeout(() => {
+        try { if (activePeerConn) activePeerConn.close(); } catch (e) {}
+        activePeerConn = null;
+      }, 50);
+    } else {
+      activePeerConn = null;
+    }
+
+    if (activePeer && !activePeer.destroyed) {
+      setTimeout(() => {
+        try { if (activePeer) activePeer.destroy(); } catch (e) {}
+        activePeer = null;
+      }, 100);
+    }
+
+    hasSessionStarted = false;
+    isMatchmakingActive = false;
+  }
+
   window.MuhouOnline = Object.freeze({
     startQuickMatchmaking,
     startRankMatchmaking,
@@ -670,7 +754,11 @@
     hideFriendModal,
     hideAllOnlineModals,
     sendOnlineMoveAction,
-    sendOnlineEvolutionAction
+    sendOnlineEvolutionAction,
+    sendOnlineRematchIntent,
+    sendOnlineRematchStart,
+    setOnlinePlayerSide,
+    leaveCurrentSession
   });
 
 })();

@@ -49,7 +49,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Noto+Serif+JP:wght@400;600;700;900&family=Yuji+Boku&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=33">
+  <link rel="stylesheet" href="style.css?v=34">
 </head>
 <body>
   <div class="app-container">
@@ -600,6 +600,8 @@
           <div id="rank-up-banner" class="rank-up-banner hidden">昇級・昇段達成</div>
         </div>
 
+        <div id="online-rematch-status" class="online-rematch-status hidden"></div>
+
         <div class="gameover-actions">
           <button id="btn-gameover-cert" class="btn btn-cert-card">戦績免状を確認・発行</button>
           <button id="btn-gameover-entrance" class="btn btn-header-back">タイトルへ</button>
@@ -812,8 +814,8 @@
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
 
   <!-- ゲームスクリプト群 -->
-  <script src="game.js?v=33"></script>
-  <script src="online.js?v=33"></script>
+  <script src="game.js?v=34"></script>
+  <script src="online.js?v=34"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
