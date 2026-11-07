@@ -2891,21 +2891,33 @@ function cpuExecuteInstantEvolution(killerPiece, points) {
 // ==========================================
 
 
-// 盤面とラベルの同期（オンライン対戦・単人対局での不意なUI・盤面反転を完全防止）
+// プレイヤー視点における盤面反転判定（通信対局・CPU戦で自分が後手の場合、自軍を手前に配置）
+function isFlippedPerspective() {
+  if (state.mode === 'pvp') return false;
+  return state.playerSide === 'gote';
+}
+
+// 盤面とラベルの同期（プレイヤー視点に合わせて手前を自陣、奥を敵陣に自動配置）
 function updateBoardPerspective() {
+  const flipped = isFlippedPerspective();
   const boardEl = document.getElementById('shogi-board');
   const mainLayout = document.querySelector('.main-layout');
   const colLabels = document.querySelector('.col-labels');
+  const rowLabels = document.querySelector('.row-labels');
 
-  // オンライン対戦を含め、UIおよび盤面の反転を常時無効化（常に正対表示）
   if (boardEl) {
-    boardEl.classList.remove('flip-board');
+    boardEl.classList.toggle('flipped-perspective', flipped);
   }
   if (mainLayout) {
-    mainLayout.classList.remove('flip-players');
+    mainLayout.classList.toggle('flip-players', flipped);
   }
   if (colLabels) {
-    colLabels.innerHTML = [9, 8, 7, 6, 5, 4, 3, 2, 1].map(n => `<span>${n}</span>`).join('');
+    const cols = flipped ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1];
+    colLabels.innerHTML = cols.map(n => `<span>${n}</span>`).join('');
+  }
+  if (rowLabels) {
+    const rows = flipped ? ['九', '八', '七', '六', '五', '四', '三', '二', '一'] : ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    rowLabels.innerHTML = rows.map(s => `<span>${s}</span>`).join('');
   }
 }
 
@@ -2920,9 +2932,12 @@ function renderAll() {
 
 function renderBoard() {
   elBoard.innerHTML = '';
+  const flipped = isFlippedPerspective();
 
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
+  for (let displayR = 0; displayR < 9; displayR++) {
+    for (let displayC = 0; displayC < 9; displayC++) {
+      const r = flipped ? (8 - displayR) : displayR;
+      const c = flipped ? (8 - displayC) : displayC;
       const cell = document.createElement('div');
       cell.className = 'board-cell';
       cell.dataset.r = r;
@@ -2992,14 +3007,16 @@ function renderBoard() {
         // 駒の周囲8方向のミニインジケーター（盤面上の実際の向きで表示）
         const dotsContainer = document.createElement('div');
         dotsContainer.className = 'dir-dots';
-        const sign = piece.owner === 'sente' ? 1 : -1;
+        const visualSign = flipped
+          ? (piece.owner === 'gote' ? 1 : -1)
+          : (piece.owner === 'sente' ? 1 : -1);
 
         for (const [dx, dy] of INNER_COORDS) {
           const stepType = hasStepAt(piece, dx, dy, true);
           const isRay = hasRayInDir(piece, dx, dy, true);
           if (stepType || isRay) {
-            const boardDx = dx * sign;
-            const boardDy = dy * sign;
+            const boardDx = dx * visualSign;
+            const boardDy = dy * visualSign;
             const dot = document.createElement('span');
             dot.className = `dir-dot d-${boardDx}-${boardDy}`;
             if (isRay) dot.classList.add('ray');

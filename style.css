@@ -2698,16 +2698,65 @@ body {
 
 
 /* ==========================================
-   後手番自動反転はオンライン対戦等での混乱・誤操作防止のため完全廃止
-   （常に安定した正対レイアウトを保持）
+   プレイヤー視点連動レイアウト（後手操作時は自軍を手前、敵軍を奥に配置）
    ========================================== */
 #shogi-board.flip-board {
+  transform: none;
+}
+
+#shogi-board.flipped-perspective .piece.sente {
+  transform: rotate(180deg);
+}
+
+#shogi-board.flipped-perspective .piece.gote {
   transform: none;
 }
 
 .main-layout.flip-players {
   display: flex;
   flex-direction: column;
+}
+
+.main-layout.flip-players #card-sente {
+  order: 1;
+}
+
+.main-layout.flip-players #evolution-box-top {
+  order: 2;
+}
+
+.main-layout.flip-players #status-banner {
+  order: 3;
+}
+
+.main-layout.flip-players #enemy-evo-notification {
+  order: 4;
+}
+
+.main-layout.flip-players .board-section {
+  order: 5;
+}
+
+.main-layout.flip-players #card-gote {
+  order: 6;
+}
+
+.main-layout.flip-players #evolution-box {
+  order: 7;
+}
+
+/* 後手視点時、インスペクタードックの駒向き同期（敵駒は反転、自軍は正対） */
+.main-layout.flip-players #evolution-box .mini-kanji.gote {
+  transform: none;
+}
+.main-layout.flip-players #evolution-box .matrix-cell.center-self.gote {
+  transform: none;
+}
+.main-layout.flip-players #evolution-box .mini-kanji:not(.gote) {
+  transform: rotate(180deg);
+}
+.main-layout.flip-players #evolution-box .matrix-cell.center-self:not(.gote) {
+  transform: rotate(180deg);
 }
 
 
