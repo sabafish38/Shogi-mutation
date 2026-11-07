@@ -16,8 +16,9 @@
   let onlineSearchSeconds = 0;
   let myPlayerUid = null;
   let hasSessionStarted = false;
+  const getEngine = () => window.MuhouEngine;
 
-  // Google パブリック STUN サーバー設定（異なる回線・Wi-Fi間の接続成功率を飛躍的に向上）
+  // Google & Cloudflare パブリック STUN サーバー設定（異なる回線・Wi-Fi間の接続成功率を飛躍的に向上）
   const PEER_CONFIG = {
     debug: 1,
     config: {
@@ -26,7 +27,8 @@
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' }
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' }
       ]
     }
   };
@@ -467,33 +469,52 @@
   // 4. データ送信フック（game.js から呼び出し）
   // ------------------------------------------
   function sendOnlineMoveAction(fromR, fromC, toR, toC, capturedPiece) {
-    if (!activePeerConn || !activePeerConn.open) return;
+    const engine = getEngine();
+    if (!activePeerConn || !activePeerConn.open) {
+      console.warn('sendOnlineMoveAction: activePeerConn is not open', activePeerConn);
+      if (engine && typeof engine.addBattleLog === 'function') {
+        engine.addBattleLog('通信注意: 相手端末との接続を確認中... (再試行中)', 'log-warning');
+      }
+      return;
+    }
 
-    activePeerConn.send({
-      type: 'move',
-      senderSide: onlinePlayerSide,
-      fromR,
-      fromC,
-      toR,
-      toC,
-      captured: capturedPiece ? {
-        type: capturedPiece.type,
-        name: capturedPiece.name,
-        basePt: capturedPiece.basePt
-      } : null
-    });
+    try {
+      activePeerConn.send({
+        type: 'move',
+        senderSide: onlinePlayerSide,
+        fromR,
+        fromC,
+        toR,
+        toC,
+        captured: capturedPiece ? {
+          type: capturedPiece.type,
+          name: capturedPiece.name,
+          basePt: capturedPiece.basePt
+        } : null
+      });
+    } catch (e) {
+      console.error('sendOnlineMoveAction failed:', e);
+    }
   }
 
   function sendOnlineEvolutionAction(pendingEvoArray, spendingPt, evoLogs) {
-    if (!activePeerConn || !activePeerConn.open) return;
+    const engine = getEngine();
+    if (!activePeerConn || !activePeerConn.open) {
+      console.warn('sendOnlineEvolutionAction: activePeerConn is not open', activePeerConn);
+      return;
+    }
 
-    activePeerConn.send({
-      type: 'evolution',
-      senderSide: onlinePlayerSide,
-      pendingEvo: pendingEvoArray,
-      spendingPt,
-      evoLogs
-    });
+    try {
+      activePeerConn.send({
+        type: 'evolution',
+        senderSide: onlinePlayerSide,
+        pendingEvo: pendingEvoArray,
+        spendingPt,
+        evoLogs
+      });
+    } catch (e) {
+      console.error('sendOnlineEvolutionAction failed:', e);
+    }
   }
 
   // ------------------------------------------

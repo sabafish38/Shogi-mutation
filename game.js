@@ -4627,6 +4627,7 @@ window.MuhouEngine = Object.freeze({
   loadRivalPlayers,
   getState: () => state,
   executeMove,
+  addBattleLog: addLog,
   getSoundSystem: () => SoundSystem
 });
 
