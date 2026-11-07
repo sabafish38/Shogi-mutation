@@ -45,6 +45,8 @@
     return myPlayerUid;
   }
 
+  let isMatchmakingActive = false;
+
   // Peerインスタンスの初期化
   function getOrCreatePeer(customId = null) {
     return new Promise((resolve) => {
@@ -55,11 +57,11 @@
         }
 
         if (activePeer && !activePeer.destroyed) {
-          activePeer.destroy();
+          try { activePeer.destroy(); } catch (e) {}
           activePeer = null;
         }
 
-        const peerId = customId || ('muhou_' + getMyPlayerUid() + '_' + Math.floor(Math.random() * 1000));
+        const peerId = customId || ('muhou_' + getMyPlayerUid() + '_' + Math.floor(Math.random() * 10000));
         try {
           const peer = new Peer(peerId, PEER_CONFIG);
 
@@ -69,7 +71,9 @@
           });
 
           peer.on('error', (err) => {
-            console.warn('Peer error:', err);
+            console.warn('Peer error:', err ? err.type || err.message : err);
+            try { peer.destroy(); } catch (e) {}
+            if (activePeer === peer) activePeer = null;
             resolve(null);
           });
         } catch (err) {
@@ -98,9 +102,11 @@
 
   // ------------------------------------------
   // 1. 全国マッチング（格付戦 / カジュアル戦）
+  // 堅牢なランダムバックオフ・ローテーション探査エンジン
   // ------------------------------------------
   async function executeMatchmaking({ mode, slotPrefix, overlayTitle, defaultOppName }) {
     hasSessionStarted = false;
+    isMatchmakingActive = true;
     currentSessionMode = mode;
     showMatchmakingOverlay(overlayTitle);
 
@@ -113,59 +119,138 @@
     }, 1000);
 
     const slotCount = 4;
-    let matched = false;
+    const PROBE_TIMEOUT_MS = 2500;
 
-    const peer = await getOrCreatePeer();
-    if (!peer) {
-      hideAllOnlineModals();
-      alert('通信の初期化に失敗しました。ページを再読み込みしてお試しください。');
-      return;
-    }
+    // マッチング試行ループ（対局開始またはキャンセルまで継続探査＆待機）
+    while (isMatchmakingActive && !hasSessionStarted) {
+      // 1. 探査（ゲスト）フェーズ：空きスロットの待機ホストへ接続を試みる
+      const probePeer = await getOrCreatePeer();
+      if (!probePeer || !isMatchmakingActive) {
+        if (!isMatchmakingActive) return;
+        await new Promise(r => setTimeout(r, 600));
+        continue;
+      }
 
-    // 1. スロット0〜3の既存待機者を高速プローブ (各550ms)
-    for (let slot = 0; slot < slotCount; slot++) {
-      const targetHostId = `${slotPrefix}${slot}`;
-      try {
-        const conn = peer.connect(targetHostId, { reliable: true });
-        const connected = await new Promise((resolve) => {
-          const timeout = setTimeout(() => resolve(false), 550);
-          conn.on('open', () => {
-            clearTimeout(timeout);
-            resolve(true);
+      let currentProbeUnavailable = false;
+      const onProbeError = (err) => {
+        if (err && (err.type === 'peer-unavailable' || (err.message && err.message.includes('Could not connect to peer')))) {
+          currentProbeUnavailable = true;
+        }
+      };
+      probePeer.on('error', onProbeError);
+
+      for (let slot = 0; slot < slotCount; slot++) {
+        if (!isMatchmakingActive || hasSessionStarted) break;
+        const targetHostId = `${slotPrefix}${slot}`;
+        currentProbeUnavailable = false;
+
+        try {
+          const conn = probePeer.connect(targetHostId, { reliable: true });
+          const connected = await new Promise((resolve) => {
+            const timer = setTimeout(() => {
+              try { conn.close(); } catch (e) {}
+              resolve(false);
+            }, PROBE_TIMEOUT_MS);
+
+            // 不在エラー（誰もいない）の場合は即座に次スロットへ進む
+            const fastCheck = setInterval(() => {
+              if (currentProbeUnavailable) {
+                clearInterval(fastCheck);
+                clearTimeout(timer);
+                try { conn.close(); } catch (e) {}
+                resolve(false);
+              }
+            }, 80);
+
+            conn.on('open', () => {
+              clearInterval(fastCheck);
+              clearTimeout(timer);
+              resolve(true);
+            });
+            conn.on('error', () => {
+              clearInterval(fastCheck);
+              clearTimeout(timer);
+              resolve(false);
+            });
           });
-          conn.on('error', () => {
-            clearTimeout(timeout);
-            resolve(false);
-          });
+
+          if (connected && isMatchmakingActive && !hasSessionStarted) {
+            isHost = false;
+            onlinePlayerSide = 'gote';
+            try { probePeer.off('error', onProbeError); } catch (e) {}
+            setupConnectionEvents(conn, defaultOppName, 'guest');
+            return; // ゲストとして接続確立！
+          }
+        } catch (e) {}
+      }
+
+      try { probePeer.off('error', onProbeError); } catch (e) {}
+      if (!isMatchmakingActive || hasSessionStarted) return;
+
+      // 2. 待機（ホスト）フェーズ：空いているスロットでホストを開設
+      let myHostPeer = null;
+
+      for (let slot = 0; slot < slotCount; slot++) {
+        if (!isMatchmakingActive || hasSessionStarted) break;
+        const candidateHostId = `${slotPrefix}${slot}`;
+        const hostPeer = await getOrCreatePeer(candidateHostId);
+        if (hostPeer && !hostPeer.destroyed) {
+          myHostPeer = hostPeer;
+          break;
+        }
+      }
+
+      if (myHostPeer && isMatchmakingActive && !hasSessionStarted) {
+        isHost = true;
+        onlinePlayerSide = 'sente';
+
+        let connectionReceived = false;
+        myHostPeer.on('connection', (conn) => {
+          if (hasSessionStarted || !isMatchmakingActive) {
+            try { conn.close(); } catch (e) {}
+            return;
+          }
+          connectionReceived = true;
+          setupConnectionEvents(conn, defaultOppName, 'host');
         });
 
-        if (connected) {
-          matched = true;
-          isHost = false;
-          onlinePlayerSide = 'gote';
-          setupConnectionEvents(conn, defaultOppName, 'guest');
-          break;
-        }
-      } catch (e) {}
-    }
-
-    // 2. 待機者がいなければ、最上位の空きスロットでホスト待機
-    if (!matched) {
-      for (let slot = 0; slot < slotCount; slot++) {
-        const hostSlotId = `${slotPrefix}${slot}`;
-        const hostPeer = await getOrCreatePeer(hostSlotId);
-        if (hostPeer) {
-          isHost = true;
-          onlinePlayerSide = 'sente';
-          hostPeer.on('connection', (conn) => {
-            if (hasSessionStarted) {
-              try { conn.close(); } catch (e) {}
-              return;
+        // すれ違い防止のランダムジッター待機（4.5秒〜8秒）
+        const waitTimeMs = 4500 + Math.floor(Math.random() * 3500);
+        await new Promise((resolve) => {
+          const timer = setTimeout(resolve, waitTimeMs);
+          const poll = setInterval(() => {
+            if (!isMatchmakingActive || hasSessionStarted || connectionReceived) {
+              clearInterval(poll);
+              clearTimeout(timer);
+              resolve();
             }
-            setupConnectionEvents(conn, defaultOppName, 'host');
+          }, 100);
+        });
+
+        if (hasSessionStarted || !isMatchmakingActive) return;
+
+        // 接続を受信している場合は、ハンドシェイクが完了するまで最大8秒待機（勝手に破棄しない！）
+        if (connectionReceived) {
+          await new Promise((resolve) => {
+            const hTimer = setTimeout(resolve, 8000);
+            const hPoll = setInterval(() => {
+              if (hasSessionStarted || !isMatchmakingActive) {
+                clearInterval(hPoll);
+                clearTimeout(hTimer);
+                resolve();
+              }
+            }, 100);
           });
-          break;
+          if (hasSessionStarted || !isMatchmakingActive) return;
         }
+
+        // 誰も来なかった場合のみ、ホストを安全に破棄して次の探査サイクルへ移行
+        if (myHostPeer && !myHostPeer.destroyed) {
+          try { myHostPeer.destroy(); } catch (e) {}
+          activePeer = null;
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 600 + Math.floor(Math.random() * 400)));
       }
     }
   }
@@ -173,7 +258,7 @@
   async function startRankMatchmaking() {
     await executeMatchmaking({
       mode: 'rank',
-      slotPrefix: 'muhou_rank_slot_',
+      slotPrefix: 'muhou_v32_rank_s_',
       overlayTitle: '真剣勝負（格付戦）：全国の棋士を探索中...',
       defaultOppName: '全国の棋士'
     });
@@ -182,23 +267,25 @@
   async function startQuickMatchmaking() {
     await executeMatchmaking({
       mode: 'online',
-      slotPrefix: 'muhou_quick_slot_',
+      slotPrefix: 'muhou_v32_quick_s_',
       overlayTitle: '通信対局（カジュアル戦）：全国の好敵手を探索中...',
       defaultOppName: '全国の好敵手'
     });
   }
 
   function cancelMatchmaking() {
+    isMatchmakingActive = false;
     if (onlineSearchTimer) {
       clearInterval(onlineSearchTimer);
       onlineSearchTimer = null;
     }
     if (activePeer && !activePeer.destroyed) {
-      activePeer.destroy();
+      try { activePeer.destroy(); } catch (e) {}
       activePeer = null;
     }
     hideAllOnlineModals();
   }
+
 
   // ------------------------------------------
   // 2. 合言葉・フレンドルーム対戦
