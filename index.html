@@ -49,7 +49,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Noto+Serif+JP:wght@400;600;700;900&family=Yuji+Boku&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
   <div class="app-container">
@@ -57,7 +57,7 @@
     <section id="view-entrance" class="view-entrance">
       <div class="entrance-hero">
         <div class="hero-badge">REVOLUTION SHOGI</div>
-        <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span> <span class="version-badge">v3.0</span></h1>
+        <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span> <span class="version-badge">v3.1</span></h1>
         <p class="entrance-tagline">盤上撃破で獲得した霊力により、駒の移動特性を直接変異・覚醒させる非対称戦略将棋</p>
       </div>
 
@@ -135,7 +135,7 @@
               <div class="mode-heading">
                 <span class="mode-name">からくり対局（演習）</span>
               </div>
-              <p class="mode-desc">入門・標準・強敵から選んで対戦。先後選択自由。</p>
+              <p class="mode-desc">入門・標準・強敵・鬼から選んで対戦。先後選択自由。</p>
             </div>
           </button>
 
@@ -406,6 +406,7 @@
             <select id="game-mode" class="styled-select">
               <option value="cpu-normal" selected>VS CPU（標準）</option>
               <option value="cpu-hard">VS CPU（強敵）</option>
+              <option value="cpu-master">VS CPU（鬼・極限）</option>
               <option value="cpu-easy">VS CPU（入門）</option>
               <option value="pvp">2人対戦（ローカル）</option>
             </select>
@@ -515,6 +516,10 @@
               <button type="button" class="pill-btn" data-diff="cpu-hard">
                 <span class="pill-title">強敵 (Hard)</span>
                 <span class="pill-sub">鋭い進化と大駒を活用</span>
+              </button>
+              <button type="button" class="pill-btn" data-diff="cpu-master">
+                <span class="pill-title">鬼・極限 (Master)</span>
+                <span class="pill-sub">深層先読み・詰みと包囲を逃さない</span>
               </button>
             </div>
           </div>
@@ -808,8 +813,8 @@
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
 
   <!-- ゲームスクリプト群 -->
-  <script src="game.js?v=30"></script>
-  <script src="online.js?v=30"></script>
+  <script src="game.js?v=31"></script>
+  <script src="online.js?v=31"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

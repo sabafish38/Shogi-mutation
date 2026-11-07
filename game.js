@@ -1163,7 +1163,7 @@ function updatePlayerNames() {
       goteNameEl.textContent = playerLabel;
     }
   } else {
-    const cpuLabel = state.mode === 'cpu-hard' ? 'CPU (強敵)' : state.mode === 'cpu-easy' ? 'CPU (入門)' : 'CPU (標準)';
+    const cpuLabel = state.mode === 'cpu-master' ? 'CPU (鬼・極限)' : state.mode === 'cpu-hard' ? 'CPU (強敵)' : state.mode === 'cpu-easy' ? 'CPU (入門)' : 'CPU (標準)';
     const myLabel = userProfile.name || 'あなた';
     if (state.playerSide === 'sente') {
       senteNameEl.textContent = myLabel;
@@ -2434,10 +2434,63 @@ function cloneBoardForSearch(board) {
   return newBoard;
 }
 
+// 盤面上の各駒の静的価値計算
+function getPieceStaticValue(piece) {
+  if (!piece) return 0;
+  if (piece.type === 'ou') return 100000;
+  let base = 120;
+  if (piece.type === 'hisha') base = 1250;
+  else if (piece.type === 'kaku') base = 1100;
+  else if (piece.type === 'kin') base = 540;
+  else if (piece.type === 'gin') base = 480;
+  else if (piece.type === 'kei') base = 350;
+  else if (piece.type === 'kyo') base = 330;
+  else if (piece.type === 'fu') base = 120;
+
+  const evoSteps = (piece.evolvedSteps || []).length;
+  const evoRays = (piece.evolvedRays || []).length;
+  base += evoSteps * 130 + evoRays * 360;
+
+  // 飛車・角の変異ボーナス（竜王・竜馬化）
+  if (piece.type === 'hisha' && evoSteps > 0) base += 250;
+  if (piece.type === 'kaku' && evoSteps > 0) base += 250;
+
+  return base;
+}
+
+// 盤面全体の利き（支配力・防御力）マップを高速生成
+function buildAttackMaps(board) {
+  const maps = {
+    sente: Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => [])),
+    gote: Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => []))
+  };
+
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const p = board[r][c];
+      if (!p) continue;
+
+      const cov = getPieceAttackCoverage(board, r, c);
+      const val = getPieceStaticValue(p);
+      const attackerInfo = { r, c, type: p.type, val };
+
+      for (const m of cov.validMoves) {
+        maps[p.owner][m.r][m.c].push(attackerInfo);
+      }
+      for (const g of cov.guardSquares) {
+        maps[p.owner][g.r][g.c].push(attackerInfo);
+      }
+    }
+  }
+
+  return maps;
+}
+
 // 盤面評価関数（cpuOwner視点のスコア）
-function evaluateBoard(board, cpuOwner, bankDiff = 0) {
-  // 貯金されているポイントは将来の進化に使えるため高価値（ただし盤上で既に機能している進化よりは少し控えめにして進化を促す）
-  let score = bankDiff * 115;
+function evaluateBoard(board, cpuOwner, bankDiff = 0, attackMaps = null) {
+  const maps = attackMaps || buildAttackMaps(board);
+  const enemyOwner = cpuOwner === 'sente' ? 'gote' : 'sente';
+
   let senteKing = null;
   let goteKing = null;
 
@@ -2452,45 +2505,83 @@ function evaluateBoard(board, cpuOwner, bankDiff = 0) {
     }
   }
 
-  if (!senteKing) return cpuOwner === 'gote' ? 99999 : -99999;
-  if (!goteKing) return cpuOwner === 'sente' ? 99999 : -99999;
+  if (!senteKing) return cpuOwner === 'gote' ? 999999 : -999999;
+  if (!goteKing) return cpuOwner === 'sente' ? 999999 : -999999;
 
+  let score = bankDiff * 125;
+
+  const cpuKing = cpuOwner === 'sente' ? senteKing : goteKing;
+  const oppKing = cpuOwner === 'sente' ? goteKing : senteKing;
+
+  // 王手ペナルティ・ボーナス
+  const isCpuKingInCheck = maps[enemyOwner][cpuKing.r][cpuKing.c].length > 0;
+  const isOppKingInCheck = maps[cpuOwner][oppKing.r][oppKing.c].length > 0;
+
+  if (isCpuKingInCheck) score -= 850;
+  if (isOppKingInCheck) score += 450;
+
+  // マテリアル・位置・制圧力評価
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       const p = board[r][c];
-      if (!p) continue;
+      const cpuControls = maps[cpuOwner][r][c].length;
+      const oppControls = maps[enemyOwner][r][c].length;
 
-      const totalPt = p.basePt + p.evolvedSteps.length;
-      let val = totalPt * 135;
+      // 盤面支配力ボーナス
+      score += (cpuControls - oppControls) * 8;
 
-      // 走り駒ボーナス
-      if (p.type === 'hisha' || p.type === 'kaku') {
-        val += 320 + p.evolvedSteps.length * 50;
-      } else if (p.type === 'kyo') {
-        val += 90;
-      }
+      if (p) {
+        const val = getPieceStaticValue(p);
+        let posBonus = 0;
 
-      // 前進・敵玉接近ボーナス
-      if (p.type !== 'ou') {
-        const progress = p.owner === 'sente' ? (8 - r) : r;
-        val += progress * 12;
-        const centerDist = Math.abs(4 - c);
-        val += (4 - centerDist) * 6;
+        if (p.type !== 'ou') {
+          // 前進ボーナス
+          const progress = p.owner === 'sente' ? (8 - r) : r;
+          posBonus += progress * 14;
 
-        const enemyKing = p.owner === 'sente' ? goteKing : senteKing;
-        const distToKing = Math.abs(r - enemyKing.r) + Math.abs(c - enemyKing.c);
-        val += (14 - distToKing) * (totalPt * 3);
+          // 中央志向ボーナス
+          const centerDist = Math.abs(4 - c);
+          posBonus += (4 - centerDist) * 8;
 
-        // 天王山（中央5五マス）制圧ボーナス
-        if (r === 4 && c === 4) {
-          val += 240;
+          // 敵玉接近ボーナス
+          const enemyK = p.owner === 'sente' ? goteKing : senteKing;
+          const distToK = Math.abs(r - enemyK.r) + Math.abs(c - enemyK.c);
+          posBonus += (14 - distToK) * 12;
+
+          // 天王山（中央5五マス）制圧ボーナス
+          if (r === 4 && c === 4) {
+            posBonus += 280;
+          }
+        }
+
+        if (p.owner === cpuOwner) {
+          score += val + posBonus;
+        } else {
+          score -= (val + posBonus);
         }
       }
+    }
+  }
 
-      if (p.owner === cpuOwner) {
-        score += val;
-      } else {
-        score -= val;
+  // 玉の安全性（King Safety）評価
+  const KING_DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  for (const [dr, dc] of KING_DIRS) {
+    const kr = cpuKing.r + dr;
+    const kc = cpuKing.c + dc;
+    if (kr >= 0 && kr < 9 && kc >= 0 && kc < 9) {
+      if (maps[enemyOwner][kr][kc].length > 0) {
+        score -= 90; // 自玉周囲への敵の利きに対するペナルティ
+      }
+      if (maps[cpuOwner][kr][kc].length > 0) {
+        score += 30; // 自玉周囲の味方守護ボーナス
+      }
+    }
+
+    const okr = oppKing.r + dr;
+    const okc = oppKing.c + dc;
+    if (okr >= 0 && okr < 9 && okc >= 0 && okc < 9) {
+      if (maps[cpuOwner][okr][okc].length > 0) {
+        score += 85; // 敵玉周囲への味方の包囲利きボーナス
       }
     }
   }
@@ -2498,44 +2589,272 @@ function evaluateBoard(board, cpuOwner, bankDiff = 0) {
   return score;
 }
 
-// すべての合法手を生成
-function generateAllMoves(board, owner) {
+// 指し手オーダリング（有望手・安全手を先頭に配置しAlpha-Beta剪定率を最大化）
+function generateOrderedMoves(board, owner, attackMaps = null) {
+  const maps = attackMaps || buildAttackMaps(board);
+  const enemyOwner = owner === 'sente' ? 'gote' : 'sente';
   const moves = [];
+
+  let enemyKingPos = null;
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       const p = board[r][c];
-      if (p && p.owner === owner) {
-        const pMoves = getValidMovesForPiece(board, r, c);
-        for (const m of pMoves) {
-          const target = board[m.r][m.c];
-          const captureValue = target ? (target.type === 'ou' ? 10000 : getPieceTotalPt(target)) : 0;
-          moves.push({
-            fromR: r,
-            fromC: c,
-            toR: m.r,
-            toC: m.c,
-            captureValue
-          });
+      if (p && p.type === 'ou' && p.owner === enemyOwner) {
+        enemyKingPos = { r, c };
+        break;
+      }
+    }
+    if (enemyKingPos) break;
+  }
+
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const p = board[r][c];
+      if (!p || p.owner !== owner) continue;
+
+      const pMoves = getValidMovesForPiece(board, r, c);
+      const moverVal = getPieceStaticValue(p);
+
+      for (const m of pMoves) {
+        const target = board[m.r][m.c];
+        const targetVal = target ? getPieceStaticValue(target) : 0;
+        let orderScore = 0;
+
+        // 1. 敵王捕獲手（即勝利）
+        if (target && target.type === 'ou') {
+          orderScore = 1000000;
+        } else {
+          // 2. 捕獲手（MVV-LVA: 価値の高い敵駒を価値の低い味方駒で取る）
+          if (target) {
+            orderScore = 10000 + targetVal - Math.floor(moverVal / 10);
+          }
+
+          // 3. 王手（Check）の誘発手
+          if (enemyKingPos && Math.abs(m.r - enemyKingPos.r) <= 2 && Math.abs(m.c - enemyKingPos.c) <= 2) {
+            orderScore += 2500;
+          }
+
+          // 4. 着手マスの安全性判定（紐付き判定）
+          const enemyAttacks = maps[enemyOwner][m.r][m.c].length;
+          const allyGuards = maps[owner][m.r][m.c].length;
+
+          if (enemyAttacks > 0) {
+            if (allyGuards > 0) {
+              if (targetVal >= moverVal) {
+                orderScore += 1200; // 得な交換
+              } else {
+                orderScore -= (moverVal - targetVal) * 2; // 損な交換
+              }
+            } else {
+              // 味方の守りがないマスへの飛び込み（タダ捨ての危険）
+              if (!target || targetVal < moverVal) {
+                orderScore -= 8000;
+              }
+            }
+          } else {
+            // 敵の利きがない安全なマスへの着手
+            orderScore += 200;
+          }
+
+          // 5. 天王山（中央5五）
+          if (m.r === 4 && m.c === 4) {
+            orderScore += 1500;
+          }
+
+          // 6. 前進ボーナス
+          const progress = owner === 'sente' ? (8 - m.r) : m.r;
+          orderScore += progress * 15;
+        }
+
+        moves.push({
+          fromR: r,
+          fromC: c,
+          toR: m.r,
+          toC: m.c,
+          captureValue: target ? (target.type === 'ou' ? 10000 : getPieceTotalPt(target)) : 0,
+          targetType: target ? target.type : null,
+          orderScore
+        });
+      }
+    }
+  }
+
+  moves.sort((a, b) => b.orderScore - a.orderScore);
+  return moves;
+}
+
+// すべての合法手を生成（下位互換性維持）
+function generateAllMoves(board, owner) {
+  return generateOrderedMoves(board, owner);
+}
+
+// 指定した陣営の王が現在王手されているかチェック
+function isKingInCheck(board, owner) {
+  const enemy = owner === 'sente' ? 'gote' : 'sente';
+  let kingPos = null;
+
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const p = board[r][c];
+      if (p && p.type === 'ou' && p.owner === owner) {
+        kingPos = { r, c };
+        break;
+      }
+    }
+    if (kingPos) break;
+  }
+
+  if (!kingPos) return true; // 王がいない場合は王手扱い（敗北）
+
+  // 敵の利きが自玉マスに届いているか走査
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const p = board[r][c];
+      if (p && p.owner === enemy) {
+        const moves = getValidMovesForPiece(board, r, c);
+        if (moves.some(m => m.r === kingPos.r && m.c === kingPos.c)) {
+          return true;
         }
       }
     }
   }
-  moves.sort((a, b) => b.captureValue - a.captureValue);
-  return moves;
+  return false;
 }
 
-// 指定した陣営の王が現在王手されている（相手から次に取られる状態）かチェック
-function isKingInCheck(board, owner) {
-  const enemy = owner === 'sente' ? 'gote' : 'sente';
-  const enemyMoves = generateAllMoves(board, enemy);
-  return enemyMoves.some(m => m.captureValue >= 10000);
+// 静止探索（Quiescence Search: 取り合いが落ち着くまで捕獲手のみを深掘りし、水平線効果とタダ捨てを完全根絶）
+function quiescence(board, qDepth, alpha, beta, cpuOwner, bankDiff) {
+  const currentOwner = (qDepth % 2 === 0) ? cpuOwner : (cpuOwner === 'sente' ? 'gote' : 'sente');
+  const isMaximizing = (currentOwner === cpuOwner);
+
+  const standPat = evaluateBoard(board, cpuOwner, bankDiff);
+
+  if (isMaximizing) {
+    if (standPat >= beta) return beta;
+    if (standPat > alpha) alpha = standPat;
+  } else {
+    if (standPat <= alpha) return alpha;
+    if (standPat < beta) beta = standPat;
+  }
+
+  if (qDepth <= 0) return standPat;
+
+  const allMoves = generateOrderedMoves(board, currentOwner);
+  const captureMoves = allMoves.filter(m => m.captureValue > 0).slice(0, 8);
+  if (captureMoves.length === 0) return standPat;
+
+  if (isMaximizing) {
+    for (const m of captureMoves) {
+      const nextBoard = cloneBoardForSearch(board);
+      const mp = nextBoard[m.fromR][m.fromC];
+      const cap = nextBoard[m.toR][m.toC];
+      nextBoard[m.toR][m.toC] = mp;
+      nextBoard[m.fromR][m.fromC] = null;
+
+      let nextBank = bankDiff;
+      if (cap && cap.type !== 'ou') nextBank += getPieceTotalPt(cap);
+
+      const score = quiescence(nextBoard, qDepth - 1, alpha, beta, cpuOwner, nextBank);
+      if (score >= beta) return beta;
+      if (score > alpha) alpha = score;
+    }
+    return alpha;
+  } else {
+    for (const m of captureMoves) {
+      const nextBoard = cloneBoardForSearch(board);
+      const mp = nextBoard[m.fromR][m.fromC];
+      const cap = nextBoard[m.toR][m.toC];
+      nextBoard[m.toR][m.toC] = mp;
+      nextBoard[m.fromR][m.fromC] = null;
+
+      let nextBank = bankDiff;
+      if (cap && cap.type !== 'ou') nextBank -= getPieceTotalPt(cap);
+
+      const score = quiescence(nextBoard, qDepth - 1, alpha, beta, cpuOwner, nextBank);
+      if (score <= alpha) return alpha;
+      if (score < beta) beta = score;
+    }
+    return beta;
+  }
+}
+
+// Minimax探索（Alpha-Beta剪定 ＋ 静止探索結合）
+function minimax(board, depth, alpha, beta, isMaximizing, cpuOwner, bankDiff, qDepthMax = 1) {
+  const currentOwner = isMaximizing ? cpuOwner : (cpuOwner === 'sente' ? 'gote' : 'sente');
+
+  let senteAlive = false;
+  let goteAlive = false;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const p = board[r][c];
+      if (p && p.type === 'ou') {
+        if (p.owner === 'sente') senteAlive = true;
+        else goteAlive = true;
+      }
+    }
+  }
+  if (!senteAlive) return cpuOwner === 'gote' ? (900000 + depth * 1000) : (-900000 - depth * 1000);
+  if (!goteAlive) return cpuOwner === 'sente' ? (900000 + depth * 1000) : (-900000 - depth * 1000);
+
+  if (depth <= 0) {
+    if (qDepthMax > 0) {
+      return quiescence(board, qDepthMax, alpha, beta, cpuOwner, bankDiff);
+    }
+    return evaluateBoard(board, cpuOwner, bankDiff);
+  }
+
+  const moves = generateOrderedMoves(board, currentOwner);
+  if (moves.length === 0) {
+    return isMaximizing ? -800000 : 800000;
+  }
+
+  const maxBranches = depth >= 3 ? 16 : (depth === 2 ? 18 : 22);
+  const candidateMoves = moves.slice(0, maxBranches);
+
+  if (isMaximizing) {
+    let maxEval = -Infinity;
+    for (const m of candidateMoves) {
+      const nextBoard = cloneBoardForSearch(board);
+      const mp = nextBoard[m.fromR][m.fromC];
+      const cap = nextBoard[m.toR][m.toC];
+      nextBoard[m.toR][m.toC] = mp;
+      nextBoard[m.fromR][m.fromC] = null;
+
+      let nextBank = bankDiff;
+      if (cap && cap.type !== 'ou') nextBank += getPieceTotalPt(cap);
+
+      const ev = minimax(nextBoard, depth - 1, alpha, beta, false, cpuOwner, nextBank, qDepthMax);
+      if (ev > maxEval) maxEval = ev;
+      if (ev > alpha) alpha = ev;
+      if (beta <= alpha) break; // Beta cut-off
+    }
+    return maxEval;
+  } else {
+    let minEval = Infinity;
+    for (const m of candidateMoves) {
+      const nextBoard = cloneBoardForSearch(board);
+      const mp = nextBoard[m.fromR][m.fromC];
+      const cap = nextBoard[m.toR][m.toC];
+      nextBoard[m.toR][m.toC] = mp;
+      nextBoard[m.fromR][m.fromC] = null;
+
+      let nextBank = bankDiff;
+      if (cap && cap.type !== 'ou') nextBank -= getPieceTotalPt(cap);
+
+      const ev = minimax(nextBoard, depth - 1, alpha, beta, true, cpuOwner, nextBank, qDepthMax);
+      if (ev < minEval) minEval = ev;
+      if (ev < beta) beta = ev;
+      if (beta <= alpha) break; // Alpha cut-off
+    }
+    return minEval;
+  }
 }
 
 // CPUの手番行動決定（移動 vs 進化）
 function cpuDecideAction() {
   if (state.phase !== 'play') return;
   const cpuOwner = state.turn;
-  const allMoves = generateAllMoves(state.board, cpuOwner);
+  const attackMaps = buildAttackMaps(state.board);
+  const allMoves = generateOrderedMoves(state.board, cpuOwner, attackMaps);
 
   if (allMoves.length === 0) {
     const winner = cpuOwner === 'sente' ? 'gote' : 'sente';
@@ -2544,8 +2863,8 @@ function cpuDecideAction() {
   }
 
   try {
-    // 1. 敵の王を直接取れる手があれば最優先で指す！
-    const kingCapture = allMoves.find(m => m.captureValue >= 10000);
+    // 1. 敵の王を直接取れる手があれば最優先で即勝利！
+    const kingCapture = allMoves.find(m => m.targetType === 'ou' || m.captureValue >= 10000);
     if (kingCapture) {
       executeMove(kingCapture.fromR, kingCapture.fromC, kingCapture.toR, kingCapture.toC);
       return;
@@ -2554,17 +2873,30 @@ function cpuDecideAction() {
     // 2. 自玉が王手されているか確認
     const inCheck = isKingInCheck(state.board, cpuOwner);
 
-    // 3. 所持ポイントがあり、王手されていない場合、進化を選ぶか検討
+    // 難易度の判定
+    const isRankMatch = state.mode === 'rank';
+    const isMaster = state.mode === 'cpu-master' || (isRankMatch && userProfile.rating >= 1600);
+    const isHard = state.mode === 'cpu-hard' || isMaster || (isRankMatch && userProfile.rating >= 1350);
+    const isEasy = state.mode === 'cpu-easy' || (isRankMatch && userProfile.rating < 1150);
+
+    // 3. 王手されていない場合、進化を選ぶか検討
     const availablePt = state.bank[cpuOwner];
     if (!inCheck && availablePt > 0) {
-      // 盤上で敵の大物（4pt以上）を直ちに取れる手があるか？
-      const hasBigCapture = allMoves.some(m => m.captureValue >= 4);
+      // 盤上で敵の大物（4pt以上）を直ちに安全に取れる手があるか？
+      const hasBigCapture = allMoves.some(m => m.captureValue >= 4 && m.orderScore > 0);
 
-      // 進化を選ぶ確率・条件（ポイントが3pt以上貯まっているか、大物取りがない場合に進化を実行）
-      const shouldEvolve =
-        (availablePt >= 4 && !hasBigCapture) ||
-        (availablePt >= 2 && !hasBigCapture && Math.random() < 0.72) ||
-        (availablePt === 1 && allMoves[0].captureValue === 0 && Math.random() < 0.45);
+      let shouldEvolve = false;
+      if (!hasBigCapture) {
+        if (isMaster || isHard) {
+          // 強敵・鬼はポイントが貯まり次第、迅速に変異進化して戦闘力を強化
+          shouldEvolve = (availablePt >= 3) || (availablePt >= 1 && (allMoves[0].captureValue === 0 || allMoves[0].orderScore < 500));
+        } else if (isEasy) {
+          shouldEvolve = (availablePt >= 3 && Math.random() < 0.45);
+        } else {
+          // Normal
+          shouldEvolve = (availablePt >= 4) || (availablePt >= 2 && Math.random() < 0.7);
+        }
+      }
 
       if (shouldEvolve) {
         const evolved = cpuExecuteEvolutionTurn();
@@ -2572,31 +2904,52 @@ function cpuDecideAction() {
       }
     }
 
-    // 4. 通常の移動探索を実行
-    // パフォーマンス最適化: 全合法手(80〜120手以上)を深層探索するとブラウザがフリーズするため、
-    // 捕獲手 + 上位静止手(計最大16手)に絞って高速に評価
-    const searchCandidates = [];
-    let quietAdded = 0;
-    for (const m of allMoves) {
-      if (m.captureValue > 0) {
-        searchCandidates.push(m);
-      } else if (quietAdded < 12) {
-        searchCandidates.push(m);
-        quietAdded++;
+    // 4. 自玉が王手されている場合：王手を解除できる手のみを厳選
+    let searchCandidates = allMoves;
+    if (inCheck) {
+      const evasions = [];
+      for (const m of allMoves) {
+        const nextBoard = cloneBoardForSearch(state.board);
+        nextBoard[m.toR][m.toC] = nextBoard[m.fromR][m.fromC];
+        nextBoard[m.fromR][m.fromC] = null;
+        if (!isKingInCheck(nextBoard, cpuOwner)) {
+          evasions.push(m);
+        }
+      }
+      if (evasions.length > 0) {
+        searchCandidates = evasions;
       }
     }
-    if (searchCandidates.length === 0) {
-      searchCandidates.push(...allMoves.slice(0, 12));
+
+    // 探索深さとパラメータの設定
+    let depth = 2;
+    let qDepth = 1;
+    let candidateLimit = 16;
+
+    if (isMaster) {
+      depth = 3;
+      qDepth = 2;
+      candidateLimit = 22;
+    } else if (isHard) {
+      depth = 3;
+      qDepth = 1;
+      candidateLimit = 18;
+    } else if (isEasy) {
+      depth = 1;
+      qDepth = 0;
+      candidateLimit = 10;
+    } else {
+      // Normal
+      depth = 2;
+      qDepth = 1;
+      candidateLimit = 14;
     }
 
-    const isRankMatch = state.mode === 'rank';
-    const isHard = state.mode === 'cpu-hard' || (isRankMatch && userProfile.rating >= 1500);
-    const isEasy = state.mode === 'cpu-easy' || (isRankMatch && userProfile.rating < 1150);
-    const depth = isHard ? 2 : (isEasy ? 1 : 2);
-    let bestMove = searchCandidates[0];
+    const filteredCandidates = searchCandidates.slice(0, candidateLimit);
+    let bestMove = filteredCandidates[0];
     let bestScore = -Infinity;
 
-    for (const move of searchCandidates) {
+    for (const move of filteredCandidates) {
       const nextBoard = cloneBoardForSearch(state.board);
       const movingPiece = nextBoard[move.fromR][move.fromC];
       const captured = nextBoard[move.toR][move.toC];
@@ -2604,7 +2957,7 @@ function cpuDecideAction() {
       nextBoard[move.fromR][move.fromC] = null;
 
       let bankDiff = 0;
-      if (captured) {
+      if (captured && captured.type !== 'ou') {
         bankDiff += getPieceTotalPt(captured);
       }
 
@@ -2615,24 +2968,13 @@ function cpuDecideAction() {
         Infinity,
         false,
         cpuOwner,
-        bankDiff
+        bankDiff,
+        qDepth
       );
 
-      // タダ捨てペナルティ（敵の利きへの自殺ダイブ抑制）
-      const enemyOwner = cpuOwner === 'sente' ? 'gote' : 'sente';
-      const enemyCounterMoves = generateAllMoves(nextBoard, enemyOwner);
-      const isTargeted = enemyCounterMoves.some(em => em.toR === move.toR && em.toC === move.toC);
-      if (isTargeted) {
-        let risk = getPieceTotalPt(movingPiece) * 140;
-        if (captured) {
-          risk -= getPieceTotalPt(captured) * 140;
-        }
-        if (risk > 0) {
-          score -= risk;
-        }
-      }
-
-      const jitter = isEasy ? (Math.random() * 160 - 80) : isHard ? (Math.random() * 8 - 4) : (Math.random() * 18 - 9);
+      // Jitter（難易度別の揺らぎ：HardとMasterは0で完全最善手）
+      const jitter = isEasy ? (Math.random() * 120 - 60) :
+                     (!isHard && !isMaster) ? (Math.random() * 12 - 6) : 0;
       score += jitter;
 
       if (score > bestScore) {
@@ -2648,87 +2990,18 @@ function cpuDecideAction() {
   }
 }
 
-function minimax(board, depth, alpha, beta, isMaximizing, cpuOwner, bankDiff) {
-  const currentOwner = isMaximizing ? cpuOwner : (cpuOwner === 'sente' ? 'gote' : 'sente');
-
-  let senteAlive = false;
-  let goteAlive = false;
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
-      const p = board[r][c];
-      if (p && p.type === 'ou') {
-        if (p.owner === 'sente') senteAlive = true;
-        else goteAlive = true;
-      }
-    }
-  }
-  if (!senteAlive) return cpuOwner === 'gote' ? 90000 + depth * 100 : -90000 - depth * 100;
-  if (!goteAlive) return cpuOwner === 'sente' ? 90000 + depth * 100 : -90000 - depth * 100;
-
-  if (depth <= 0) {
-    return evaluateBoard(board, cpuOwner, bankDiff);
-  }
-
-  const moves = generateAllMoves(board, currentOwner);
-  if (moves.length === 0) {
-    return isMaximizing ? -80000 : 80000;
-  }
-
-  const maxBranches = depth >= 2 ? 14 : 10;
-  const candidateMoves = moves.slice(0, maxBranches);
-
-  if (isMaximizing) {
-    let maxEval = -Infinity;
-    for (const m of candidateMoves) {
-      const nextBoard = cloneBoardForSearch(board);
-      const mp = nextBoard[m.fromR][m.fromC];
-      const cap = nextBoard[m.toR][m.toC];
-      nextBoard[m.toR][m.toC] = mp;
-      nextBoard[m.fromR][m.fromC] = null;
-
-      let nextBank = bankDiff;
-      if (cap && cap.type !== 'ou') {
-        nextBank += getPieceTotalPt(cap);
-      }
-
-      const ev = minimax(nextBoard, depth - 1, alpha, beta, false, cpuOwner, nextBank);
-      if (ev > maxEval) maxEval = ev;
-      if (ev > alpha) alpha = ev;
-      if (beta <= alpha) break;
-    }
-    return maxEval;
-  } else {
-    let minEval = Infinity;
-    for (const m of candidateMoves) {
-      const nextBoard = cloneBoardForSearch(board);
-      const mp = nextBoard[m.fromR][m.fromC];
-      const cap = nextBoard[m.toR][m.toC];
-      nextBoard[m.toR][m.toC] = mp;
-      nextBoard[m.fromR][m.fromC] = null;
-
-      let nextBank = bankDiff;
-      if (cap && cap.type !== 'ou') {
-        nextBank -= getPieceTotalPt(cap);
-      }
-
-      const ev = minimax(nextBoard, depth - 1, alpha, beta, true, cpuOwner, nextBank);
-      if (ev < minEval) minEval = ev;
-      if (ev < beta) beta = ev;
-      if (beta <= alpha) break;
-    }
-    return minEval;
-  }
-}
-
 // CPUが進化で手番を使う処理
 function cpuExecuteEvolutionTurn() {
   const cpuOwner = state.turn;
   const availablePt = state.bank[cpuOwner];
   if (availablePt <= 0) return false;
 
-  // 今回使うポイント量を決定（基本は全額使うが、たまに1〜2pt温存することも）
+  const isMaster = state.mode === 'cpu-master' || (state.mode === 'rank' && userProfile.rating >= 1600);
+  const isHard = state.mode === 'cpu-hard' || isMaster || (state.mode === 'rank' && userProfile.rating >= 1350);
+
+  // 予算決定（強敵・鬼は全額使って即座に最大強化）
   let budget = availablePt;
-  if (availablePt >= 5 && Math.random() < 0.25) {
+  if (!isHard && availablePt >= 5 && Math.random() < 0.25) {
     budget = availablePt - 1;
   }
 
@@ -2740,15 +3013,16 @@ function cpuExecuteEvolutionTurn() {
     let bestPriority = -Infinity;
 
     for (const { r, c, piece } of allies) {
+      if (piece.type === 'ou') continue;
       const currentPt = getPieceTotalPt(piece, true);
 
-      // 走り覚醒の候補探索
+      // 1. 走り覚醒の候補探索（最優先！）
       for (const [dx, dy] of INNER_COORDS) {
         if (canUpgradeToRay(piece, dx, dy, true)) {
-          let prio = 55;
-          if (dy < 0) prio += 25;
-          else if (dy === 0) prio += 20;
-          prio += Math.random() * 8;
+          let prio = 65;
+          if (dy < 0) prio += 30; // 前方直進ビーム
+          else if (dy === 0) prio += 22; // 横直進ビーム
+          if (!isHard) prio += Math.random() * 6;
           if (prio > bestPriority) {
             bestPriority = prio;
             bestCandidate = { piece, dx, dy, type: 'ray' };
@@ -2756,6 +3030,7 @@ function cpuExecuteEvolutionTurn() {
         }
       }
 
+      // 2. 通常ステップ解放の候補探索
       for (let dy = -2; dy <= 2; dy++) {
         for (let dx = -2; dx <= 2; dx++) {
           if (!canUnlockCoord(piece, dx, dy, true)) continue;
@@ -2764,30 +3039,33 @@ function cpuExecuteEvolutionTurn() {
 
           // 飛車・角の竜王・竜馬化は最優先
           if (piece.type === 'hisha' || piece.type === 'kaku') {
-            priority += 95;
+            priority += 110;
           }
-          // 銀・金・桂馬の補強
+          // 銀・金・桂馬の機動力補強
           if (piece.type === 'gin' || piece.type === 'kin' || piece.type === 'kei') {
-            priority += 45;
+            priority += 50;
           }
 
-          // 前進している駒ほど優先
+          // 前進している前線駒ほど優先
           const progress = cpuOwner === 'sente' ? (8 - r) : r;
-          priority += progress * 8;
+          priority += progress * 10;
 
-          if (dy < 0) priority += 25;
+          // 前進方向
+          if (dy < 0) priority += 28;
           else if (dy === 0) priority += 18;
-          else if (dx === 0 && dy === 1) priority += 22;
+          else if (dx === 0 && dy === 1) priority += 22; // 退路・後方カバー
 
+          // 2マスジャンプ（桂馬飛び）
           if (Math.max(Math.abs(dx), Math.abs(dy)) === 2) {
-            priority += 38;
+            priority += 40;
           }
 
-          if (currentPt >= 16 && piece.type !== 'ou') {
+          // 過剰集中を抑え前線全体をバランス強化
+          if (currentPt >= 16) {
             priority -= (currentPt - 14) * 8;
           }
 
-          priority += Math.random() * 12;
+          if (!isHard) priority += Math.random() * 8;
 
           if (priority > bestPriority) {
             bestPriority = priority;
@@ -2818,10 +3096,13 @@ function cpuExecuteEvolutionTurn() {
 function cpuExecuteInstantEvolution(killerPiece, points) {
   try {
     const cpuOwner = state.turn;
+    const isMaster = state.mode === 'cpu-master' || (state.mode === 'rank' && userProfile.rating >= 1600);
+    const isHard = state.mode === 'cpu-hard' || isMaster || (state.mode === 'rank' && userProfile.rating >= 1350);
     state.pendingEvo = [];
 
     let remaining = points;
-    // 1. まず倒した駒自身に優先配分（走り覚醒 or 退路・横移動確保）
+
+    // 1. まず倒した駒自身に優先配分（走り覚醒 or 退路・横移動確保でカウンター防止）
     if (killerPiece && killerPiece.owner === cpuOwner && killerPiece.type !== 'ou') {
       const selfQuota = Math.min(remaining, 3);
       for (let i = 0; i < selfQuota; i++) {
@@ -2831,10 +3112,10 @@ function cpuExecuteInstantEvolution(killerPiece, points) {
         // 走り覚醒を優先確認
         for (const [dx, dy] of INNER_COORDS) {
           if (canUpgradeToRay(killerPiece, dx, dy, true)) {
-            let prio = 60;
-            if (dy < 0) prio += 25;
-            else if (dy === 0) prio += 20;
-            prio += Math.random() * 8;
+            let prio = 70;
+            if (dy < 0) prio += 30;
+            else if (dy === 0) prio += 25;
+            if (!isHard) prio += Math.random() * 6;
             if (prio > bestPrio) {
               bestPrio = prio;
               best = { dx, dy, type: 'ray' };
@@ -2842,30 +3123,34 @@ function cpuExecuteInstantEvolution(killerPiece, points) {
           }
         }
 
+        // 通常ステップ
         for (let dy = -2; dy <= 2; dy++) {
           for (let dx = -2; dx <= 2; dx++) {
             if (!canUnlockCoord(killerPiece, dx, dy, true)) continue;
             let prio = 0;
-            if (dy > 0) prio += 35; // 退路
-            else if (dy === 0) prio += 25; // 横
-            else prio += 15;
-            prio += Math.random() * 8;
+            if (dy > 0) prio += 38; // 退路（敵の利きから逃げる）
+            else if (dy === 0) prio += 26; // 横
+            else prio += 20; // さらに前進
+            if (!isHard) prio += Math.random() * 6;
             if (prio > bestPrio) {
               bestPrio = prio;
               best = { dx, dy, type: 'step' };
             }
           }
         }
-        if (best) {
-          state.pendingEvo.push({ pieceId: killerPiece.id, dx: best.dx, dy: best.dy, type: best.type });
-          remaining--;
-        } else {
-          break;
-        }
+
+        if (!best) break;
+        state.pendingEvo.push({
+          pieceId: killerPiece.id,
+          dx: best.dx,
+          dy: best.dy,
+          type: best.type
+        });
+        remaining--;
       }
     }
 
-    // 2. 残りポイントを味方駒に配分
+    // 2. 残りポイントがあれば味方全体（飛車・角・前線駒）に配分
     while (remaining > 0) {
       const allies = getAllAllyPieces(state.board, cpuOwner);
       let bestCandidate = null;
@@ -2874,13 +3159,13 @@ function cpuExecuteInstantEvolution(killerPiece, points) {
       for (const { piece } of allies) {
         if (piece.type === 'ou') continue;
 
-        // 走り覚醒の候補探索（優先度大！）
+        // 走り覚醒の候補探索
         for (const [dx, dy] of INNER_COORDS) {
           if (canUpgradeToRay(piece, dx, dy, true)) {
-            let prio = 55;
-            if (dy < 0) prio += 25; // 前ビーム
-            else if (dy === 0) prio += 20; // 横ビーム
-            prio += Math.random() * 8;
+            let prio = 65;
+            if (dy < 0) prio += 30;
+            else if (dy === 0) prio += 22;
+            if (!isHard) prio += Math.random() * 6;
             if (prio > bestPriority) {
               bestPriority = prio;
               bestCandidate = { piece, dx, dy, type: 'ray' };
@@ -2888,14 +3173,14 @@ function cpuExecuteInstantEvolution(killerPiece, points) {
           }
         }
 
-        // 通常ステップ解放の候補探索
+        // 通常ステップ解放
         for (let dy = -2; dy <= 2; dy++) {
           for (let dx = -2; dx <= 2; dx++) {
             if (!canUnlockCoord(piece, dx, dy, true)) continue;
             let prio = 0;
-            if (piece.type === 'hisha' || piece.type === 'kaku') prio += 65;
-            else if (piece.type === 'gin' || piece.type === 'kin') prio += 40;
-            prio += Math.random() * 8;
+            if (piece.type === 'hisha' || piece.type === 'kaku') prio += 80;
+            else if (piece.type === 'gin' || piece.type === 'kin') prio += 45;
+            if (!isHard) prio += Math.random() * 6;
             if (prio > bestPriority) {
               bestPriority = prio;
               bestCandidate = { piece, dx, dy, type: 'step' };
@@ -4810,6 +5095,7 @@ window.MuhouEngine = Object.freeze({
   recordRivalPlayer,
   loadRivalPlayers,
   getState: () => state,
+  generateAllMoves: (b, o) => generateAllMoves(b || state.board, o || state.turn),
   executeMove,
   addBattleLog: addLog,
   getSoundSystem: () => SoundSystem
