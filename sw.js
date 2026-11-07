@@ -1,6 +1,6 @@
 // Service Worker for 無法将棋 (SHOGI: MUTATION)
 // ネットワークファースト戦略（最新コードを確実に配信し、オフライン時のみキャッシュフォールバック）
-const CACHE_NAME = 'muhou-shogi-v28';
+const CACHE_NAME = 'muhou-shogi-v29';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

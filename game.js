@@ -2962,6 +2962,16 @@ function renderAll() {
 }
 
 function renderBoard() {
+  // 駒が存在しないマスがselectedCellに残っている場合の自動クリーンアップ
+  if (state.selectedCell) {
+    const selectedPiece = state.board[state.selectedCell.r] && state.board[state.selectedCell.r][state.selectedCell.c];
+    if (!selectedPiece) {
+      state.selectedCell = null;
+      state.validMoves = [];
+      state.guardSquares = [];
+    }
+  }
+
   elBoard.innerHTML = '';
   const flipped = isFlippedPerspective();
 
@@ -4018,19 +4028,31 @@ if (btnSoundToggle) {
   });
 }
 
-// 盤面背景・コンテナタップによるスマート選択解除（UI/UXガイドライン Rule 1.2準拠）
-const elBoardContainer = document.getElementById('board-container');
-if (elBoardContainer) {
-  elBoardContainer.addEventListener('click', (e) => {
-    if (e.target.id === 'board-container' || e.target.id === 'board') {
-      if (state.selectedCell) {
-        state.selectedCell = null;
-        state.validMoves = [];
-        renderAll();
-      }
-    }
-  });
-}
+// 盤面背景・余白・ラベルタップによるスマート選択解除（UI/UXガイドライン Rule 1.2準拠）
+document.addEventListener('click', (e) => {
+  if (!state.selectedCell) return;
+  // board-cellまたはその子要素(piece)、インスペクター、ボタンをクリックした場合は各処理で扱われるため除外
+  if (e.target.closest('.board-cell') || e.target.closest('.evolution-inspector-dock') || e.target.closest('.btn') || e.target.closest('button')) {
+    return;
+  }
+  // 盤面外枠、余白、ラベル、プレイヤーバーなどをタップした場合は即座に選択解除
+  state.selectedCell = null;
+  state.validMoves = [];
+  state.guardSquares = [];
+  renderAll();
+});
+
+// ブラウザ標準のドラッグ・テキスト選択による青色範囲ハイライト誤爆を根絶
+document.addEventListener('selectstart', (e) => {
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+  }
+});
+document.addEventListener('dragstart', (e) => {
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+  }
+});
 
 
 const elGameMode = document.getElementById('game-mode');
