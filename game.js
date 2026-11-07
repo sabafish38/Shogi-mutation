@@ -916,6 +916,9 @@ function showScreen(screen) {
     checkSavedGameResumeButton();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } else {
+    // 対局開始・ゲーム画面表示時は広告モーダルを確実に閉じる
+    const adModal = document.getElementById('ad-interstitial-modal');
+    if (adModal) adModal.classList.add('hidden');
     if (elEntrance) elEntrance.classList.add('hidden');
     if (elGame) elGame.classList.remove('hidden');
     renderAll();
@@ -4279,12 +4282,120 @@ if (btnFooterRules) {
   });
 }
 
+// ==========================================
+// 広告管理エンジン（起動時 ＆ 試合終了後タイトル復帰時）
+// ==========================================
+const AdSystem = (() => {
+  const AD_CLIENT = 'ca-pub-3928469396768123';
+  let hasShownLaunchAd = false;
+
+  function showAdModal(type, onDismiss) {
+    const modal = document.getElementById('ad-interstitial-modal');
+    const btnDismiss = document.getElementById('btn-ad-dismiss');
+    const btnCloseIcon = document.getElementById('btn-ad-close-icon');
+    const titleEl = document.getElementById('ad-modal-title');
+    const container = document.querySelector('.ad-container-box');
+
+    if (!modal) {
+      if (onDismiss) onDismiss();
+      return;
+    }
+
+    if (titleEl) {
+      titleEl.textContent = (type === 'launch') ? '無法将棋へようこそ' : '対局お疲れ様でした';
+    }
+
+    if (btnDismiss) {
+      btnDismiss.textContent = (type === 'launch') ? '閉じてタイトル画面へ' : '閉じてタイトル画面へ';
+    }
+
+    if (container) {
+      container.innerHTML = `
+        <ins class="adsbygoogle"
+             style="display:block; min-width: 280px; min-height: 250px;"
+             data-ad-client="${AD_CLIENT}"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+      `;
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      } catch (e) {
+        console.warn('AdSense render error:', e);
+      }
+    }
+
+    let closed = false;
+    const handleClose = () => {
+      if (closed) return;
+      closed = true;
+      modal.classList.add('hidden');
+      if (onDismiss) onDismiss();
+    };
+
+    if (btnDismiss) btnDismiss.onclick = handleClose;
+    if (btnCloseIcon) btnCloseIcon.onclick = handleClose;
+
+    modal.classList.remove('hidden');
+    trackAnalyticsEvent('ad_display', { placement: type });
+  }
+
+  // アプリ起動時広告
+  function triggerLaunchAd(onComplete) {
+    if (hasShownLaunchAd) {
+      if (onComplete) onComplete();
+      return;
+    }
+    hasShownLaunchAd = true;
+
+    // Google H5 Game Ads adBreak が使用可能な場合
+    if (typeof window.adBreak === 'function') {
+      window.adBreak({
+        type: 'start',
+        name: 'app_launch',
+        beforeAd: () => {},
+        afterAd: () => { if (onComplete) onComplete(); },
+        adBreakDone: () => { if (onComplete) onComplete(); }
+      });
+      return;
+    }
+
+    showAdModal('launch', onComplete);
+  }
+
+  // 試合終了後タイトル画面復帰時広告
+  function triggerMatchEndAd(onComplete) {
+    if (typeof window.adBreak === 'function') {
+      window.adBreak({
+        type: 'next',
+        name: 'return_to_title',
+        beforeAd: () => {},
+        afterAd: () => { if (onComplete) onComplete(); },
+        adBreakDone: () => { if (onComplete) onComplete(); }
+      });
+      return;
+    }
+
+    showAdModal('match_end', onComplete);
+  }
+
+  return {
+    triggerLaunchAd,
+    triggerMatchEndAd
+  };
+})();
+
 // 対局画面からタイトルへ戻るボタン
 const btnBackEntrance = document.getElementById('btn-back-entrance');
 if (btnBackEntrance) {
   btnBackEntrance.addEventListener('click', () => {
     saveGameToStorage();
-    showScreen('entrance');
+    if (state.phase === 'gameover') {
+      AdSystem.triggerMatchEndAd(() => {
+        showScreen('entrance');
+      });
+    } else {
+      showScreen('entrance');
+    }
   });
 }
 
@@ -4292,7 +4403,9 @@ const btnGameoverEntrance = document.getElementById('btn-gameover-entrance');
 if (btnGameoverEntrance) {
   btnGameoverEntrance.addEventListener('click', () => {
     document.getElementById('gameover-modal').classList.add('hidden');
-    showScreen('entrance');
+    AdSystem.triggerMatchEndAd(() => {
+      showScreen('entrance');
+    });
   });
 }
 
@@ -4357,6 +4470,7 @@ if (hasSavedGame && state.wasInGameScreen && state.phase === 'play' && state.mov
   showScreen('game');
 } else {
   showScreen('entrance');
+  AdSystem.triggerLaunchAd();
 }
 
 // ==========================================

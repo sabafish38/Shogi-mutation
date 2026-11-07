@@ -30,8 +30,12 @@
     gtag('config', 'G-PKLGBYPE8V');
   </script>
 
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3928469396768123" crossorigin="anonymous"></script>
+  <!-- Google AdSense & H5 Game Ads (Ad Placement API) -->
+  <script async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3928469396768123"
+    crossorigin="anonymous"
+    data-ad-frequency-hint="30s">
+  </script>
 
   <!-- PWA & Favicon -->
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
@@ -45,7 +49,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Noto+Serif+JP:wght@400;600;700;900&family=Yuji+Boku&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=29">
+  <link rel="stylesheet" href="style.css?v=30">
 </head>
 <body>
   <div class="app-container">
@@ -53,7 +57,7 @@
     <section id="view-entrance" class="view-entrance">
       <div class="entrance-hero">
         <div class="hero-badge">REVOLUTION SHOGI</div>
-        <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span> <span class="version-badge">v2.9</span></h1>
+        <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span> <span class="version-badge">v3.0</span></h1>
         <p class="entrance-tagline">盤上撃破で獲得した霊力により、駒の移動特性を直接変異・覚醒させる非対称戦略将棋</p>
       </div>
 
@@ -602,6 +606,31 @@
       </div>
     </div>
 
+    <!-- 広告表示モーダル（起動時および対局終了タイトル復帰時） -->
+    <div id="ad-interstitial-modal" class="modal-overlay hidden">
+      <div class="modal-card ad-modal-card">
+        <div class="ad-modal-header">
+          <span class="ad-label-badge">広告</span>
+          <span id="ad-modal-title" class="ad-modal-title">スポンサー</span>
+          <button id="btn-ad-close-icon" class="btn-close" aria-label="閉じる"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3l-10 10"/></svg></button>
+        </div>
+        <div class="ad-modal-body">
+          <div class="ad-container-box">
+            <!-- Google AdSense 広告ユニット -->
+            <ins class="adsbygoogle"
+                 style="display:block; min-width: 280px; min-height: 250px;"
+                 data-ad-client="ca-pub-3928469396768123"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+          </div>
+          <p class="ad-note-text">ゲーム運営を支えるスポンサー広告です</p>
+        </div>
+        <div class="ad-modal-footer">
+          <button id="btn-ad-dismiss" class="btn btn-primary btn-full">閉じてタイトル画面へ</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ユーザーネーム変更モーダル -->
     <div id="modal-name-edit" class="modal-overlay hidden">
       <div class="modal-card select-modal-card">
@@ -779,8 +808,8 @@
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
 
   <!-- ゲームスクリプト群 -->
-  <script src="game.js?v=29"></script>
-  <script src="online.js?v=29"></script>
+  <script src="game.js?v=30"></script>
+  <script src="online.js?v=30"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
