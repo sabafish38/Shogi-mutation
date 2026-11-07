@@ -20,6 +20,16 @@
   <meta name="twitter:title" content="無法将棋 (SHOGI: MUTATION)">
   <meta name="twitter:description" content="敵のポイントを吸収して駒を自由進化！新感覚ブラウザ将棋ゲーム。">
 
+  <!-- Google Analytics (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
   <!-- Google AdSense -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3928469396768123" crossorigin="anonymous"></script>
 
@@ -35,7 +45,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Noto+Serif+JP:wght@400;600;700;900&family=Yuji+Boku&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=26">
+  <link rel="stylesheet" href="style.css?v=27">
 </head>
 <body>
   <div class="app-container">
@@ -43,7 +53,7 @@
     <section id="view-entrance" class="view-entrance">
       <div class="entrance-hero">
         <div class="hero-badge">REVOLUTION SHOGI</div>
-        <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span> <span class="version-badge">v2.6</span></h1>
+        <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span> <span class="version-badge">v2.7</span></h1>
         <p class="entrance-tagline">盤上撃破で獲得した霊力により、駒の移動特性を直接変異・覚醒させる非対称戦略将棋</p>
       </div>
 
@@ -769,8 +779,8 @@
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
 
   <!-- ゲームスクリプト群 -->
-  <script src="game.js?v=26"></script>
-  <script src="online.js?v=26"></script>
+  <script src="game.js?v=27"></script>
+  <script src="online.js?v=27"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

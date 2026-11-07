@@ -13,6 +13,19 @@ const BOARD_SIZE = 9;
 
 
 // ==========================================
+// Googleアナリティクス イベント追跡ヘルパー
+// ==========================================
+function trackAnalyticsEvent(eventName, params = {}) {
+  try {
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', eventName, params);
+    }
+  } catch (e) {
+    // 追跡失敗時もゲーム動作には一切影響を与えない安全設計
+  }
+}
+
+// ==========================================
 // Web Audio API プロシージャル効果音エンジン
 // ==========================================
 const SoundSystem = (() => {
@@ -1107,6 +1120,10 @@ function initGame() {
 
   updatePlayerNames();
   renderAll();
+  trackAnalyticsEvent('game_start', {
+    mode: state.mode,
+    player_side: state.playerSide
+  });
   checkTriggerCPU();
 }
 
@@ -2098,6 +2115,13 @@ function confirmEvolutionTurn() {
     window.MuhouOnline.sendOnlineEvolutionAction(pendingCopy, spentPt, details);
   }
 
+  if (spentPt > 0) {
+    trackAnalyticsEvent('piece_evolution', {
+      mode: state.mode,
+      spent_pt: spentPt
+    });
+  }
+
   state.phase = 'play';
   state.pendingEvo = [];
   state.selectedCell = null;
@@ -2227,6 +2251,13 @@ function endGame(winner, reasonText) {
   } else {
     SoundSystem.playDefeat();
   }
+
+  trackAnalyticsEvent('game_complete', {
+    mode: state.mode,
+    winner: winner,
+    moves: state.movesCount,
+    is_victory: isHumanWinner
+  });
 
   const modal = document.getElementById('gameover-modal');
   const title = document.getElementById('gameover-title');
