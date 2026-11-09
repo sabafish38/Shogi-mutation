@@ -681,29 +681,147 @@ function renderUserProfile() {
 }
 
 // ==========================================
-// 週間シーズン＆全国ランキングボード
+// 実在棋士レジストリ & 全国ランキング同期システム
 // ==========================================
 let currentRankingTab = 'top'; // 'top' | 'near' | 'rivals'
 const RIVALS_STORAGE_KEY = 'muhou_shogi_rivals_v1';
+const REAL_PLAYERS_STORAGE_KEY = 'muhou_shogi_real_players_v1';
+const CLOUD_LEADERBOARD_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a1b74265ed5e4d';
 
-// 全国TOP棋士データ（殿堂1〜15位）
+// 殿堂TOP棋士データ（初期基準マスター）
 const NATIONWIDE_TOP_PLAYERS = [
-  { pos: 1, name: '無法名人・零式', title: '無法竜王', rank: '名人', rating: 2420, medal: 'gold', medalLabel: '1位', isBounty: true },
-  { pos: 2, name: '天王山マスター', title: '天王山の覇者', rank: '竜王', rating: 2280, medal: 'silver', medalLabel: '2位' },
-  { pos: 3, name: '覚醒桂馬キング', title: '電光石火の常勝', rank: '四段', rating: 2050, medal: 'bronze', medalLabel: '3位' },
-  { pos: 4, name: '鉄壁の防壁将軍', title: '堅陣の守護神', rank: '四段', rating: 2010 },
-  { pos: 5, name: '神速歩兵隊長', title: '先駆けの一撃', rank: '三段', rating: 1985 },
-  { pos: 6, name: '変異銀将の使徒', title: '変異調律士', rank: '三段', rating: 1940, isBounty: true },
-  { pos: 7, name: '飛翔の角行マスター', title: '斜線の支配者', rank: '二段', rating: 1915 },
-  { pos: 8, name: '盤上の奇術師', title: '変幻自在の指し手', rank: '二段', rating: 1880 },
-  { pos: 9, name: '堅牢金将・不動', title: '金城鉄壁', rank: '初段', rating: 1850 },
-  { pos: 10, name: '機動歩兵の達人', title: '新進気鋭の駒遣い', rank: '初段', rating: 1820 },
-  { pos: 11, name: '疾風怒濤の香車', title: '猪突猛進の覇気', rank: '初段', rating: 1790 },
-  { pos: 12, name: '覚醒飛車ストライカー', title: '盤上の大砲', rank: '1級', rating: 1765 },
-  { pos: 13, name: '深淵の読み手', title: '終盤の魔術師', rank: '1級', rating: 1740 },
-  { pos: 14, name: '変異狂騒曲', title: '混沌の設計者', rank: '2級', rating: 1710 },
-  { pos: 15, name: '盤上の黒豹', title: '奇襲のスペシャリスト', rank: '2級', rating: 1680 }
+  { pos: 1, name: '無法名人・零式', title: '無法竜王', rank: '名人', rating: 2420, medal: 'gold', medalLabel: '1位', isBounty: true, isFame: true },
+  { pos: 2, name: '天王山マスター', title: '天王山の覇者', rank: '竜王', rating: 2280, medal: 'silver', medalLabel: '2位', isFame: true },
+  { pos: 3, name: '覚醒桂馬キング', title: '電光石火の常勝', rank: '四段', rating: 2050, medal: 'bronze', medalLabel: '3位', isFame: true },
+  { pos: 4, name: '鉄壁の防壁将軍', title: '堅陣の守護神', rank: '四段', rating: 2010, isFame: true },
+  { pos: 5, name: '神速歩兵隊長', title: '先駆けの一撃', rank: '三段', rating: 1985, isFame: true },
+  { pos: 6, name: '変異銀将の使徒', title: '変異調律士', rank: '三段', rating: 1940, isBounty: true, isFame: true },
+  { pos: 7, name: '飛翔の角行マスター', title: '斜線の支配者', rank: '二段', rating: 1915, isFame: true },
+  { pos: 8, name: '盤上の奇術師', title: '変幻自在の指し手', rank: '二段', rating: 1880, isFame: true },
+  { pos: 9, name: '堅牢金将・不動', title: '金城鉄壁', rank: '初段', rating: 1850, isFame: true },
+  { pos: 10, name: '機動歩兵の達人', title: '新進気鋭の駒遣い', rank: '初段', rating: 1820, isFame: true },
+  { pos: 11, name: '疾風怒濤の香車', title: '猪突猛進の覇気', rank: '初段', rating: 1790, isFame: true },
+  { pos: 12, name: '覚醒飛車ストライカー', title: '盤上の大砲', rank: '1級', rating: 1765, isFame: true },
+  { pos: 13, name: '深淵の読み手', title: '終盤の魔術師', rank: '1級', rating: 1740, isFame: true },
+  { pos: 14, name: '変異狂騒曲', title: '混沌の設計者', rank: '2級', rating: 1710, isFame: true },
+  { pos: 15, name: '盤上の黒豹', title: '奇襲のスペシャリスト', rank: '2級', rating: 1680, isFame: true }
 ];
+
+function getLocalRealPlayers() {
+  try {
+    const raw = localStorage.getItem(REAL_PLAYERS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveLocalRealPlayers(list) {
+  try {
+    localStorage.setItem(REAL_PLAYERS_STORAGE_KEY, JSON.stringify(list.slice(0, 50)));
+  } catch (e) {
+    console.error('Failed to save real players', e);
+  }
+}
+
+// 実在棋士の登録・更新
+function registerRealPlayer(profile) {
+  if (!profile || !profile.name) return;
+  const list = getLocalRealPlayers();
+  const uid = profile.uid || ('u_' + profile.name);
+  const now = Date.now();
+
+  const existingIdx = list.findIndex(p => (p.uid && p.uid === uid) || p.name === profile.name);
+  const entry = {
+    uid: uid,
+    name: profile.name.slice(0, 10),
+    rating: typeof profile.rating === 'number' ? profile.rating : 1200,
+    rank: profile.rank || getRankInfo(profile.rating || 1200).title,
+    title: profile.title || profile.equippedTitle || '全国の猛者',
+    wins: profile.wins || 0,
+    losses: profile.losses || 0,
+    streak: profile.streak || 0,
+    maxStreak: profile.maxStreak || 0,
+    isReal: true,
+    updatedAt: now
+  };
+
+  if (existingIdx >= 0) {
+    list[existingIdx] = { ...list[existingIdx], ...entry };
+  } else {
+    list.push(entry);
+  }
+
+  list.sort((a, b) => b.rating - a.rating);
+  saveLocalRealPlayers(list);
+}
+
+function mergeRealPlayers(incomingList) {
+  if (!Array.isArray(incomingList)) return;
+  incomingList.forEach(p => registerRealPlayer(p));
+}
+
+let isSyncingLeaderboard = false;
+async function syncGlobalLeaderboard() {
+  if (isSyncingLeaderboard) return;
+  isSyncingLeaderboard = true;
+
+  try {
+    const myUid = (window.MuhouOnline && typeof window.MuhouOnline.getMyPlayerUid === 'function')
+      ? window.MuhouOnline.getMyPlayerUid()
+      : (localStorage.getItem('muhou_shogi_player_uid_v1') || 'u_me');
+
+    registerRealPlayer({
+      uid: myUid,
+      name: userProfile.name || '名無し棋士',
+      rating: userProfile.rating,
+      rank: getRankInfo(userProfile.rating).title,
+      title: userProfile.equippedTitle,
+      wins: userProfile.wins,
+      losses: userProfile.losses,
+      streak: userProfile.streak,
+      maxStreak: userProfile.maxStreak
+    });
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(CLOUD_LEADERBOARD_URL, {
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' }
+    });
+    clearTimeout(timer);
+
+    if (res.ok) {
+      const json = await res.json();
+      const cloudPlayers = (json && json.data && Array.isArray(json.data.players)) ? json.data.players : [];
+
+      cloudPlayers.forEach(p => {
+        if (p && p.name && p.uid !== myUid) {
+          registerRealPlayer(p);
+        }
+      });
+
+      const mergedAll = getLocalRealPlayers();
+      await fetch(CLOUD_LEADERBOARD_URL, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: {
+            players: mergedAll.slice(0, 50)
+          }
+        })
+      });
+    }
+  } catch (err) {
+    console.warn('Leaderboard cloud sync skipped:', err ? err.message : err);
+  } finally {
+    isSyncingLeaderboard = false;
+    renderSeasonAndRanking();
+  }
+}
 
 function loadRivalPlayers() {
   try {
@@ -737,6 +855,14 @@ function recordRivalPlayer(name, rating, rankTitle, isWin, extra = {}) {
   };
   rivals.unshift(entry);
   saveRivalPlayers(rivals);
+
+  // 実在棋士レジストリにも即時反映
+  registerRealPlayer({
+    name: name,
+    rating: rating,
+    rank: rankTitle,
+    isReal: true
+  });
 }
 
 // 週間シーズン＆全国ランキングボード描画
@@ -746,12 +872,6 @@ function renderSeasonAndRanking() {
   const elSeasonTimer = document.getElementById('season-timer');
   if (elSeasonBadge) elSeasonBadge.textContent = `${sInfo.year} 第${sInfo.seasonNumber}期 週間シーズン`;
   if (elSeasonTimer) elSeasonTimer.textContent = sInfo.daysLeftText;
-
-  // プレイヤーのレートから仮想順位を算出（レートが高いほど上位）
-  // 名人(2300+): 1〜5位, 初段(1500): 40〜60位, 3級(1200): 120〜150位
-  const basePos = Math.max(1, Math.round(1800 - (userProfile.rating - 900) * 1.25));
-  const elPlayerPos = document.getElementById('player-rank-pos-text');
-  if (elPlayerPos) elPlayerPos.textContent = `現在 ${basePos}位 (上位${Math.max(1, Math.round(basePos / 20))}%)`;
 
   // タブボタンのアクティブ更新
   const tabTop = document.getElementById('tab-ranking-top');
@@ -775,84 +895,120 @@ function renderSeasonAndRanking() {
   rankingListEl.innerHTML = '';
 
   const pRank = getRankInfo(userProfile.rating).title;
+  const allRealPlayers = getLocalRealPlayers();
+  const myUid = (window.MuhouOnline && typeof window.MuhouOnline.getMyPlayerUid === 'function')
+    ? window.MuhouOnline.getMyPlayerUid()
+    : (localStorage.getItem('muhou_shogi_player_uid_v1') || 'u_me');
+
+  // 実在棋士と殿堂マスターを結合してソート
+  const unified = [];
+
+  // 1. 実在棋士の投入
+  allRealPlayers.forEach(p => {
+    const isMe = (p.uid === myUid) || (p.name === userProfile.name);
+    unified.push({
+      name: isMe ? `${userProfile.name} (あなた)` : p.name,
+      title: isMe ? userProfile.equippedTitle : (p.title || '全国の猛者'),
+      rank: isMe ? pRank : (p.rank || getRankInfo(p.rating || 1200).title),
+      rating: isMe ? userProfile.rating : p.rating,
+      isPlayer: isMe,
+      isReal: true,
+      isBounty: !isMe && (p.rating >= userProfile.rating + 50)
+    });
+  });
+
+  // 自分自身がまだallRealPlayersになければ確実に投入
+  if (!unified.some(u => u.isPlayer)) {
+    unified.push({
+      name: `${userProfile.name} (あなた)`,
+      title: userProfile.equippedTitle,
+      rank: pRank,
+      rating: userProfile.rating,
+      isPlayer: true,
+      isReal: true,
+      isBounty: false
+    });
+  }
+
+  // 2. 殿堂棋士マスター（初期NPC）の投入
+  NATIONWIDE_TOP_PLAYERS.forEach(np => {
+    if (!unified.some(u => u.name === np.name)) {
+      unified.push({
+        ...np,
+        isPlayer: false,
+        isReal: false,
+        isFame: true
+      });
+    }
+  });
+
+  // レート降順で完全整列
+  unified.sort((a, b) => b.rating - a.rating);
+
+  // 順位番号（1位〜）とメダルラベルを付与
+  unified.forEach((row, idx) => {
+    row.pos = idx + 1;
+    if (row.pos === 1) { row.medal = 'gold'; row.medalLabel = '1位'; }
+    else if (row.pos === 2) { row.medal = 'silver'; row.medalLabel = '2位'; }
+    else if (row.pos === 3) { row.medal = 'bronze'; row.medalLabel = '3位'; }
+    else { row.medal = ''; row.medalLabel = ''; }
+  });
+
+  // プレイヤーの現在順位の更新
+  const myRow = unified.find(u => u.isPlayer);
+  const myPos = myRow ? myRow.pos : 1;
+  const elPlayerPos = document.getElementById('player-rank-pos-text');
+  if (elPlayerPos) {
+    elPlayerPos.textContent = `現在 ${myPos}位 (実在棋士登録中)`;
+  }
 
   if (currentRankingTab === 'top') {
-    // 全国TOP表示（1〜15位 ＋ 圏外なら区切り線＆プレイヤー現在位置）
-    const list = [...NATIONWIDE_TOP_PLAYERS];
-    let playerIncluded = false;
+    // 【全国TOP】1〜15位 ＋ 圏外なら区切り線＆プレイヤー周辺
+    const top15 = unified.slice(0, 15);
+    const playerInTop15 = top15.some(r => r.isPlayer);
 
-    // もしプレイヤーが15位以内なら差し替え/挿入
-    const displayList = [];
-    list.forEach(p => {
-      if (!playerIncluded && basePos === p.pos) {
-        displayList.push({
-          pos: basePos,
-          name: `${userProfile.name} (あなた)`,
-          title: userProfile.equippedTitle,
-          rank: pRank,
-          rating: userProfile.rating,
-          isPlayer: true
-        });
-        playerIncluded = true;
-      } else {
-        displayList.push({ ...p, isPlayer: false });
-      }
-    });
-
-    displayList.forEach(row => {
+    top15.forEach(row => {
       rankingListEl.appendChild(createRankingRowElement(row));
     });
 
-    // プレイヤーが15位より下の場合は区切り線とプレイヤー位置を表示
-    if (!playerIncluded && basePos > 15) {
+    if (!playerInTop15 && myRow) {
       const divider = document.createElement('div');
       divider.className = 'ranking-divider';
       divider.textContent = '······';
       rankingListEl.appendChild(divider);
 
-      const playerRow = {
-        pos: basePos,
-        name: `${userProfile.name} (あなた)`,
-        title: userProfile.equippedTitle,
-        rank: pRank,
-        rating: userProfile.rating,
-        isPlayer: true
-      };
-      rankingListEl.appendChild(createRankingRowElement(playerRow));
+      const playerIdx = unified.findIndex(r => r.isPlayer);
+      const start = Math.max(15, playerIdx - 1);
+      const end = Math.min(unified.length, playerIdx + 2);
+      for (let i = start; i < end; i++) {
+        rankingListEl.appendChild(createRankingRowElement(unified[i]));
+      }
     }
   } else if (currentRankingTab === 'near') {
-    // あなたの周辺表示（前後ライバル）
-    const surroundingPool = [
-      { offsetPos: -3, offsetRate: +42, name: '変異の探求者', title: '連勝の火付け役' },
-      { offsetPos: -2, offsetRate: +28, name: '天王山チェイサー', title: '中央制圧の鬼' },
-      { offsetPos: -1, offsetRate: +14, name: '桂馬跳梁', title: '奇襲電撃戦' },
-      { offsetPos: 0,  offsetRate: 0,   name: `${userProfile.name} (あなた)`, title: userProfile.equippedTitle, isPlayer: true },
-      { offsetPos: +1, offsetRate: -14, name: '不動の金将', title: '堅守の闘志' },
-      { offsetPos: +2, offsetRate: -26, name: '機動歩兵の達人', title: '新進気鋭の駒遣い' },
-      { offsetPos: +3, offsetRate: -40, name: '香車疾駆士', title: '一直線の気概' }
-    ];
+    // 【あなたの周辺】実在棋士を優先し、プレイヤー前後7名を表示
+    const playerIdx = unified.findIndex(r => r.isPlayer);
+    let startIdx = Math.max(0, playerIdx - 3);
+    let endIdx = Math.min(unified.length, startIdx + 7);
+    if (endIdx - startIdx < 7) {
+      startIdx = Math.max(0, endIdx - 7);
+    }
 
-    surroundingPool.forEach(item => {
-      const pos = Math.max(1, basePos + item.offsetPos);
-      const rating = Math.max(1000, userProfile.rating + item.offsetRate);
-      const rank = item.isPlayer ? pRank : getRankInfo(rating).title;
-      const row = {
-        pos,
-        name: item.name,
-        title: item.title,
-        rank,
-        rating,
-        isPlayer: !!item.isPlayer
-      };
+    const nearSlice = unified.slice(startIdx, endIdx);
+    nearSlice.forEach(row => {
       rankingListEl.appendChild(createRankingRowElement(row));
     });
   } else if (currentRankingTab === 'rivals') {
-    // 対戦ライバル表示（過去に対戦したプレイヤー履歴）
+    // 【対戦ライバル】実際に手合わせした実在棋士の対戦歴
     const rivals = loadRivalPlayers();
     if (rivals.length === 0) {
+      const otherReal = allRealPlayers.filter(p => p.uid !== myUid && p.name !== userProfile.name);
       const emptyEl = document.createElement('div');
       emptyEl.className = 'ranking-empty';
-      emptyEl.innerHTML = '対戦履歴はまだありません。<br>「真剣勝負（格付戦）」や「通信対局」を行うと、拳を交えた棋士がここに刻まれます。';
+      if (otherReal.length > 0) {
+        emptyEl.innerHTML = `対戦履歴はまだありません。<br>全国で <strong style="color:#38bdf8">${otherReal.length}名</strong> の実在棋士が活動中です。<br>「真剣勝負（格付戦）」や「通信対局」で対局するとここに記録されます。`;
+      } else {
+        emptyEl.innerHTML = '対戦履歴はまだありません。<br>「真剣勝負（格付戦）」や「通信対局」を行うと、拳を交えた実在棋士がここに刻まれます。';
+      }
       rankingListEl.appendChild(emptyEl);
     } else {
       rivals.forEach((r, idx) => {
@@ -863,11 +1019,13 @@ function renderSeasonAndRanking() {
           ? '<span class="ranking-tag-win">勝利</span>'
           : '<span class="ranking-tag-loss">敗北</span>';
         const bountyTag = r.isBounty ? '<span class="ranking-tag-bounty">賞金首</span>' : '';
+        const realTag = '<span class="ranking-tag-real">実在</span>';
 
         rowEl.innerHTML = `
           <div class="ranking-left">
             <span class="rank-pos-num">${idx + 1}</span>
             <span class="ranking-player-name">${r.name}</span>
+            ${realTag}
             <span class="ranking-player-title">${r.date || ''}</span>
           </div>
           <div class="ranking-right">
@@ -892,11 +1050,15 @@ function createRankingRowElement(row) {
     : `<span class="rank-pos-num">${row.pos}</span>`;
 
   const bountyBadge = row.isBounty ? '<span class="ranking-tag-bounty">賞金首</span>' : '';
+  const realBadge = row.isReal
+    ? (row.isPlayer ? '' : '<span class="ranking-tag-real">実在</span>')
+    : (row.isFame ? '<span class="ranking-tag-fame">殿堂</span>' : '');
 
   rowEl.innerHTML = `
     <div class="ranking-left">
       ${posBadge}
       <span class="ranking-player-name">${row.name}</span>
+      ${realBadge}
       <span class="ranking-player-title">${row.title || ''}</span>
     </div>
     <div class="ranking-right">
@@ -4390,18 +4552,21 @@ if (tabTopBtn) {
   tabTopBtn.addEventListener('click', () => {
     currentRankingTab = 'top';
     renderSeasonAndRanking();
+    syncGlobalLeaderboard();
   });
 }
 if (tabNearBtn) {
   tabNearBtn.addEventListener('click', () => {
     currentRankingTab = 'near';
     renderSeasonAndRanking();
+    syncGlobalLeaderboard();
   });
 }
 if (tabRivalsBtn) {
   tabRivalsBtn.addEventListener('click', () => {
     currentRankingTab = 'rivals';
     renderSeasonAndRanking();
+    syncGlobalLeaderboard();
   });
 }
 
@@ -4500,6 +4665,7 @@ function handleSaveUserName() {
   renderUserProfile();
   updatePlayerNames();
   closeNameEditModal();
+  syncGlobalLeaderboard();
   showToast(`ユーザーネームを「${res.name}」に変更しました`);
 }
 
@@ -4914,6 +5080,7 @@ if (btnCloseEnemyEvo) {
 
 // 初回起動処理
 loadUserProfile();
+syncGlobalLeaderboard();
 const hasSavedGame = loadGameFromStorage();
 if (!hasSavedGame) {
   initGame();
@@ -5249,6 +5416,10 @@ function startOnlineGameSession(mySide, oppPlayer, mode = 'online') {
 window.MuhouEngine = Object.freeze({
   validateRemoteMove,
   validateRemoteEvolution,
+  getLocalRealPlayers,
+  registerRealPlayer,
+  mergeRealPlayers,
+  syncGlobalLeaderboard,
   executeRemoteMove,
   executeRemoteEvolution,
   handleRemoteRematchIntent,
@@ -5258,6 +5429,14 @@ window.MuhouEngine = Object.freeze({
   endGame,
   isGameOver: () => state.phase === 'gameover',
   getUserProfile: () => ({ ...userProfile }),
+  updateUserProfile: (patch) => {
+    Object.assign(userProfile, patch);
+    saveUserProfile();
+    renderUserProfile();
+    renderSeasonAndRanking();
+  },
+  loadUserProfile,
+  saveUserProfile,
   getRankInfo,
   validateUserName,
   renderAll,

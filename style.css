@@ -2383,6 +2383,28 @@ body {
   text-align: right;
 }
 
+.ranking-tag-real {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+
+.ranking-tag-fame {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+
 .ranking-tag-bounty {
   font-size: 0.62rem;
   font-weight: 800;

@@ -390,8 +390,12 @@
       const rating = prof.rating || 1200;
       const rankInfo = engine ? engine.getRankInfo(rating) : { title: '初段' };
 
+      const myKnownPlayers = (engine && typeof engine.getLocalRealPlayers === 'function')
+        ? engine.getLocalRealPlayers()
+        : [];
       conn.send({
         type: role === 'host' ? 'hello_host' : 'hello_guest',
+        uid: getMyPlayerUid(),
         name: prof.name || (role === 'host' ? '部屋主' : '挑戦者'),
         rank: rankInfo.title,
         rating: rating,
@@ -401,7 +405,8 @@
         losses: prof.losses || 0,
         bountiesClaimed: prof.bountiesClaimed || 0,
         title: prof.equippedTitle || '全国の猛者',
-        mode: currentSessionMode
+        mode: currentSessionMode,
+        knownRealPlayers: myKnownPlayers
       });
     };
 
@@ -427,6 +432,7 @@
           currentSessionMode = data.mode;
         }
         opponentProfile = {
+          uid: data.uid || ('u_' + oppName),
           name: oppName,
           rank: data.rank || '初段',
           rating: typeof data.rating === 'number' ? data.rating : 1200,
@@ -438,13 +444,38 @@
           title: data.title || '全国の猛者'
         };
 
+        // 実在棋士レジストリへ即時自動登録 & P2Pゴシップ同期
+        if (engine) {
+          if (typeof engine.registerRealPlayer === 'function') {
+            engine.registerRealPlayer({
+              uid: opponentProfile.uid,
+              name: opponentProfile.name,
+              rank: opponentProfile.rank,
+              rating: opponentProfile.rating,
+              title: opponentProfile.title,
+              wins: opponentProfile.wins,
+              losses: opponentProfile.losses,
+              streak: opponentProfile.streak,
+              maxStreak: opponentProfile.maxStreak,
+              isReal: true
+            });
+          }
+          if (Array.isArray(data.knownRealPlayers) && typeof engine.mergeRealPlayers === 'function') {
+            engine.mergeRealPlayers(data.knownRealPlayers);
+          }
+        }
+
         if (data.type !== 'hello_ack') {
           try {
             const prof = engine ? engine.getUserProfile() : {};
             const rating = prof.rating || 1200;
             const rankInfo = engine ? engine.getRankInfo(rating) : { title: '初段' };
+            const myKnownAck = (engine && typeof engine.getLocalRealPlayers === 'function')
+              ? engine.getLocalRealPlayers()
+              : [];
             conn.send({
               type: 'hello_ack',
+              uid: getMyPlayerUid(),
               name: prof.name || (role === 'host' ? '部屋主' : '挑戦者'),
               rank: rankInfo.title,
               rating: rating,
@@ -454,7 +485,8 @@
               losses: prof.losses || 0,
               bountiesClaimed: prof.bountiesClaimed || 0,
               title: prof.equippedTitle || '全国の猛者',
-              mode: currentSessionMode
+              mode: currentSessionMode,
+              knownRealPlayers: myKnownAck
             });
           } catch (e) {}
         }
@@ -746,6 +778,7 @@
   }
 
   window.MuhouOnline = Object.freeze({
+    getMyPlayerUid,
     startQuickMatchmaking,
     startRankMatchmaking,
     cancelMatchmaking,
