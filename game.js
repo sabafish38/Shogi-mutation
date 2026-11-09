@@ -374,7 +374,8 @@ let state = {
   lastTennozanPieceId: null, // ５五に現在いる駒のID
   lastTennozanOwner: null,   // 最後に天王山（５五）を制圧・占拠したプレイヤー ('sente' | 'gote')
   isSuddenDeath: false,    // 80手到達でサドンデスモード発動
-  pendingOpponentEvoNotification: null // 相手が進化した場合の通知用データ
+  pendingOpponentEvoNotification: null, // 相手が進化した場合の通知用データ
+  tutorialStep: 1          // チュートリアル進行ステップ (1〜5)
 };
 
 // DOM要素参照
@@ -1070,6 +1071,204 @@ function createRankingRowElement(row) {
   return rowEl;
 }
 
+// ==========================================
+// 初心者向け実戦チュートリアル制御 & 非侵入トースト
+// ==========================================
+const TUTORIAL_DONE_KEY = 'muhou_shogi_tutorial_done_v1';
+let activeToastTimer = null;
+
+function showToast(message, duration = 3200) {
+  let toast = document.getElementById('app-toast-notification');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'app-toast-notification';
+    toast.className = 'app-toast-notification hidden';
+    toast.addEventListener('click', () => {
+      toast.classList.add('hidden');
+    });
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.remove('hidden');
+  if (activeToastTimer) clearTimeout(activeToastTimer);
+  activeToastTimer = setTimeout(() => {
+    toast.classList.add('hidden');
+  }, duration);
+}
+
+function isTutorialCompleted() {
+  try {
+    return localStorage.getItem(TUTORIAL_DONE_KEY) === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+function markTutorialCompleted() {
+  try {
+    localStorage.setItem(TUTORIAL_DONE_KEY, 'true');
+  } catch (e) {}
+  renderTutorialEntranceState();
+}
+
+function renderTutorialEntranceState() {
+  const callout = document.getElementById('tutorial-first-callout');
+  const btnTut = document.getElementById('btn-mode-tutorial');
+  const badge = document.getElementById('tutorial-status-badge');
+  const done = isTutorialCompleted();
+  if (callout) {
+    callout.classList.toggle('hidden', done);
+  }
+  if (btnTut) {
+    btnTut.classList.toggle('is-first-time-guide', !done);
+  }
+  if (badge) {
+    badge.textContent = done ? '皆伝済' : '初回推奨';
+    badge.classList.toggle('is-cleared', done);
+  }
+}
+
+function setupTutorialBoard() {
+  state.board = Array.from({ length: 9 }, () => Array(9).fill(null));
+  // 後手（上側：指南役）
+  state.board[0][4] = createPiece('ou', 'gote');     // 5一 玉8
+  state.board[0][3] = createPiece('kin', 'gote');    // 6一 金6
+  state.board[0][5] = createPiece('kin', 'gote');    // 4一 金6
+  state.board[3][4] = createPiece('kei', 'gote');    // 5四 桂2（撃破ターゲット）
+
+  // 先手（下側：プレイヤー）
+  state.board[8][4] = createPiece('ou', 'sente');    // 5九 王8
+  state.board[8][3] = createPiece('kin', 'sente');   // 6九 金6
+  state.board[8][5] = createPiece('kin', 'sente');   // 4九 金6
+  state.board[7][7] = createPiece('hisha', 'sente'); // 2八 飛4
+  state.board[7][1] = createPiece('kaku', 'sente');  // 8八 角4
+  state.board[6][2] = createPiece('fu', 'sente');    // 7七 歩1
+  state.board[6][6] = createPiece('fu', 'sente');    // 3七 歩1
+  state.board[5][4] = createPiece('fu', 'sente');    // 5六 歩1（チュートリアル主役駒）
+
+  state.inspectedPiece = state.board[5][4];
+}
+
+function getTutorialTargetState() {
+  if (state.mode !== 'tutorial' || state.phase === 'gameover') return null;
+  const step = state.tutorialStep || 1;
+  const sel = state.selectedCell;
+
+  if (step === 1) {
+    const isSelected = sel && sel.r === 5 && sel.c === 4 && !sel.isEnemy;
+    return {
+      stepBadge: 'STEP 1 / 5',
+      title: '駒の数字＝持ちポイント＆天王山への移動',
+      desc: '各駒の数字は「持ちポイント（棋力）」です。まずは中央手前の歩兵「1」（5六）をタップし、中央の天王山（5五）へ進めてみましょう。',
+      actionHint: isSelected
+        ? '操作目標: 光っている中央マス「5五（天王山）」をタップして前進'
+        : '操作目標: 光っている5六の「1」（歩兵）をタップして選択',
+      progress: 20,
+      targetBoardCell: isSelected ? { r: 4, c: 4 } : { r: 5, c: 4 },
+      targetMatrixCoord: null,
+      targetConfirmBtn: false
+    };
+  }
+  if (step === 2) {
+    const isSelected = sel && sel.r === 4 && sel.c === 4 && !sel.isEnemy;
+    return {
+      stepBadge: 'STEP 2 / 5',
+      title: '天王山ボーナスと敵駒の撃破・即時進化',
+      desc: '中央「5五（天王山）」を占拠すると毎ターン＋1pt獲得できます！さらに敵駒を倒すと、その駒の数字分の棋力を吸収し、手番消費なしで「即時進化」できます。目の前の敵「2」（5四）を倒しましょう！',
+      actionHint: isSelected
+        ? '操作目標: 光っている5四の敵駒「2」をタップして撃破（＋2pt吸収）！'
+        : '操作目標: 光っている5五の自軍駒「1」をタップして選択',
+      progress: 40,
+      targetBoardCell: isSelected ? { r: 3, c: 4 } : { r: 4, c: 4 },
+      targetMatrixCoord: null,
+      targetConfirmBtn: false
+    };
+  }
+  if (step === 3) {
+    return {
+      stepBadge: 'STEP 3 / 5',
+      title: '5×5 自由進化マトリックス（移動マスの解放）',
+      desc: '敵の「2」を倒して 2pt 獲得しました！画面下の「5×5進化マトリックス」では、1ptで周囲24マスの好きな移動先を解放できます。まずは上端中央の「＋」（前2マス目）をタップして解放しましょう。',
+      actionHint: '操作目標: 下の5×5マトリックス上端中央の「＋」（前2マス目）をタップ',
+      progress: 60,
+      targetBoardCell: null,
+      targetMatrixCoord: { dx: 0, dy: -2 },
+      targetConfirmBtn: false
+    };
+  }
+  if (step === 4) {
+    const hasRayPending = state.pendingEvo.some(p => p.type === 'ray');
+    return {
+      stepBadge: 'STEP 4 / 5',
+      title: '「走り（直進無限：∞）」への覚醒',
+      desc: '直進方向の「1マス目」と「2マス目」が両方揃うと、さらに＋1ptでどこまでも直進できる「走り（∞）」へ覚醒できます！上端の「覚醒」をタップし、最後に「進化確定」を押しましょう。',
+      actionHint: hasRayPending
+        ? '操作目標: 光っている「進化確定」ボタンをタップして進化を完了！'
+        : '操作目標: マトリックス上端中央の「覚醒」をタップして「∞（走り）」へ進化',
+      progress: 80,
+      targetBoardCell: null,
+      targetMatrixCoord: hasRayPending ? null : { dx: 0, dy: -2 },
+      targetConfirmBtn: hasRayPending
+    };
+  }
+  if (step === 5) {
+    const isSelected = sel && sel.r === 3 && sel.c === 4 && !sel.isEnemy;
+    return {
+      stepBadge: 'STEP 5 / 5',
+      title: '覚醒した「走り（∞）」で敵の王将を討伐！',
+      desc: '歩兵が前方無限（∞）の走り駒へ覚醒し、持ちポイントも「3」に成長しました！相手の「王8」を取れば勝利です（80手でサドンデス、120手で総pt判定）。5一の「王8」を一撃で射抜きましょう！',
+      actionHint: isSelected
+        ? '操作目標: 射程に入った5一の敵「王8」をタップして討ち取りましょう！'
+        : '操作目標: 進化した5四の自軍駒「3」をタップして選択',
+      progress: 100,
+      targetBoardCell: isSelected ? { r: 0, c: 4 } : { r: 3, c: 4 },
+      targetMatrixCoord: null,
+      targetConfirmBtn: false
+    };
+  }
+  return null;
+}
+
+function renderTutorialCoach() {
+  const panel = document.getElementById('tutorial-coach-panel');
+  if (!panel) return;
+  if (state.mode !== 'tutorial') {
+    panel.classList.add('hidden');
+    if (elBtnEvoConfirm) elBtnEvoConfirm.classList.remove('tutorial-target-btn');
+    return;
+  }
+  panel.classList.remove('hidden');
+  const tut = getTutorialTargetState();
+  if (!tut) {
+    if (elBtnEvoConfirm) elBtnEvoConfirm.classList.remove('tutorial-target-btn');
+    return;
+  }
+  const elBadge = document.getElementById('tutorial-step-badge');
+  const elTitle = document.getElementById('tutorial-step-title');
+  const elDesc = document.getElementById('tutorial-step-desc');
+  const elHint = document.getElementById('tutorial-action-hint');
+  const elBar = document.getElementById('tutorial-progress-bar');
+
+  if (elBadge) elBadge.textContent = tut.stepBadge;
+  if (elTitle) elTitle.textContent = tut.title;
+  if (elDesc) elDesc.textContent = tut.desc;
+  if (elHint) elHint.textContent = tut.actionHint;
+  if (elBar) elBar.style.width = `${tut.progress}%`;
+
+  if (elBtnEvoConfirm) {
+    elBtnEvoConfirm.classList.toggle('tutorial-target-btn', !!tut.targetConfirmBtn);
+  }
+}
+
+function startTutorialMode() {
+  state.mode = 'tutorial';
+  state.playerSide = 'sente';
+  state.rankOpponent = null;
+  state.tutorialStep = 1;
+  showScreen('game');
+  initGame();
+}
+
 // 画面切替制御
 function showScreen(screen) {
   const elEntrance = document.getElementById('view-entrance');
@@ -1078,6 +1277,7 @@ function showScreen(screen) {
     if (elEntrance) elEntrance.classList.remove('hidden');
     if (elGame) elGame.classList.add('hidden');
     renderUserProfile();
+    renderTutorialEntranceState();
     checkSavedGameResumeButton();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } else {
@@ -1137,7 +1337,7 @@ function computeStateChecksum(data) {
 }
 
 function saveGameToStorage() {
-  if (state.mode === 'online' || state.mode === 'rank') return;
+  if (state.mode === 'online' || state.mode === 'rank' || state.mode === 'tutorial') return;
   try {
     const data = {
       board: state.board,
@@ -1273,10 +1473,17 @@ function initGame() {
     elSuddenDeathBanner.classList.add('hidden');
   }
 
-  setupInitialBoard();
+  if (state.mode === 'tutorial') {
+    state.tutorialStep = 1;
+    setupTutorialBoard();
+  } else {
+    setupInitialBoard();
+  }
   elBattleLog.innerHTML = '';
   
-  if (state.mode === 'rank' && state.rankOpponent) {
+  if (state.mode === 'tutorial') {
+    addLog('【実戦チュートリアル開始】画面上部のガイドに従って、光っているマスやボタンをタップしてください。', 'log-evo');
+  } else if (state.mode === 'rank' && state.rankOpponent) {
     addLog(`真剣勝負開始！ 対戦相手: ${state.rankOpponent.name} (${state.rankOpponent.rankTitle} R${state.rankOpponent.rating})`);
   } else if (state.mode === 'online') {
     const opp = state.onlineOpponent || { name: '対戦相手' };
@@ -1298,7 +1505,10 @@ function initGame() {
 function updatePlayerNames() {
   const senteNameEl = document.getElementById('sente-name');
   const goteNameEl = document.getElementById('gote-name');
-  if (state.mode === 'pvp') {
+  if (state.mode === 'tutorial') {
+    senteNameEl.textContent = 'あなた (入門指南)';
+    goteNameEl.textContent = '指南役 (木人)';
+  } else if (state.mode === 'pvp') {
     senteNameEl.textContent = 'プレイヤー1 (先手)';
     goteNameEl.textContent = 'プレイヤー2 (後手)';
   } else if (state.mode === 'rank') {
@@ -1642,6 +1852,45 @@ function onCellClick(r, c) {
   if (state.phase === 'gameover') return;
   if (isCPUTurn()) return;
 
+  // チュートリアルモード中のステップ別ガイド制御
+  if (state.mode === 'tutorial') {
+    const step = state.tutorialStep || 1;
+    if (step === 1) {
+      const isSelected = state.selectedCell && state.selectedCell.r === 5 && state.selectedCell.c === 4 && !state.selectedCell.isEnemy;
+      if (r === 5 && c === 4) {
+        // 5六の歩兵の選択・選択解除を許可
+      } else if (isSelected && r === 4 && c === 4) {
+        // 5五への前進を許可
+      } else {
+        showToast('まずは光っている「5六の1」を選び、中央「5五」へ進めてみましょう');
+        return;
+      }
+    } else if (step === 2) {
+      const isSelected = state.selectedCell && state.selectedCell.r === 4 && state.selectedCell.c === 4 && !state.selectedCell.isEnemy;
+      if (r === 4 && c === 4) {
+        // 5五の歩兵の選択・選択解除を許可
+      } else if (isSelected && r === 3 && c === 4) {
+        // 5四の敵駒撃破を許可
+      } else {
+        showToast('光っている「5五の1」を選び、目の前の敵駒「5四の2」を撃破しましょう');
+        return;
+      }
+    } else if (step === 3 || step === 4) {
+      showToast('画面下の「5×5進化マトリックス」で光っているマスをタップして進化させましょう');
+      return;
+    } else if (step === 5) {
+      const isSelected = state.selectedCell && state.selectedCell.r === 3 && state.selectedCell.c === 4 && !state.selectedCell.isEnemy;
+      if (r === 3 && c === 4) {
+        // 5四の進化駒の選択・選択解除を許可
+      } else if (isSelected && r === 0 && c === 4) {
+        // 5一の敵王討ち取りを許可
+      } else {
+        showToast('進化した「5四の3」を選び、一直線上の「5一の王8」をタップして討ち取りましょう！');
+        return;
+      }
+    }
+  }
+
   const clickedPiece = state.board[r][c];
 
   // オンライン対局で相手の手番中の場合、駒の移動はブロック（インスペクトのみ）
@@ -1850,6 +2099,9 @@ function startInstantEvolution(points, enemyName, killerPiece) {
   state.pendingEvo = [];
   // 倒した駒自身をデフォルト選択
   state.inspectedPiece = killerPiece;
+  if (state.mode === 'tutorial' && state.tutorialStep === 2) {
+    state.tutorialStep = 3;
+  }
 
   // CPU手番の場合は即座に最適配分して終了
   if (isCPUTurn()) {
@@ -1868,6 +2120,36 @@ function onMatrixCellClick(dx, dy) {
   if (state.phase === 'gameover' || isCPUTurn()) return;
   const piece = state.inspectedPiece;
   if (!piece || piece.owner !== state.turn) return;
+
+  if (state.mode === 'tutorial') {
+    if (state.tutorialStep === 3) {
+      if (dx !== 0 || dy !== -2) {
+        showToast('まずはマトリックス一番上の中央「＋」（前2マス目）をタップして解放しましょう');
+        return;
+      }
+      state.pendingEvo.push({ pieceId: piece.id, dx: 0, dy: -2, type: 'step' });
+      SoundSystem.playMove();
+      state.tutorialStep = 4;
+      renderAll();
+      return;
+    } else if (state.tutorialStep === 4) {
+      if (dx !== 0 || dy !== -2) {
+        showToast('マトリックス一番上の中央「覚醒」をタップして「走り（∞）」へ進化させましょう');
+        return;
+      }
+      if (state.pendingEvo.some(p => p.type === 'ray')) {
+        showToast('光っている「進化確定」ボタンをタップして進化を完了させましょう');
+        return;
+      }
+      state.pendingEvo.push({ pieceId: piece.id, dx: 0, dy: -1, type: 'ray' });
+      SoundSystem.playEvolve();
+      renderAll();
+      return;
+    } else {
+      showToast('現在は盤上の光っている駒をタップして動かしてみましょう');
+      return;
+    }
+  }
 
   const dirX = Math.sign(dx);
   const dirY = Math.sign(dy);
@@ -1933,6 +2215,9 @@ function onMatrixCellClick(dx, dy) {
 // 進化の振り直し（キャンセルして移動に戻れる）
 function resetEvolutionPending() {
   state.pendingEvo = [];
+  if (state.mode === 'tutorial' && state.tutorialStep === 4) {
+    state.tutorialStep = 3;
+  }
   if (state.inspectedPiece && state.inspectedPiece.owner === state.turn) {
     const found = findPieceById(state.board, state.inspectedPiece.id);
     if (found) {
@@ -2187,6 +2472,12 @@ function hideEnemyEvolutionNotification() {
 
 // 【アクションB：駒を進化させる】の確定
 function confirmEvolutionTurn() {
+  if (state.mode === 'tutorial') {
+    if (state.tutorialStep !== 4 || !state.pendingEvo.some(p => p.type === 'ray')) {
+      showToast('まずはマトリックス上端中央の「覚醒」をタップして「∞覚醒」にしてから確定しましょう');
+      return;
+    }
+  }
   const isInstant = state.phase === 'instant_evo';
   if (!isInstant && state.pendingEvo.length === 0) return;
 
@@ -2313,6 +2604,20 @@ function endTurn() {
   state.validMoves = [];
   state.guardSquares = [];
   state.movesCount++;
+
+  if (state.mode === 'tutorial') {
+    state.turn = 'sente';
+    if (state.tutorialStep === 1) {
+      state.tutorialStep = 2;
+      addLog('【天王山制圧】5五（中央）を占拠しました！実戦では自分の番ごとに＋1pt獲得できます。続けて5四の敵駒「2」を撃破しましょう！', 'log-capture');
+    } else if (state.tutorialStep === 4) {
+      state.tutorialStep = 5;
+      SoundSystem.playEvolve();
+      addLog('【走り（∞）覚醒完了！】歩兵が前方無限の走り駒（3pt）へ進化しました！5一の敵「王8」を一撃で討ち取りましょう！', 'log-evo');
+    }
+    renderAll();
+    return;
+  }
   state.turn = state.turn === 'sente' ? 'gote' : 'sente';
   const sideSymbol = state.turn === 'sente' ? '先手' : '後手';
 
@@ -2432,8 +2737,14 @@ function endGame(winner, reasonText) {
   const desc = document.getElementById('gameover-desc');
 
   const winnerLabel = winner === 'sente' ? '先手' : '後手';
-  title.textContent = `${winnerLabel}の勝利！`;
-  desc.textContent = reasonText;
+  if (state.mode === 'tutorial') {
+    markTutorialCompleted();
+    title.textContent = '入門皆伝！チュートリアル完遂';
+    desc.textContent = '無法将棋の核心（駒の数字・天王山・敵駒撃破の即時進化・5×5自由解放・直進無限覚醒）をすべて習得しました！次は「からくり対局」や「真剣勝負」へ挑みましょう！';
+  } else {
+    title.textContent = `${winnerLabel}の勝利！`;
+    desc.textContent = reasonText;
+  }
 
   // ランクマッチ時のレート計算と演出
   const rankBox = document.getElementById('gameover-rank-result');
@@ -2534,7 +2845,7 @@ function endGame(winner, reasonText) {
   const btnRestart = document.getElementById('btn-gameover-restart');
   if (btnRestart) {
     btnRestart.disabled = false;
-    btnRestart.textContent = 'もう一度対局';
+    btnRestart.textContent = state.mode === 'tutorial' ? 'もう一度チュートリアル' : 'もう一度対局';
     btnRestart.classList.remove('rematch-agreed-prompt');
   }
   const rematchStatus = document.getElementById('online-rematch-status');
@@ -2572,7 +2883,7 @@ function findPieceById(board, id) {
 }
 
 function isCPUTurn() {
-  if (state.mode === 'pvp' || state.mode === 'online' || state.mode === 'rank') return false;
+  if (state.mode === 'pvp' || state.mode === 'online' || state.mode === 'rank' || state.mode === 'tutorial') return false;
   return state.turn !== state.playerSide;
 }
 
@@ -3425,6 +3736,7 @@ function renderAll() {
   renderStatsAndStatus();
   renderEvolutionBox();
   renderInspector();
+  renderTutorialCoach();
   saveGameToStorage();
 }
 
@@ -3450,6 +3762,11 @@ function renderBoard() {
       cell.className = 'board-cell';
       cell.dataset.r = r;
       cell.dataset.c = c;
+
+      const tutTarget = (state.mode === 'tutorial') ? getTutorialTargetState() : null;
+      if (tutTarget && tutTarget.targetBoardCell && tutTarget.targetBoardCell.r === r && tutTarget.targetBoardCell.c === c) {
+        cell.classList.add('tutorial-target-cell');
+      }
 
       // 直前の移動ハイライト
       if (state.lastMove) {
@@ -3952,6 +4269,11 @@ function renderInspector() {
           mCell.classList.add('can-unlock');
           mCell.textContent = '＋';
           mCell.title = '1pt消費してこのマスへの移動を解放！';
+        }
+
+        const tutTarget = (state.mode === 'tutorial') ? getTutorialTargetState() : null;
+        if (tutTarget && tutTarget.targetMatrixCoord && tutTarget.targetMatrixCoord.dx === checkDx && tutTarget.targetMatrixCoord.dy === checkDy) {
+          mCell.classList.add('tutorial-target-matrix');
         }
 
         mCell.addEventListener('click', () => onMatrixCellClick(checkDx, checkDy));
@@ -4571,6 +4893,20 @@ if (tabRivalsBtn) {
 }
 
 // エントランス・モードカードクリック
+const btnModeTutorial = document.getElementById('btn-mode-tutorial');
+if (btnModeTutorial) {
+  btnModeTutorial.addEventListener('click', startTutorialMode);
+}
+
+const btnTutorialSkip = document.getElementById('btn-tutorial-skip');
+if (btnTutorialSkip) {
+  btnTutorialSkip.addEventListener('click', () => {
+    markTutorialCompleted();
+    showToast('チュートリアルを完了しました！自由に対局をお楽しみください');
+    showScreen('entrance');
+  });
+}
+
 const btnModeRank = document.getElementById('btn-mode-rank');
 if (btnModeRank) {
   btnModeRank.addEventListener('click', () => {
@@ -5090,7 +5426,14 @@ if (hasSavedGame && state.wasInGameScreen && state.phase === 'play' && state.mov
   showScreen('game');
 } else {
   showScreen('entrance');
-  AdSystem.triggerLaunchAd();
+  AdSystem.triggerLaunchAd(() => {
+    if (!isTutorialCompleted()) {
+      const wrap = document.getElementById('tutorial-mode-wrap');
+      if (wrap && typeof wrap.scrollIntoView === 'function') {
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  });
 }
 
 // ==========================================
@@ -5414,6 +5757,10 @@ function startOnlineGameSession(mySide, oppPlayer, mode = 'online') {
   });
 
 window.MuhouEngine = Object.freeze({
+  startTutorialMode,
+  isTutorialCompleted,
+  markTutorialCompleted,
+  getTutorialTargetState,
   validateRemoteMove,
   validateRemoteEvolution,
   getLocalRealPlayers,

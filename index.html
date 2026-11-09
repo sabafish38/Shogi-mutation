@@ -49,7 +49,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Noto+Serif+JP:wght@400;600;700;900&family=Yuji+Boku&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=35">
+  <link rel="stylesheet" href="style.css?v=36">
 </head>
 <body>
   <div class="app-container">
@@ -107,6 +107,24 @@
       <!-- ゲームモード選択リスト -->
       <!-- ゲームモード選択（左揃え・非対称Bento構造・1pxボーダー） -->
       <div class="entrance-modes">
+        <!-- 初心者向け実践チュートリアル（初回起動時誘導モーション付き） -->
+        <div id="tutorial-mode-wrap" class="tutorial-mode-wrap">
+          <div id="tutorial-first-callout" class="tutorial-first-callout hidden">
+            <span class="callout-badge">初回推奨</span>
+            <span class="callout-text">初めての方はこちらをタップ！1分で基本と進化を体得できます</span>
+            <span class="callout-arrow">▼</span>
+          </div>
+          <button id="btn-mode-tutorial" class="mode-card mode-tutorial" type="button">
+            <div class="mode-info">
+              <div class="mode-heading">
+                <span class="mode-name">実戦チュートリアル（入門指南）</span>
+                <span id="tutorial-status-badge" class="tutorial-status-badge">初心者必見</span>
+              </div>
+              <p class="mode-desc">駒の数字の意味・天王山制圧・敵駒撃破による即時進化・5×5マトリックス解放・直進無限（∞）覚醒を全5ステップで実戦体験。</p>
+            </div>
+          </button>
+        </div>
+
         <!-- 主軸：ランクマッチ（オンライン・人間同士） -->
         <button id="btn-mode-rank" class="mode-card mode-rank" type="button">
           <div class="mode-info">
@@ -258,6 +276,28 @@
             <span><strong style="color:var(--ray-cyan)">直進</strong>直進無限(1pt)</span>
             <span><strong style="color:var(--ray-cyan)">∞</strong>走り</span>
           </div>
+        </div>
+      </div>
+
+      <!-- チュートリアル進行ガイドパネル（チュートリアルモード時のみ表示） -->
+      <div id="tutorial-coach-panel" class="tutorial-coach-panel hidden">
+        <div class="tutorial-coach-header">
+          <div class="tutorial-step-meta">
+            <span id="tutorial-step-badge" class="tutorial-step-badge">STEP 1 / 5</span>
+            <h3 id="tutorial-step-title" class="tutorial-step-title">駒の数字と天王山への移動</h3>
+          </div>
+          <div class="tutorial-coach-controls">
+            <button id="btn-tutorial-skip" class="btn btn-header" type="button">スキップして完了</button>
+          </div>
+        </div>
+        <div class="tutorial-progress-track">
+          <div id="tutorial-progress-bar" class="tutorial-progress-bar" style="width: 20%;"></div>
+        </div>
+        <p id="tutorial-step-desc" class="tutorial-step-desc">
+          各駒の数字は「持ちポイント（棋力）」です。まずは中央手前の歩兵「1」（5六）をタップし、中央の天王山（5五）へ進めてみましょう。
+        </p>
+        <div id="tutorial-action-hint" class="tutorial-action-hint">
+          操作目標: 光っている5六の「1」を選び、「5五」マスをタップ
         </div>
       </div>
 
@@ -814,8 +854,8 @@
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
 
   <!-- ゲームスクリプト群 -->
-  <script src="game.js?v=35"></script>
-  <script src="online.js?v=35"></script>
+  <script src="game.js?v=36"></script>
+  <script src="online.js?v=36"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
