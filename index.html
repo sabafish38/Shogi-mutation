@@ -20,21 +20,32 @@
   <meta name="twitter:title" content="無法将棋 (SHOGI: MUTATION)">
   <meta name="twitter:description" content="敵のポイントを吸収して駒を自由進化！新感覚ブラウザ将棋ゲーム。">
 
-  <!-- Google Analytics (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PKLGBYPE8V"></script>
+  <!-- 公式ホスト・非iframe環境のみ Analytics & AdSense を安全に動的ロード（itch.io等のiframe環境での規約違反・エラー防止） -->
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
+    (function() {
+      try {
+        var host = window.location.hostname || '';
+        var isOfficial = (host === 'shogi.pop-ghost.com' || host === 'www.shogi.pop-ghost.com');
+        var isTop = (window.self === window.top);
+        if (isOfficial && isTop) {
+          var ga = document.createElement('script');
+          ga.async = true;
+          ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-PKLGBYPE8V';
+          document.head.appendChild(ga);
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function(){ window.dataLayer.push(arguments); };
+          window.gtag('js', new Date());
+          window.gtag('config', 'G-PKLGBYPE8V');
 
-    gtag('config', 'G-PKLGBYPE8V');
-  </script>
-
-  <!-- Google AdSense & H5 Game Ads (Ad Placement API) -->
-  <script async
-    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3928469396768123"
-    crossorigin="anonymous"
-    data-ad-frequency-hint="30s">
+          var ad = document.createElement('script');
+          ad.async = true;
+          ad.crossOrigin = 'anonymous';
+          ad.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3928469396768123';
+          ad.setAttribute('data-ad-frequency-hint', '30s');
+          document.head.appendChild(ad);
+        }
+      } catch (e) {}
+    })();
   </script>
 
   <!-- PWA & Favicon -->
@@ -49,15 +60,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Noto+Serif+JP:wght@400;600;700;900&family=Yuji+Boku&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=36">
+  <link rel="stylesheet" href="style.css?v=37">
 </head>
 <body>
   <div class="app-container">
     <!-- エントランス（タイトル・モード選択）画面 -->
     <section id="view-entrance" class="view-entrance">
       <div class="entrance-hero">
-        <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span> <span class="version-badge">v3.3</span></h1>
-        <p class="entrance-tagline">盤上撃破で獲得した棋力により、駒の移動特性を直接変異・覚醒させる非対称戦略将棋</p>
+        <div class="entrance-hero-top">
+          <h1 class="entrance-title">無法将棋 <span class="entrance-sub">MUTATION</span> <span class="version-badge">v3.7</span></h1>
+          <button id="btn-lang-toggle" class="btn-lang-toggle" type="button" aria-label="Switch Language">EN / 日本語</button>
+        </div>
+        <p id="entrance-tagline-text" class="entrance-tagline">盤上撃破で獲得した棋力により、駒の移動特性を直接変異・覚醒させる非対称戦略将棋</p>
       </div>
 
       <!-- 週間シーズンバナー -->
@@ -193,6 +207,7 @@
         <div class="entrance-aux-btns">
           <button id="btn-entrance-rules" class="btn btn-aux" type="button">ルール・遊び方</button>
           <button id="btn-entrance-about" class="btn btn-aux" type="button">変異指南</button>
+          <a href="./chess/index.html" class="btn btn-aux" style="text-decoration:none;">無法チェスへ</a>
         </div>
       </div>
     </section>
@@ -425,9 +440,9 @@
     <footer class="site-footer">
       <nav class="footer-nav">
         <button id="btn-footer-rules" class="footer-link-btn" type="button">ゲームルール</button>
-        <a href="./privacy.html">プライバシーポリシー</a>
-        <a href="./terms.html">利用規約・免責事項</a>
-        <a href="./contact.html">お問い合わせ</a>
+        <a href="./privacy.html" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>
+        <a href="./terms.html" target="_blank" rel="noopener noreferrer">利用規約・免責事項</a>
+        <a href="./contact.html" target="_blank" rel="noopener noreferrer">お問い合わせ</a>
       </nav>
       <p>&copy; 2026 shogi.pop-ghost.com / sabafish38 All Rights Reserved.</p>
     </footer>
@@ -854,10 +869,10 @@
   <!-- Firebase SDK (v10 compat: 軽量＆安定) -->
 
   <!-- ゲームスクリプト群 -->
-  <script src="game.js?v=36"></script>
-  <script src="online.js?v=36"></script>
+  <script src="game.js?v=37"></script>
+  <script src="online.js?v=37"></script>
   <script>
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && window.self === window.top && !/itch/i.test(window.location.hostname || '')) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').then((reg) => {
           reg.update();

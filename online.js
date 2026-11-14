@@ -33,13 +33,18 @@
     }
   };
 
-  // プレイヤー識別IDの生成・取得
+  // プレイヤー識別IDの生成・取得（サードパーティiframe等でlocalStorage制限時も安全動作）
   function getMyPlayerUid() {
     if (myPlayerUid) return myPlayerUid;
-    let saved = localStorage.getItem('muhou_shogi_player_uid_v1');
+    let saved = null;
+    try {
+      saved = localStorage.getItem('muhou_shogi_player_uid_v1');
+    } catch (e) {}
     if (!saved) {
       saved = 'u_' + Math.random().toString(36).substring(2, 9);
-      localStorage.setItem('muhou_shogi_player_uid_v1', saved);
+      try {
+        localStorage.setItem('muhou_shogi_player_uid_v1', saved);
+      } catch (e) {}
     }
     myPlayerUid = saved;
     return myPlayerUid;

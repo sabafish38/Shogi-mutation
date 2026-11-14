@@ -3,6 +3,54 @@
 
 const BOARD_SIZE = 9;
 
+// ==========================================
+// サードパーティiframe・itch.io対応 安全ストレージ & 環境判定
+// ==========================================
+const memoryStorageFallback = new Map();
+
+function safeStorageGet(key) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch (e) {
+    return memoryStorageFallback.has(key) ? memoryStorageFallback.get(key) : null;
+  }
+}
+
+function safeStorageSet(key, value) {
+  memoryStorageFallback.set(key, String(value));
+  try {
+    window.localStorage.setItem(key, String(value));
+  } catch (e) {}
+}
+
+function safeStorageRemove(key) {
+  memoryStorageFallback.delete(key);
+  try {
+    window.localStorage.removeItem(key);
+  } catch (e) {}
+}
+
+function isEmbeddedIframe() {
+  try {
+    return window.self !== window.top;
+  } catch (e) {
+    return true;
+  }
+}
+
+function isOfficialWebHost() {
+  try {
+    const h = window.location.hostname || '';
+    return h === 'shogi.pop-ghost.com' || h === 'www.shogi.pop-ghost.com';
+  } catch (e) {
+    return false;
+  }
+}
+
+function isOfficialAdAllowed() {
+  return isOfficialWebHost() && !isEmbeddedIframe();
+}
+
 /**
  * 無法将棋 - SHOGI: MUTATION
  * メインゲームロジック & CPU思考エンジン
@@ -770,7 +818,7 @@ async function syncGlobalLeaderboard() {
   try {
     const myUid = (window.MuhouOnline && typeof window.MuhouOnline.getMyPlayerUid === 'function')
       ? window.MuhouOnline.getMyPlayerUid()
-      : (localStorage.getItem('muhou_shogi_player_uid_v1') || 'u_me');
+      : (safeStorageGet('muhou_shogi_player_uid_v1') || 'u_me');
 
     registerRealPlayer({
       uid: myUid,
@@ -899,7 +947,7 @@ function renderSeasonAndRanking() {
   const allRealPlayers = getLocalRealPlayers();
   const myUid = (window.MuhouOnline && typeof window.MuhouOnline.getMyPlayerUid === 'function')
     ? window.MuhouOnline.getMyPlayerUid()
-    : (localStorage.getItem('muhou_shogi_player_uid_v1') || 'u_me');
+    : (safeStorageGet('muhou_shogi_player_uid_v1') || 'u_me');
 
   // 実在棋士と殿堂マスターを結合してソート
   const unified = [];
@@ -1098,7 +1146,7 @@ function showToast(message, duration = 3200) {
 
 function isTutorialCompleted() {
   try {
-    return localStorage.getItem(TUTORIAL_DONE_KEY) === 'true';
+    return safeStorageGet(TUTORIAL_DONE_KEY) === 'true';
   } catch (e) {
     return false;
   }
@@ -1106,7 +1154,7 @@ function isTutorialCompleted() {
 
 function markTutorialCompleted() {
   try {
-    localStorage.setItem(TUTORIAL_DONE_KEY, 'true');
+    safeStorageSet(TUTORIAL_DONE_KEY, 'true');
   } catch (e) {}
   renderTutorialEntranceState();
 }
@@ -1123,7 +1171,8 @@ function renderTutorialEntranceState() {
     btnTut.classList.toggle('is-first-time-guide', !done);
   }
   if (badge) {
-    badge.textContent = done ? '皆伝済' : '初回推奨';
+    const t = I18N_UI[currentLang] || I18N_UI.ja;
+    badge.textContent = done ? t.tutBadgeDone : t.tutBadgeNew;
     badge.classList.toggle('is-cleared', done);
   }
 }
@@ -1260,6 +1309,147 @@ function renderTutorialCoach() {
   }
 }
 
+// ==========================================
+// 日英バイリンガル UI 切替システム (itch.io 海外プレイヤー対応)
+// ==========================================
+const LANG_STORAGE_KEY = 'muhou_shogi_lang_v1';
+let currentLang = (() => {
+  const saved = safeStorageGet(LANG_STORAGE_KEY);
+  if (saved === 'ja' || saved === 'en') return saved;
+  try {
+    const navLang = (navigator.language || 'ja').toLowerCase();
+    if (!navLang.startsWith('ja') && (isEmbeddedIframe() || /itch/i.test(window.location.hostname || ''))) {
+      return 'en';
+    }
+  } catch (e) {}
+  return 'ja';
+})();
+
+const I18N_UI = {
+  ja: {
+    tagline: '盤上撃破で獲得した棋力により、駒の移動特性を直接変異・覚醒させる非対称戦略将棋',
+    langBtn: 'EN / 日本語',
+    tutCalloutBadge: '初回推奨',
+    tutCalloutText: '初めての方はこちらをタップ！1分で基本と進化を体得できます',
+    tutName: '実戦チュートリアル（入門指南）',
+    tutDesc: '駒の数字の意味・天王山制圧・敵駒撃破による即時進化・5×5マトリックス解放・直進無限（∞）覚醒を全5ステップで実戦体験。',
+    tutBadgeNew: '初回推奨',
+    tutBadgeDone: '皆伝済',
+    rankName: '真剣勝負（格付戦）',
+    rankDesc: '全国のプレイヤーとリアルタイムで段位・レーティングを競う真剣対局。連勝者等の強敵は「賞金首」として出現！',
+    onlineName: '通信対局（遠隔戦）',
+    onlineDesc: '合言葉による友人間の一騎打ち、または全国フリー対局。勝敗によるレート変動はありません。',
+    comName: 'からくり対局（演習）',
+    comDesc: '入門・標準・強敵・鬼から選んで対戦。先後選択自由。',
+    freeName: '対面対局（相酌）',
+    freeDesc: '1台の端末で対局。レート変動なし。',
+    rankingTitle: '週間シーズンランキング',
+    tabTop: '全国TOP',
+    tabNear: 'あなたの周辺',
+    tabRivals: '対戦ライバル',
+    btnRules: 'ルール・遊び方',
+    btnAbout: '変異指南',
+    btnBack: 'タイトル',
+    btnUndo: '待った',
+    btnRestart: '新規対局',
+    btnSettings: '設定',
+    btnRulesShort: 'ルール',
+    btnEvoReset: '取消',
+    btnEvoConfirm: '進化確定',
+    btnTutSkip: 'スキップして完了',
+    dirHintUp: '▲ 進行方向 ▲',
+    dirHintDown: '▼ 進行方向 ▼'
+  },
+  en: {
+    tagline: 'Asymmetric Strategy Shogi: Absorb points from captured pieces to mutate and awaken movement in a 5x5 matrix.',
+    langBtn: '日本語 / EN',
+    tutCalloutBadge: 'START HERE',
+    tutCalloutText: 'New player? Tap here to learn the rules & evolution in 1 minute!',
+    tutName: 'Interactive Tutorial (5 Steps)',
+    tutDesc: 'Learn piece point values, Center Tennozan bonus, Instant Evolution, 5x5 matrix unlocking, and Infinite Ray (∞) awakening.',
+    tutBadgeNew: 'RECOMMENDED',
+    tutBadgeDone: 'CLEARED',
+    rankName: 'Ranked Match (Online)',
+    rankDesc: 'Real-time rating & rank battles against global players. High-streak opponents appear as Bounty Targets!',
+    onlineName: 'Online Match (Room / Free)',
+    onlineDesc: 'Play privately with a 4-digit room code or quick-match freely without rating changes.',
+    comName: 'VS CPU (Practice)',
+    comDesc: 'Choose Easy, Normal, Hard, or Master AI and pick your side.',
+    freeName: 'Pass & Play (Local 2P)',
+    freeDesc: 'Two players on one device with auto-flipped board dock.',
+    rankingTitle: 'Weekly Season Ranking',
+    tabTop: 'GLOBAL TOP',
+    tabNear: 'NEAR YOU',
+    tabRivals: 'RIVALS',
+    btnRules: 'Rules & Guide',
+    btnAbout: 'Mutation Tips',
+    btnBack: 'Title',
+    btnUndo: 'Undo',
+    btnRestart: 'Restart',
+    btnSettings: 'Settings',
+    btnRulesShort: 'Rules',
+    btnEvoReset: 'Reset',
+    btnEvoConfirm: 'Evolve',
+    btnTutSkip: 'Skip Tutorial',
+    dirHintUp: '▲ FORWARD ▲',
+    dirHintDown: '▼ FORWARD ▼'
+  }
+};
+
+function setLanguage(lang) {
+  currentLang = (lang === 'en') ? 'en' : 'ja';
+  safeStorageSet(LANG_STORAGE_KEY, currentLang);
+  applyLanguageUI();
+  if (typeof renderAll === 'function' && !document.getElementById('view-game').classList.contains('hidden')) {
+    renderAll();
+  }
+}
+
+function applyLanguageUI() {
+  const t = I18N_UI[currentLang] || I18N_UI.ja;
+  const setText = (sel, txt) => {
+    const el = document.querySelector(sel);
+    if (el) el.textContent = txt;
+  };
+  const langBtn = document.getElementById('btn-lang-toggle');
+  if (langBtn) {
+    langBtn.textContent = t.langBtn;
+    langBtn.classList.toggle('is-en', currentLang === 'en');
+  }
+  setText('#entrance-tagline-text', t.tagline);
+  setText('#tutorial-first-callout .callout-badge', t.tutCalloutBadge);
+  setText('#tutorial-first-callout .callout-text', t.tutCalloutText);
+  setText('#btn-mode-tutorial .mode-name', t.tutName);
+  setText('#btn-mode-tutorial .mode-desc', t.tutDesc);
+  setText('#btn-mode-rank .mode-name', t.rankName);
+  setText('#btn-mode-rank .mode-desc', t.rankDesc);
+  setText('#btn-mode-online .mode-name', t.onlineName);
+  setText('#btn-mode-online .mode-desc', t.onlineDesc);
+  setText('#btn-mode-com .mode-name', t.comName);
+  setText('#btn-mode-com .mode-desc', t.comDesc);
+  setText('#btn-mode-free .mode-name', t.freeName);
+  setText('#btn-mode-free .mode-desc', t.freeDesc);
+  setText('.ranking-title', t.rankingTitle);
+  setText('#tab-ranking-top', t.tabTop);
+  setText('#tab-ranking-near', t.tabNear);
+  setText('#tab-ranking-rivals', t.tabRivals);
+  setText('#btn-entrance-rules', t.btnRules);
+  setText('#btn-entrance-about', t.btnAbout);
+  setText('#btn-back-entrance', t.btnBack);
+  setText('#btn-undo', t.btnUndo);
+  setText('#btn-restart', t.btnRestart);
+  setText('#btn-settings', t.btnSettings);
+  setText('#btn-rules', t.btnRulesShort);
+  setText('#btn-evo-reset', t.btnEvoReset);
+  setText('#btn-evo-confirm', t.btnEvoConfirm);
+  setText('#btn-tutorial-skip', t.btnTutSkip);
+
+  const badge = document.getElementById('tutorial-status-badge');
+  if (badge) {
+    badge.textContent = isTutorialCompleted() ? t.tutBadgeDone : t.tutBadgeNew;
+  }
+}
+
 function startTutorialMode() {
   state.mode = 'tutorial';
   state.playerSide = 'sente';
@@ -1294,7 +1484,7 @@ function showScreen(screen) {
 function checkSavedGameResumeButton() {
   const btnResume = document.getElementById('btn-resume-game');
   if (!btnResume) return;
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const raw = safeStorageGet(STORAGE_KEY);
   if (raw) {
     try {
       const data = JSON.parse(raw);
@@ -1367,7 +1557,7 @@ function saveGameToStorage() {
 
 function loadGameFromStorage() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeStorageGet(STORAGE_KEY);
     if (!raw) return false;
     const data = JSON.parse(raw);
     if (!data || !data.board || !Array.isArray(data.board) || data.board.length !== 9) return false;
@@ -5143,8 +5333,13 @@ const AdSystem = (() => {
     trackAnalyticsEvent('ad_display', { placement: type });
   }
 
-  // アプリ起動時広告
+  // アプリ起動時広告（公式ドメイン・非iframe環境のみ表示）
   function triggerLaunchAd(onComplete) {
+    if (!isOfficialAdAllowed()) {
+      hasShownLaunchAd = true;
+      if (onComplete) onComplete();
+      return;
+    }
     if (hasShownLaunchAd) {
       if (onComplete) onComplete();
       return;
@@ -5166,8 +5361,12 @@ const AdSystem = (() => {
     showAdModal('launch', onComplete);
   }
 
-  // 試合終了後タイトル画面復帰時広告
+  // 試合終了後タイトル画面復帰時広告（公式ドメイン・非iframe環境のみ表示）
   function triggerMatchEndAd(onComplete) {
+    if (!isOfficialAdAllowed()) {
+      if (onComplete) onComplete();
+      return;
+    }
     if (typeof window.adBreak === 'function') {
       window.adBreak({
         type: 'next',
@@ -5414,7 +5613,16 @@ if (btnCloseEnemyEvo) {
   btnCloseEnemyEvo.addEventListener('click', hideEnemyEvolutionNotification);
 }
 
+// 言語切替ボタンリスナー
+const btnLangToggle = document.getElementById('btn-lang-toggle');
+if (btnLangToggle) {
+  btnLangToggle.addEventListener('click', () => {
+    setLanguage(currentLang === 'ja' ? 'en' : 'ja');
+  });
+}
+
 // 初回起動処理
+applyLanguageUI();
 loadUserProfile();
 syncGlobalLeaderboard();
 const hasSavedGame = loadGameFromStorage();
@@ -5503,15 +5711,19 @@ if (btnCopyFriendLink) {
     const codeEl = document.getElementById('friend-room-code-display');
     const code = codeEl ? codeEl.textContent.trim() : '';
     if (code && code !== '----') {
-      const inviteUrl = `https://shogi.pop-ghost.com/?room=${code}`;
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(inviteUrl).then(() => {
-          alert(`招待リンクをコピーしました！友達に送信してください:\n${inviteUrl}`);
+      const inviteText = isOfficialWebHost()
+        ? `https://shogi.pop-ghost.com/?room=${code}`
+        : `無法将棋 対局合言葉: ${code}（「友達の部屋に入る」に4桁の数字を入力してください）`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(inviteText).then(() => {
+          showToast(isOfficialWebHost()
+            ? `招待リンクをコピーしました！`
+            : `合言葉「${code}」をコピーしました！友達に伝えてください`);
         }).catch(() => {
-          prompt('招待リンクをコピーしてください:', inviteUrl);
+          prompt('以下をコピーして友達に送信してください:', inviteText);
         });
       } else {
-        prompt('招待リンクをコピーしてください:', inviteUrl);
+        prompt('以下をコピーして友達に送信してください:', inviteText);
       }
     }
   });
@@ -5757,6 +5969,10 @@ function startOnlineGameSession(mySide, oppPlayer, mode = 'online') {
   });
 
 window.MuhouEngine = Object.freeze({
+  getLanguage: () => currentLang,
+  setLanguage,
+  isOfficialAdAllowed,
+  isEmbeddedIframe,
   startTutorialMode,
   isTutorialCompleted,
   markTutorialCompleted,
